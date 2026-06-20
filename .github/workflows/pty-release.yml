@@ -1,0 +1,66 @@
+name: Build & Release PTY
+
+on:
+  push:
+    branches: [main]
+    paths: ['pty/**', '.github/workflows/pty-release.yml']
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux:x64
+            artifact: jukto-pty-linux-x8664-0
+            binary: jukto-pty
+          - os: macos-latest
+            target: darwin:arm64
+            artifact: jukto-pty-macos-arm64-0
+            binary: jukto-pty
+          - os: windows-latest
+            target: win32:x64
+            artifact: jukto-pty-windows-x8664-1.exe
+            binary: jukto-pty.exe
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build
+        run: cargo build --release
+        working-directory: pty
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: pty/target/release/${{ matrix.binary }}
+
+  release:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Upload to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0 --repo ${{ github.repository }} \
+            --title "PTY Binaries" \
+            --notes "Auto-built from main" \
+            artifacts/*/* || true
+          gh release upload v0 --repo ${{ github.repository }} \
+            artifacts/*/* --clobber
