@@ -54,11 +54,33 @@ jobs:
         with:
           path: artifacts
 
+      - name: Rename artifacts for release
+        shell: bash
+        run: |
+          for dir in artifacts/*/; do
+            artifact_name="$(basename "$dir")"
+            # The directory name is the artifact name (e.g. jukto-pty-macos-arm64-0)
+            # Inside, the binary has a generic name (jukto-pty or jukto-pty.exe)
+            # We rename it to match the artifact name
+            for file in "$dir"*; do
+              ext=""
+              case "$file" in
+                *.exe) ext=".exe" ;;
+              esac
+              # If the artifact name already has the right extension, use as-is
+              if [[ "$artifact_name" == *"$ext" ]]; then
+                mv "$file" "/tmp/${artifact_name}"
+              else
+                mv "$file" "/tmp/${artifact_name}${ext}"
+              fi
+            done
+          done
+
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v0
           name: PTY Binaries
           body: Auto-built from main
-          files: artifacts/*/*
+          files: /tmp/jukto-pty-*
           fail_on_unmatched: false
