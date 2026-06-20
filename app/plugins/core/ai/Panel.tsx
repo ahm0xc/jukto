@@ -4626,133 +4626,133 @@ export default function AIPanel({
       setIsInitialized(true);
       setIsInitialSessionsLoading(true);
       try {
-        void Promise.allSettled(
+        await Promise.allSettled(
           (["opencode", "codex"] as AiBackend[]).map(async (backend) => {
-            try {
-              const agentsList = await ai.getAgents(backend);
-              if (Array.isArray(agentsList) && agentsList.length > 0) {
-                const filteredAgents =
-                  backend === "opencode"
-                    ? (agentsList as AIAgent[]).filter((a) => {
-                        const normalized = (a.mode || a.name || "")
-                          .trim()
-                          .toLowerCase();
-                        return normalized === "build" || normalized === "plan";
-                      })
-                    : (agentsList as AIAgent[]);
-                const mapped = filteredAgents.map((a) => {
-                  const raw = a.name || a.mode;
-                  const id = (a.mode || a.name || "").trim().toLowerCase();
-                  return {
-                    id: id || raw,
-                    name: raw.charAt(0).toUpperCase() + raw.slice(1),
-                    icon: a.mode === "plan" ? MapIcon : Hammer,
-                  };
-                });
-                const resolvedAgents =
-                  mapped.length === 0
-                    ? backend === "codex"
-                      ? DEFAULT_CODEX_AGENTS
-                      : DEFAULT_OPENCODE_AGENTS
-                    : mapped;
-                setAgentsByBackend((prev) => ({
-                  ...prev,
-                  [backend]: resolvedAgents,
-                }));
-                setSelectedAgentByBackend((prev) => ({
-                  ...prev,
-                  [backend]: resolvedAgents[0]?.id || "",
-                }));
-              } else if (backend === "codex") {
-                setAgentsByBackend((prev) => ({
-                  ...prev,
-                  codex: DEFAULT_CODEX_AGENTS,
-                }));
-                setSelectedAgentByBackend((prev) => ({
-                  ...prev,
-                  codex: "default",
-                }));
+              try {
+                const agentsList = await ai.getAgents(backend);
+                if (Array.isArray(agentsList) && agentsList.length > 0) {
+                  const filteredAgents =
+                    backend === "opencode"
+                      ? (agentsList as AIAgent[]).filter((a) => {
+                          const normalized = (a.mode || a.name || "")
+                            .trim()
+                            .toLowerCase();
+                          return normalized === "build" || normalized === "plan";
+                        })
+                      : (agentsList as AIAgent[]);
+                  const mapped = filteredAgents.map((a) => {
+                    const raw = a.name || a.mode;
+                    const id = (a.mode || a.name || "").trim().toLowerCase();
+                    return {
+                      id: id || raw,
+                      name: raw.charAt(0).toUpperCase() + raw.slice(1),
+                      icon: a.mode === "plan" ? MapIcon : Hammer,
+                    };
+                  });
+                  const resolvedAgents =
+                    mapped.length === 0
+                      ? backend === "codex"
+                        ? DEFAULT_CODEX_AGENTS
+                        : DEFAULT_OPENCODE_AGENTS
+                      : mapped;
+                  setAgentsByBackend((prev) => ({
+                    ...prev,
+                    [backend]: resolvedAgents,
+                  }));
+                  setSelectedAgentByBackend((prev) => ({
+                    ...prev,
+                    [backend]: resolvedAgents[0]?.id || "",
+                  }));
+                } else if (backend === "codex") {
+                  setAgentsByBackend((prev) => ({
+                    ...prev,
+                    codex: DEFAULT_CODEX_AGENTS,
+                  }));
+                  setSelectedAgentByBackend((prev) => ({
+                    ...prev,
+                    codex: "default",
+                  }));
+                }
+              } catch {
+                if (backend === "codex") {
+                  setAgentsByBackend((prev) => ({
+                    ...prev,
+                    codex: DEFAULT_CODEX_AGENTS,
+                  }));
+                  setSelectedAgentByBackend((prev) => ({
+                    ...prev,
+                    codex: "default",
+                  }));
+                }
               }
-            } catch {
-              if (backend === "codex") {
-                setAgentsByBackend((prev) => ({
-                  ...prev,
-                  codex: DEFAULT_CODEX_AGENTS,
-                }));
-                setSelectedAgentByBackend((prev) => ({
-                  ...prev,
-                  codex: "default",
-                }));
-              }
-            }
 
-            try {
-              const result = await ai.getProviders(backend);
-              const providersList = result.providers;
-              const defaults = result.defaults || {};
-              if (Array.isArray(providersList)) {
-                setProvidersByBackend((prev) => ({
-                  ...prev,
-                  [backend]: providersList as AIProvider[],
-                }));
-                const models: {
-                  id: string;
-                  name: string;
-                  badges?: string[];
-                  detail?: string;
-                }[] = [];
-                let hasConfiguredKey = false;
-                let defaultModelId = "";
+              try {
+                const result = await ai.getProviders(backend);
+                const providersList = result.providers;
+                const defaults = result.defaults || {};
+                if (Array.isArray(providersList)) {
+                  setProvidersByBackend((prev) => ({
+                    ...prev,
+                    [backend]: providersList as AIProvider[],
+                  }));
+                  const models: {
+                    id: string;
+                    name: string;
+                    badges?: string[];
+                    detail?: string;
+                  }[] = [];
+                  let hasConfiguredKey = false;
+                  let defaultModelId = "";
 
-                for (const p of providersList as AIProvider[]) {
-                  if ((p as any).key || (p as any).source === "env") {
-                    hasConfiguredKey = true;
-                  }
-                  if (p.models) {
-                    const defaultForProvider = defaults[p.id];
-                    for (const [modelId, model] of Object.entries(p.models)) {
-                      const typedModel = model as AIModel;
-                      const isDefault = Boolean(
-                        defaultForProvider && modelId === defaultForProvider,
-                      );
-                      const optionId = `${p.id}:${modelId}`;
-                      models.push({
-                        id: optionId,
-                        name: typedModel.name || modelId,
-                        badges: modelBadges(typedModel, isDefault),
-                        detail: modelDetail(typedModel),
-                      });
-                      if (isDefault) {
-                        defaultModelId = optionId;
+                  for (const p of providersList as AIProvider[]) {
+                    if ((p as any).key || (p as any).source === "env") {
+                      hasConfiguredKey = true;
+                    }
+                    if (p.models) {
+                      const defaultForProvider = defaults[p.id];
+                      for (const [modelId, model] of Object.entries(p.models)) {
+                        const typedModel = model as AIModel;
+                        const isDefault = Boolean(
+                          defaultForProvider && modelId === defaultForProvider,
+                        );
+                        const optionId = `${p.id}:${modelId}`;
+                        models.push({
+                          id: optionId,
+                          name: typedModel.name || modelId,
+                          badges: modelBadges(typedModel, isDefault),
+                          detail: modelDetail(typedModel),
+                        });
+                        if (isDefault) {
+                          defaultModelId = optionId;
+                        }
                       }
                     }
                   }
-                }
 
-                setModelOptionsByBackend((prev) => ({
-                  ...prev,
-                  [backend]: models,
-                }));
-                setSelectedModelByBackend((prev) => ({
-                  ...prev,
-                  [backend]:
-                    models.length > 0 ? defaultModelId || models[0].id : "",
-                }));
+                  setModelOptionsByBackend((prev) => ({
+                    ...prev,
+                    [backend]: models,
+                  }));
+                  setSelectedModelByBackend((prev) => ({
+                    ...prev,
+                    [backend]:
+                      models.length > 0 ? defaultModelId || models[0].id : "",
+                  }));
+                  setNeedsApiKeyByBackend((prev) => ({
+                    ...prev,
+                    [backend]: !hasConfiguredKey && models.length === 0,
+                  }));
+                }
+              } catch {
+                setProvidersByBackend((prev) => ({ ...prev, [backend]: [] }));
+                setModelOptionsByBackend((prev) => ({ ...prev, [backend]: [] }));
+                setSelectedModelByBackend((prev) => ({ ...prev, [backend]: "" }));
                 setNeedsApiKeyByBackend((prev) => ({
                   ...prev,
-                  [backend]: !hasConfiguredKey && models.length === 0,
+                  [backend]: false,
                 }));
               }
-            } catch {
-              setProvidersByBackend((prev) => ({ ...prev, [backend]: [] }));
-              setModelOptionsByBackend((prev) => ({ ...prev, [backend]: [] }));
-              setSelectedModelByBackend((prev) => ({ ...prev, [backend]: "" }));
-              setNeedsApiKeyByBackend((prev) => ({
-                ...prev,
-                [backend]: false,
-              }));
-            }
-          }),
+            }),
         );
 
         // Fetch existing sessions from all backends
