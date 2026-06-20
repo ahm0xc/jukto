@@ -1,6 +1,7 @@
 import { ThemeColors, typography } from "@/constants/themes";
 import { usePlugins } from "@/plugins/context";
-import { DrawerActions, useNavigation } from "@react-navigation/native";
+import { DrawerActions } from "expo-router/react-navigation";
+import { useNavigation } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Plus, ChevronLeft } from "lucide-react-native";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
@@ -20,10 +21,33 @@ export function useHeaderHeight() {
 
 export function HamburgerIcon({ color }: { color: string }) {
   return (
-    <View style={{ justifyContent: "center", alignItems: "flex-start", gap: 4.5 }}>
-      <View style={{ width: 17, height: 2, backgroundColor: color, borderRadius: 1 }} />
-      <View style={{ width: 13, height: 2, backgroundColor: color, borderRadius: 1 }} />
-      <View style={{ width: 20, height: 2, backgroundColor: color, borderRadius: 1 }} />
+    <View
+      style={{ justifyContent: "center", alignItems: "flex-start", gap: 4.5 }}
+    >
+      <View
+        style={{
+          width: 17,
+          height: 2,
+          backgroundColor: color,
+          borderRadius: 1,
+        }}
+      />
+      <View
+        style={{
+          width: 13,
+          height: 2,
+          backgroundColor: color,
+          borderRadius: 1,
+        }}
+      />
+      <View
+        style={{
+          width: 20,
+          height: 2,
+          backgroundColor: color,
+          borderRadius: 1,
+        }}
+      />
     </View>
   );
 }
@@ -58,7 +82,7 @@ interface HeaderProps<T extends BaseTab> {
     targetWidth: number,
     onPress: () => void,
     onClose: () => void,
-    isNew: boolean
+    isNew: boolean,
   ) => React.ReactElement | null;
 
   // Theme colors
@@ -130,7 +154,7 @@ function Header<T extends BaseTab>({
 
     const currentIds = tabs.map((t) => t.id);
     const addedIds = currentIds.filter(
-      (id) => !prevTabIds.current.includes(id)
+      (id) => !prevTabIds.current.includes(id),
     );
     const wasTabRemoved = tabs.length < prevTabCount.current;
 
@@ -160,7 +184,13 @@ function Header<T extends BaseTab>({
   }, [tabs, tabWidth]);
 
   const renderTabItem = useCallback(
-    ({ item, index }: { item: T; index: number }): React.ReactElement | null => {
+    ({
+      item,
+      index,
+    }: {
+      item: T;
+      index: number;
+    }): React.ReactElement | null => {
       if (!renderTab || !tabs || !activeTabId) return null;
 
       const isActive = activeTabId === item.id;
@@ -178,10 +208,10 @@ function Header<T extends BaseTab>({
         tabWidth,
         () => onTabPress?.(item.id),
         () => onTabClose?.(item.id),
-        isNew
+        isNew,
       );
     },
-    [renderTab, tabs, activeTabId, tabWidth, newTabIds, onTabPress, onTabClose]
+    [renderTab, tabs, activeTabId, tabWidth, newTabIds, onTabPress, onTabClose],
   );
 
   const headerHeight = topInset + 44;
@@ -211,17 +241,42 @@ function Header<T extends BaseTab>({
         <View style={headerStyle} pointerEvents="box-none">
           <View style={headerBarStyle}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <TouchableOpacity onPress={handlePrimaryHeaderPress} style={styles.menuButton}>
-                {onBack ? <ChevronLeft size={22} color={colors.fg.default} strokeWidth={2} /> : <HamburgerIcon color={colors.fg.default} />}
+              <TouchableOpacity
+                onPress={handlePrimaryHeaderPress}
+                style={styles.menuButton}
+              >
+                {onBack ? (
+                  <ChevronLeft
+                    size={22}
+                    color={colors.fg.default}
+                    strokeWidth={2}
+                  />
+                ) : (
+                  <HamburgerIcon color={colors.fg.default} />
+                )}
               </TouchableOpacity>
               {leftAccessory}
               {title && (
-                <Text style={[styles.title, { color: colors.fg.default }]} numberOfLines={1} ellipsizeMode="tail">
+                <Text
+                  style={[styles.title, { color: colors.fg.default }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   {title.length > 20 ? title.slice(0, 20) + "…" : title}
                 </Text>
               )}
               {rightAccessory ? (
-                <View style={[styles.rightAccessory, { width: rightAccessoryWidth, height: 45, alignItems: "center", justifyContent: "center" }]}>
+                <View
+                  style={[
+                    styles.rightAccessory,
+                    {
+                      width: rightAccessoryWidth,
+                      height: 45,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    },
+                  ]}
+                >
                   {rightAccessory}
                 </View>
               ) : null}
@@ -239,7 +294,10 @@ function Header<T extends BaseTab>({
       <View style={headerStyle} pointerEvents="box-none">
         <View style={headerBarStyle}>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <TouchableOpacity onPress={openDrawerWithHaptic} style={styles.menuButton}>
+            <TouchableOpacity
+              onPress={openDrawerWithHaptic}
+              style={styles.menuButton}
+            >
               <HamburgerIcon color={colors.fg.default} />
             </TouchableOpacity>
             {leftAccessory}
@@ -277,7 +335,9 @@ function Header<T extends BaseTab>({
                 </TouchableOpacity>
               )}
             </View>
-            {rightAccessory ? <View style={styles.rightAccessory}>{rightAccessory}</View> : null}
+            {rightAccessory ? (
+              <View style={styles.rightAccessory}>{rightAccessory}</View>
+            ) : null}
           </View>
         </View>
       </View>

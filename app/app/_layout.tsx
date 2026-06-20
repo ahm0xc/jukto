@@ -225,13 +225,11 @@ function RootLayoutContent() {
     if (Platform.OS !== "android") return;
 
     if (isWorkspace) {
-      NavigationBar.setBackgroundColorAsync("transparent");
-      NavigationBar.setButtonStyleAsync("light");
+      NavigationBar.setStyle("dark");
       return;
     }
 
-    NavigationBar.setBackgroundColorAsync(statusBarBg);
-    NavigationBar.setButtonStyleAsync(statusBarStyle === "light" ? "light" : "dark");
+    NavigationBar.setStyle(statusBarStyle === "light" ? "dark" : "light");
   }, [isWorkspace, statusBarBg, statusBarStyle]);
 
   useEffect(() => {
@@ -266,8 +264,6 @@ function RootLayoutContent() {
       >
         <StatusBar
           style={statusBarStyle}
-          backgroundColor="transparent"
-          translucent={true}
         />
         <Stack
           screenOptions={{

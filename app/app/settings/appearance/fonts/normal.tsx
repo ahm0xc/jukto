@@ -16,7 +16,7 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "rea
 interface FontOptionProps {
   name: string;
   sampleText: string;
-  fontFamily: string;
+  fontFamily: string | undefined;
   isSelected: boolean;
   isDefault: boolean;
   onSelect: () => void;
@@ -139,7 +139,7 @@ export default function NormalFontPage() {
                 key={id}
                 name={family.name}
                 sampleText={t('fontNormal.sampleText')}
-                fontFamily={family.regular}
+                fontFamily={family.regular ?? undefined}
                 isSelected={fontSelection.normal === id}
                 isDefault={id === DEFAULT_FONT_SELECTION.normal}
                 onSelect={() => setNormalFont(id)}

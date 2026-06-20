@@ -140,8 +140,7 @@ const JuktoConnect = () => {
 
   useEffect(() => {
     if (Platform.OS === "android") {
-      NavigationBar.setBackgroundColorAsync(BLACK);
-      NavigationBar.setButtonStyleAsync("light");
+      NavigationBar.setStyle("dark");
     }
   }, []);
 
@@ -288,9 +287,9 @@ const JuktoConnect = () => {
       {/* Upper — Camera */}
       <View style={styles.upper}>
         {permission?.granted && (
-          <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: cameraOpacity }]}>
+          <Animated.View style={[StyleSheet.absoluteFill, { opacity: cameraOpacity }]}>
             <CameraView
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
               facing="back"
               onCameraReady={() => {
                 Animated.timing(cameraOpacity, {
@@ -328,7 +327,7 @@ const JuktoConnect = () => {
               <Svg
                 width={width}
                 height={SCREEN_HEIGHT}
-                style={StyleSheet.absoluteFillObject}
+                style={StyleSheet.absoluteFill}
                 pointerEvents="none"
               >
                 <Path
@@ -381,7 +380,7 @@ const JuktoConnect = () => {
                       t('juktoConnect.enterCodeDesc'),
                       [
                         { text: t('common.cancel'), style: "cancel" },
-                        { text: t('common.connect'), onPress: (code) => { if (code?.trim()) handleConnectWithCode(code.trim()); } },
+                        { text: t('common.connect'), onPress: (code?: string) => { if (code?.trim()) handleConnectWithCode(code.trim()); } },
                       ],
                       "plain-text",
                       "",

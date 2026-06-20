@@ -520,7 +520,15 @@ window.__juktoCreateCodeMirrorEditor = function createCodeMirrorEditor(options: 
       return { current: 0, total: 0 };
     }
 
-    const matches = Array.from(query.getCursor(view.state));
+    const cursor = query.getCursor(view.state);
+    const matches: { from: number; to: number }[] = [];
+    {
+      let r = cursor.next();
+      while (!r.done) {
+        matches.push(r.value);
+        r = cursor.next();
+      }
+    }
     if (matches.length === 0) {
       return { current: 0, total: 0 };
     }

@@ -41,7 +41,7 @@ import {
   View,
 } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView, ScrollView, TouchableOpacity } from "react-native-gesture-handler";
-import { FlashList } from "@shopify/flash-list";
+import { FlashList, FlashListRef } from "@shopify/flash-list";
 import Animated, {
   Easing,
   ZoomIn,
@@ -64,7 +64,7 @@ import Feather from "@expo/vector-icons/Feather";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Foundation from "@expo/vector-icons/Foundation";
-import { Audio } from "expo-av";
+import { RecordingPresets, setAudioModeAsync, requestRecordingPermissionsAsync, useAudioRecorder } from "expo-audio";
 import Svg, { Path } from "react-native-svg";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MenuView } from "@react-native-menu/menu";
@@ -557,7 +557,7 @@ function TextPartView({ part, isUser }: { part: AIPart; isUser: boolean }) {
 }
 
 function FilePartView({ part, enforceBottomSpacing = false }: { part: AIPart; enforceBottomSpacing?: boolean }) {
-  const { colors, radius } = useTheme();
+  const { colors, fonts, radius } = useTheme();
   const { t } = useTranslation();
   const mime = typeof part.mime === "string" ? part.mime : "";
   const url = typeof part.url === "string" ? part.url : "";
@@ -1318,19 +1318,20 @@ function mergeAssistantActivityMessages(messages: AIMessage[]): AIMessage[] {
       continue;
     }
 
-    const splitMessage = pendingAssistantCluster ? splitLeadingAssistantEventParts(message) : null;
-    if (splitMessage) {
+    const maybeSplit: { leading: AIPart[]; trailing: AIPart[] } | null = pendingAssistantCluster ? splitLeadingAssistantEventParts(message) : null;
+    if (maybeSplit && pendingAssistantCluster) {
+      const cluster: AIMessage = pendingAssistantCluster;
       pendingAssistantCluster = {
-        ...pendingAssistantCluster,
-        parts: [...(pendingAssistantCluster.parts || []), ...splitMessage.leading],
+        ...cluster,
+        parts: [...(cluster.parts || []), ...maybeSplit.leading],
         time: {
-          created: pendingAssistantCluster.time?.created ?? message.time?.created ?? Date.now(),
-          updated: message.time?.updated ?? pendingAssistantCluster.time?.updated ?? pendingAssistantCluster.time?.created ?? Date.now(),
+          created: cluster.time?.created ?? message.time?.created ?? Date.now(),
+          updated: message.time?.updated ?? cluster.time?.updated ?? cluster.time?.created ?? Date.now(),
         },
         metadata: {
-          ...(pendingAssistantCluster.metadata || {}),
+          ...(cluster.metadata || {}),
           mergedMessageIds: [
-            ...(((pendingAssistantCluster.metadata?.mergedMessageIds as string[] | undefined) || [])),
+            ...(((cluster.metadata?.mergedMessageIds as string[] | undefined) || [])),
             `${message.id}:leading-events`,
           ],
         },
@@ -1339,7 +1340,7 @@ function mergeAssistantActivityMessages(messages: AIMessage[]): AIMessage[] {
       merged.push({
         ...message,
         id: `${message.id}:reply`,
-        parts: splitMessage.trailing,
+        parts: maybeSplit.trailing,
       });
       continue;
     }
@@ -2790,10 +2791,12 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
 
   // Refs
   const inputRef = useRef<TextInput>(null);
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const audioRecorder = useAudioRecorder(
+    { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true }
+  );
   const latestVoiceLevelRef = useRef(VOICE_WAVE_IDLE_LEVEL);
   const voiceWaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const messagesListRef = useRef<FlashList<any>>(null);
+  const messagesListRef = useRef<FlashListRef<any>>(null);
   const messagesMapRef = useRef<Record<string, AIMessage[]>>({});
   const streamingBySessionRef = useRef<Record<string, true>>({});
   const stoppingSessionIdsRef = useRef<Set<string>>(new Set());
@@ -3695,12 +3698,12 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     if (tab?.sessionId) {
       setMessagesMap((prev) => {
         const next = { ...prev };
-        delete next[tab.sessionId];
+              delete next[tab.sessionId!];
         return next;
       });
       setErrorMessages((prev) => {
         const next = { ...prev };
-        delete next[tab.sessionId];
+        delete next[tab.sessionId!];
         return next;
       });
     }
@@ -3717,7 +3720,7 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     if (tab?.sessionId) {
       void (async () => {
         try {
-          const deleted = await ai.deleteSession(tab.sessionId, tab.backend);
+          const deleted = await ai.deleteSession(tab.sessionId!, tab.backend);
           if (!deleted) {
             setSessionTabs((prev) => [...prev, tab]);
             Alert.alert(t('aiPanel.unableDelete'), "The session could not be deleted.");
@@ -3944,40 +3947,25 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     setPendingQuestion(null);
   };
 
-  const updateEqualizer = useCallback((metering?: number) => {
-    const normalized = typeof metering === "number"
-      ? Math.max(0, Math.min(1, (metering + 40) / 40))
-      : VOICE_WAVE_IDLE_LEVEL;
-    // Apply noise gate — suppress low-level background noise
-    const gated = normalized < 0.25 ? 0 : normalized;
-    latestVoiceLevelRef.current = Math.max(
-      VOICE_WAVE_IDLE_LEVEL,
-      Math.min(1, gated * (0.9 + Math.random() * 0.2))
-    );
-  }, []);
-
   const resetEqualizer = useCallback(() => {
     latestVoiceLevelRef.current = VOICE_WAVE_IDLE_LEVEL;
     setVoiceWave(Array.from({ length: VOICE_WAVE_BAR_COUNT }, () => VOICE_WAVE_IDLE_LEVEL));
   }, []);
 
   const stopRecording = useCallback(async (): Promise<string | null> => {
-    const recording = recordingRef.current;
-    if (!recording) return null;
-    recordingRef.current = null;
+    if (!audioRecorder.isRecording) return null;
     if (voiceWaveIntervalRef.current) {
       clearInterval(voiceWaveIntervalRef.current);
       voiceWaveIntervalRef.current = null;
     }
     try {
-      await recording.stopAndUnloadAsync();
+      await audioRecorder.stop();
     } catch {
       // noop
     }
-    recording.setOnRecordingStatusUpdate(null);
-    const uri = recording.getURI();
+    const uri = audioRecorder.uri;
     try {
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
     } catch {
       // noop
     }
@@ -4478,32 +4466,18 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     setActiveSheet(null);
     Keyboard.dismiss();
     try {
-      const permission = await Audio.requestPermissionsAsync();
+      const permission = await requestRecordingPermissionsAsync();
       if (!permission.granted) {
         setIsVoiceMode(false);
         Alert.alert(t('aiPanel.micPermTitle'), t('aiPanel.micPermDesc'));
         return;
       }
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
-      const recording = new Audio.Recording();
-      recording.setProgressUpdateInterval(100);
-      recording.setOnRecordingStatusUpdate((status) => {
-        if (!status.isRecording) {
-          latestVoiceLevelRef.current = VOICE_WAVE_IDLE_LEVEL;
-          return;
-        }
-        setVoiceDurationMs(status.durationMillis ?? 0);
-        updateEqualizer(typeof status.metering === "number" ? status.metering : undefined);
-      });
-      await recording.prepareToRecordAsync({
-        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
-        isMeteringEnabled: true,
-      } as Audio.RecordingOptions);
-      await recording.startAsync();
-      recordingRef.current = recording;
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
       setVoiceDurationMs(0);
     } catch (err) {
       console.error("Voice recording start error:", err);
@@ -4515,7 +4489,6 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     animateInputHeight,
     isVoiceBusy,
     resetEqualizer,
-    updateEqualizer,
   ]);
 
   const cancelVoiceMode = useCallback(async () => {
@@ -4566,10 +4539,24 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
         clearInterval(voiceWaveIntervalRef.current);
       }
       voiceWaveIntervalRef.current = setInterval(() => {
-        const next = latestVoiceLevelRef.current;
+        let nextLevel = VOICE_WAVE_IDLE_LEVEL;
+        if (audioRecorder.isRecording) {
+          const status = audioRecorder.getStatus();
+          setVoiceDurationMs(status.durationMillis ?? 0);
+          const metering = status.metering;
+          if (typeof metering === "number") {
+            const normalized = Math.max(0, Math.min(1, (metering + 40) / 40));
+            const gated = normalized < 0.25 ? 0 : normalized;
+            nextLevel = Math.max(
+              VOICE_WAVE_IDLE_LEVEL,
+              Math.min(1, gated * (0.9 + Math.random() * 0.2))
+            );
+          }
+        }
+        latestVoiceLevelRef.current = nextLevel;
         setVoiceWave((prev) => {
           const shifted = prev.slice(1);
-          shifted.push(next);
+          shifted.push(nextLevel);
           return shifted;
         });
       }, 100);
@@ -4593,9 +4580,8 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
         clearInterval(voiceWaveIntervalRef.current);
         voiceWaveIntervalRef.current = null;
       }
-      if (recordingRef.current) {
-        recordingRef.current.stopAndUnloadAsync().catch(() => {});
-        recordingRef.current = null;
+      if (audioRecorder.isRecording) {
+        audioRecorder.stop().catch(() => {});
       }
     };
   }, [clearScheduledScroll]);
@@ -4831,7 +4817,6 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
           <View style={styles.headerMenuWrapper}>
             <MenuView
               shouldOpenOnLongPress={false}
-              preferredMenuAnchorPosition="bottom"
               onPressAction={({ nativeEvent }) => {
                 if (nativeEvent.event === "toggle-detailed-view") {
                   handleDetailedViewAction();
@@ -4927,7 +4912,7 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
                 data={listData}
                 keyExtractor={(item) => item.type === "message" ? item.data.id : item.id}
                 renderItem={renderListItem}
-                estimatedItemSize={140}
+
                 style={{ flex: 1 }}
                 indicatorStyle="default"
                 onLayout={(e) => {

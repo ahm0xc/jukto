@@ -11,15 +11,14 @@ export default function WorkspaceLayout() {
 
   useEffect(() => {
     if (Platform.OS === "android") {
-      NavigationBar.setBackgroundColorAsync("transparent");
-      NavigationBar.setButtonStyleAsync("light");
+      NavigationBar.setStyle("dark");
     }
   }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Drawer
-        drawerContent={(props) => <DrawerContent {...props} />}
+        drawerContent={(props: any) => <DrawerContent {...props} />}
         screenOptions={{
           headerShown: false,
           drawerType: "slide",

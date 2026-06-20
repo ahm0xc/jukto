@@ -4,7 +4,7 @@ const IS_DEV = process.env.APP_VARIANT === "development";
 const IS_PREVIEW = process.env.APP_VARIANT === "preview";
 
 function getUniqueIdentifier() {
-  if (IS_DEV) return "io.somossa.jukto.pw";
+  if (IS_DEV) return "io.somossa.jukto.dev";
   if (IS_PREVIEW) return "io.somossa.jukto.prev";
   return "io.somossa.jukto";
 }
@@ -32,7 +32,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     icon: "./assets/images/icon.png",
     scheme: getAppScheme(),
     userInterfaceStyle: "automatic",
-    newArchEnabled: true,
     ios: {
       supportsTablet: true,
       bundleIdentifier: getUniqueIdentifier(),
@@ -51,7 +50,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         foregroundImage: "./assets/images/icon.png",
         backgroundColor: "#ffffff",
       },
-      edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       permissions: ["RECORD_AUDIO"],
       package: getUniqueIdentifier(),
@@ -62,6 +60,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     plugins: [
       "expo-router",
+      "expo-font",
+      "expo-image",
+      "expo-secure-store",
+      "expo-status-bar",
+      "expo-web-browser",
       [
         "expo-camera",
         {
@@ -91,6 +94,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         },
       ],
       "expo-asset",
+      "expo-audio",
       "expo-localization",
     ],
     experiments: {

@@ -356,7 +356,7 @@ function EncryptionPage() {
         <View style={{ backgroundColor: colors.bg.raised, borderRadius: 16, overflow: "hidden" }}>
           {ENCRYPTION_POINTS.map((point, index) => (
             <View
-              key={point.label}
+              key={point.labelKey}
               style={{
                 flexDirection: "row",
                 alignItems: "flex-start",
@@ -455,7 +455,7 @@ function GlazePage() {
 
         <View style={{ gap: 10, marginBottom: 28 }}>
           {GLAZE_POINTS.map((point) => (
-            <View key={point.label} style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+            <View key={point.labelKey} style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
               <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: colors.bg.raised, alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 {point.icon === "github"
                   ? <FontAwesome name="github" size={16} color={colors.fg.default} />

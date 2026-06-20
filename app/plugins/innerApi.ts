@@ -44,9 +44,9 @@ class InnerApi {
 export const innerApi = new InnerApi();
 
 // Global access for convenience
-if (typeof global !== 'undefined') {
-  (global as any).app = (global as any).app || {};
-  (global as any).app.innerApi = innerApi;
-  (global as any).app.showBrainrot = () => innerApi.showBrainrot();
-  (global as any).app.showAIChat = () => innerApi.showAIChat();
+if (typeof globalThis !== 'undefined') {
+  (globalThis as any).app = (globalThis as any).app || {};
+  (globalThis as any).app.innerApi = innerApi;
+  (globalThis as any).app.showBrainrot = () => innerApi.showBrainrot();
+  (globalThis as any).app.showAIChat = () => innerApi.showAIChat();
 }

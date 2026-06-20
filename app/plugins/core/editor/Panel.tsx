@@ -1,6 +1,7 @@
 import Loading from "@/components/Loading";
 import Header from "@/components/Header";
 import { useTranslation } from "react-i18next";
+import { DrawerActions } from "expo-router/react-navigation";
 import { Message, useConnection } from "@/contexts/ConnectionContext";
 import { useEditorConfig } from "@/contexts/EditorContext";
 import { useReviewPrompt } from "@/contexts/ReviewPromptContext";
@@ -10,10 +11,20 @@ import { monoFamilies } from "@/constants/themes";
 import { useApi } from "@/hooks/useApi";
 import { logger } from "@/lib/logger";
 import { usePlugins } from "@/plugins/context";
-import { DrawerActions, useNavigation } from "@react-navigation/native";
+import { useNavigation } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { ChevronDown, ChevronUp, File, Folder, Keyboard as KeyboardIcon, Save, Search, Star, X } from "lucide-react-native";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChevronDown,
+  ChevronUp,
+  File,
+  Folder,
+  Keyboard as KeyboardIcon,
+  Save,
+  Search,
+  Star,
+  X,
+} from "lucide-react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Keyboard,
@@ -25,7 +36,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Animated, { runOnJS, useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 import { useKeyboardHandler } from "react-native-keyboard-controller";
 import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { PluginPanelProps } from "../../types";
@@ -61,27 +76,32 @@ function getWebFontConfig(monoFontId: keyof typeof monoFamilies) {
     case "jetbrains-mono":
       return {
         cssFamily: '"JetBrains Mono"',
-        stylesheetUrl: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap",
+        stylesheetUrl:
+          "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap",
       };
     case "fira-code":
       return {
         cssFamily: '"Fira Code"',
-        stylesheetUrl: "https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap",
+        stylesheetUrl:
+          "https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap",
       };
     case "source-code-pro":
       return {
         cssFamily: '"Source Code Pro"',
-        stylesheetUrl: "https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;700&display=swap",
+        stylesheetUrl:
+          "https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500;700&display=swap",
       };
     case "ibm-plex-mono":
       return {
         cssFamily: '"IBM Plex Mono"',
-        stylesheetUrl: "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap",
+        stylesheetUrl:
+          "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&display=swap",
       };
     case "dm-mono":
       return {
         cssFamily: '"DM Mono"',
-        stylesheetUrl: "https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap",
+        stylesheetUrl:
+          "https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap",
       };
   }
 }
@@ -300,7 +320,9 @@ function createEditorHtml({
 </html>`;
 }
 
-export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: PluginPanelProps) {
+export default function EditorPanel({
+  bottomBarHeight: _bottomBarHeight,
+}: PluginPanelProps) {
   const { t } = useTranslation();
   const { colors, fonts, fontSelection, isDark } = useTheme();
   const { fireData, onDataEvent } = useConnection();
@@ -326,11 +348,16 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
   const [showReplace, setShowReplace] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [replaceQuery, setReplaceQuery] = useState("");
-  const [searchMatchInfo, setSearchMatchInfo] = useState<{ current: number; total: number } | null>(null);
+  const [searchMatchInfo, setSearchMatchInfo] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const searchInputRef = useRef<any>(null);
   const tabsRef = useRef<EditorTab[]>([]);
-  const saveTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const saveTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+    {},
+  );
   const webViewRef = useRef<WebView | null>(null);
   const webViewContentRef = useRef<Record<string, string>>({});
   const keyboardHeightSV = useSharedValue(0);
@@ -351,14 +378,12 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
         runOnJS(setIsKeyboardVisible)(event.height > 0);
       },
     },
-    []
+    [],
   );
 
   const keyboardDismissButtonStyle = useAnimatedStyle(() => ({
     opacity: keyboardHeightSV.value > 0 ? 1 : 0,
-    transform: [
-      { translateY: keyboardHeightSV.value > 0 ? 0 : 12 },
-    ],
+    transform: [{ translateY: keyboardHeightSV.value > 0 ? 0 : 12 }],
   }));
 
   useEffect(() => {
@@ -373,84 +398,100 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
     }
   }, []);
 
-  const closeTab = useCallback((tabId: string) => {
-    const closingTab = tabsRef.current.find((tab) => tab.id === tabId);
-    clearSaveTimer(tabId);
-    delete webViewContentRef.current[tabId];
-    if (closingTab) {
-      fireData("editor", "close", { path: closingTab.path });
-    }
-    setTabs((prev) => {
-      const next = prev.filter((tab) => tab.id !== tabId);
-      setActiveTabId((currentActiveTabId) => {
-        if (currentActiveTabId !== tabId) {
-          return currentActiveTabId;
-        }
-
-        if (next.length === 0) {
-          return null;
-        }
-
-        const currentIndex = prev.findIndex((tab) => tab.id === tabId);
-        const nextIndex = Math.max(0, currentIndex - 1);
-        return next[nextIndex]?.id ?? next[0].id;
-      });
-      return next;
-    });
-  }, [clearSaveTimer, fireData]);
-
-  const saveTabContent = useCallback(async (tabId: string) => {
-    const targetTab = tabsRef.current.find((tab) => tab.id === tabId);
-    const snapshot = webViewContentRef.current[tabId] ?? targetTab?.lastSavedContent ?? "";
-    if (!targetTab || targetTab.isDeleted || targetTab.isLoading || targetTab.loadError) {
-      return;
-    }
-
-    setTabs((prev) =>
-      prev.map((tab) =>
-        tab.id === tabId
-          ? { ...tab, isSaving: true, saveError: null }
-          : tab
-      )
-    );
-
-    try {
-      await fs.write(targetTab.path, snapshot, "utf8", undefined, { source: "editor" });
-      setTabs((prev) =>
-        prev.map((tab) => {
-          if (tab.id !== tabId) {
-            return tab;
+  const closeTab = useCallback(
+    (tabId: string) => {
+      const closingTab = tabsRef.current.find((tab) => tab.id === tabId);
+      clearSaveTimer(tabId);
+      delete webViewContentRef.current[tabId];
+      if (closingTab) {
+        fireData("editor", "close", { path: closingTab.path });
+      }
+      setTabs((prev) => {
+        const next = prev.filter((tab) => tab.id !== tabId);
+        setActiveTabId((currentActiveTabId) => {
+          if (currentActiveTabId !== tabId) {
+            return currentActiveTabId;
           }
 
-          const latestSnapshot = webViewContentRef.current[tabId] ?? snapshot;
-          return {
-            ...tab,
-            lastSavedContent: snapshot,
-            isDirty: latestSnapshot !== snapshot,
-            isSaving: false,
-            saveError: null,
-          };
-        })
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t('editor.failedSaveFile');
+          if (next.length === 0) {
+            return null;
+          }
+
+          const currentIndex = prev.findIndex((tab) => tab.id === tabId);
+          const nextIndex = Math.max(0, currentIndex - 1);
+          return next[nextIndex]?.id ?? next[0].id;
+        });
+        return next;
+      });
+    },
+    [clearSaveTimer, fireData],
+  );
+
+  const saveTabContent = useCallback(
+    async (tabId: string) => {
+      const targetTab = tabsRef.current.find((tab) => tab.id === tabId);
+      const snapshot =
+        webViewContentRef.current[tabId] ?? targetTab?.lastSavedContent ?? "";
+      if (
+        !targetTab ||
+        targetTab.isDeleted ||
+        targetTab.isLoading ||
+        targetTab.loadError
+      ) {
+        return;
+      }
+
       setTabs((prev) =>
         prev.map((tab) =>
-          tab.id === tabId
-            ? { ...tab, isSaving: false, saveError: message, isDirty: true }
-            : tab
-        )
+          tab.id === tabId ? { ...tab, isSaving: true, saveError: null } : tab,
+        ),
       );
-    }
-  }, [fs]);
 
-  const scheduleSave = useCallback((tabId: string) => {
-    clearSaveTimer(tabId);
-    saveTimeoutsRef.current[tabId] = setTimeout(() => {
-      delete saveTimeoutsRef.current[tabId];
-      void saveTabContent(tabId);
-    }, AUTOSAVE_DELAY_MS);
-  }, [clearSaveTimer, saveTabContent]);
+      try {
+        await fs.write(targetTab.path, snapshot, "utf8", undefined, {
+          source: "editor",
+        });
+        setTabs((prev) =>
+          prev.map((tab) => {
+            if (tab.id !== tabId) {
+              return tab;
+            }
+
+            const latestSnapshot = webViewContentRef.current[tabId] ?? snapshot;
+            return {
+              ...tab,
+              lastSavedContent: snapshot,
+              isDirty: latestSnapshot !== snapshot,
+              isSaving: false,
+              saveError: null,
+            };
+          }),
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : t("editor.failedSaveFile");
+        setTabs((prev) =>
+          prev.map((tab) =>
+            tab.id === tabId
+              ? { ...tab, isSaving: false, saveError: message, isDirty: true }
+              : tab,
+          ),
+        );
+      }
+    },
+    [fs],
+  );
+
+  const scheduleSave = useCallback(
+    (tabId: string) => {
+      clearSaveTimer(tabId);
+      saveTimeoutsRef.current[tabId] = setTimeout(() => {
+        delete saveTimeoutsRef.current[tabId];
+        void saveTabContent(tabId);
+      }, AUTOSAVE_DELAY_MS);
+    },
+    [clearSaveTimer, saveTabContent],
+  );
 
   useEffect(() => {
     if (!config.autoSave) {
@@ -468,210 +509,255 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
     }
   }, [config.autoSave, scheduleSave]);
 
-  const updateTabContent = useCallback((tabId: string, content: string) => {
-    const currentTab = tabsRef.current.find((tab) => tab.id === tabId);
-    if (!currentTab || currentTab.isDeleted || currentTab.isLoading || !!currentTab.loadError) {
-      return;
-    }
+  const updateTabContent = useCallback(
+    (tabId: string, content: string) => {
+      const currentTab = tabsRef.current.find((tab) => tab.id === tabId);
+      if (
+        !currentTab ||
+        currentTab.isDeleted ||
+        currentTab.isLoading ||
+        !!currentTab.loadError
+      ) {
+        return;
+      }
 
-    const shouldScheduleSave = content !== currentTab.lastSavedContent;
-    webViewContentRef.current[tabId] = content;
+      const shouldScheduleSave = content !== currentTab.lastSavedContent;
+      webViewContentRef.current[tabId] = content;
 
-    setTabs((prev) =>
-      prev.map((tab) => {
-        if (tab.id !== tabId) {
-          return tab;
+      setTabs((prev) =>
+        prev.map((tab) => {
+          if (tab.id !== tabId) {
+            return tab;
+          }
+
+          return {
+            ...tab,
+            isDirty: shouldScheduleSave,
+            saveError: null,
+          };
+        }),
+      );
+
+      if (shouldScheduleSave && config.autoSave) {
+        scheduleSave(tabId);
+      } else {
+        clearSaveTimer(tabId);
+      }
+    },
+    [clearSaveTimer, config.autoSave, scheduleSave],
+  );
+
+  const openFile = useCallback(
+    async (filePath: string) => {
+      const existingTab = tabsRef.current.find((tab) => tab.path === filePath);
+      if (existingTab) {
+        setActiveTabId(existingTab.id);
+        return;
+      }
+
+      const tabId = makeTabId();
+      const nextTab: EditorTab = {
+        id: tabId,
+        title: getFileName(filePath),
+        path: filePath,
+        lastSavedContent: "",
+        isDirty: false,
+        isSaving: false,
+        isLoading: true,
+        isDeleted: false,
+        saveError: null,
+        loadError: null,
+      };
+
+      setTabs((prev) => [...prev, nextTab]);
+      setActiveTabId(tabId);
+
+      try {
+        const stat = await fs.stat(filePath);
+        if (stat.type !== "file") {
+          throw new Error(t("editor.onlyFilesAllowed"));
+        }
+        if (stat.isBinary) {
+          throw new Error(t("editor.binaryFilesNotAllowed"));
         }
 
-        return {
-          ...tab,
-          isDirty: shouldScheduleSave,
-          saveError: null,
-        };
-      })
-    );
+        const result = await fs.read(filePath);
+        if (result.encoding !== "utf8") {
+          throw new Error(t("editor.binaryFilesNotAllowed"));
+        }
 
-    if (shouldScheduleSave && config.autoSave) {
-      scheduleSave(tabId);
-    } else {
-      clearSaveTimer(tabId);
-    }
-  }, [clearSaveTimer, config.autoSave, scheduleSave]);
+        webViewContentRef.current[tabId] = result.content;
+        fireData("editor", "open", { path: filePath });
 
-  const openFile = useCallback(async (filePath: string) => {
-    const existingTab = tabsRef.current.find((tab) => tab.path === filePath);
-    if (existingTab) {
-      setActiveTabId(existingTab.id);
-      return;
-    }
-
-    const tabId = makeTabId();
-    const nextTab: EditorTab = {
-      id: tabId,
-      title: getFileName(filePath),
-      path: filePath,
-      lastSavedContent: "",
-      isDirty: false,
-      isSaving: false,
-      isLoading: true,
-      isDeleted: false,
-      saveError: null,
-      loadError: null,
-    };
-
-    setTabs((prev) => [...prev, nextTab]);
-    setActiveTabId(tabId);
-
-    try {
-      const stat = await fs.stat(filePath);
-      if (stat.type !== "file") {
-        throw new Error(t('editor.onlyFilesAllowed'));
+        setTabs((prev) =>
+          prev.map((tab) =>
+            tab.id === tabId
+              ? {
+                  ...tab,
+                  lastSavedContent: result.content,
+                  isLoading: false,
+                  loadError: null,
+                }
+              : tab,
+          ),
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : t("editor.failedOpenFile");
+        setTabs((prev) => prev.filter((tab) => tab.id !== tabId));
+        setActiveTabId((currentActiveTabId) =>
+          currentActiveTabId === tabId ? null : currentActiveTabId,
+        );
+        throw new Error(message);
       }
-      if (stat.isBinary) {
-        throw new Error(t('editor.binaryFilesNotAllowed'));
+    },
+    [fireData, fs],
+  );
+
+  const insertText = useCallback(
+    async (text: string) => {
+      const activeTab = tabsRef.current.find((tab) => tab.id === activeTabId);
+      if (
+        !activeTab ||
+        activeTab.isDeleted ||
+        activeTab.isLoading ||
+        activeTab.loadError
+      ) {
+        return;
       }
 
+      const currentContent =
+        webViewContentRef.current[activeTab.id] ?? activeTab.lastSavedContent;
+      updateTabContent(activeTab.id, `${currentContent}${text}`);
+    },
+    [activeTabId, updateTabContent],
+  );
+
+  const notifyFileRenamed = useCallback(
+    async (from: string, to: string) => {
+      fireData("editor", "rename", { from, to });
+      setTabs((prev) =>
+        prev.map((tab) =>
+          tab.path === from
+            ? { ...tab, path: to, title: getFileName(to) }
+            : tab,
+        ),
+      );
+    },
+    [fireData],
+  );
+
+  const notifyFileDeleted = useCallback(
+    async (filePath: string) => {
+      let deletedTabTitle: string | null = null;
+      fireData("editor", "delete", { path: filePath });
+
+      setTabs((prev) =>
+        prev.map((tab) => {
+          if (tab.path !== filePath) {
+            return tab;
+          }
+
+          deletedTabTitle = tab.title;
+          clearSaveTimer(tab.id);
+          return {
+            ...tab,
+            isDeleted: true,
+            isSaving: false,
+            isDirty: false,
+            saveError: "This file was deleted from the explorer.",
+          };
+        }),
+      );
+
+      if (deletedTabTitle) {
+        Alert.alert(
+          t("editor.fileDeletedTitle"),
+          t("editor.fileDeletedDesc", { title: deletedTabTitle }),
+        );
+      }
+    },
+    [clearSaveTimer, fireData],
+  );
+
+  const reloadTabFromDisk = useCallback(
+    async (tabId: string, filePath: string) => {
+      logger.info("editor-sync", "reloading tab from disk", {
+        tabId,
+        path: filePath,
+      });
       const result = await fs.read(filePath);
       if (result.encoding !== "utf8") {
-        throw new Error(t('editor.binaryFilesNotAllowed'));
+        throw new Error(t("editor.binaryFilesNotAllowed"));
       }
 
       webViewContentRef.current[tabId] = result.content;
-      fireData("editor", "open", { path: filePath });
-
       setTabs((prev) =>
         prev.map((tab) =>
           tab.id === tabId
             ? {
                 ...tab,
                 lastSavedContent: result.content,
+                isDirty: false,
+                isSaving: false,
                 isLoading: false,
+                isDeleted: false,
+                saveError: null,
                 loadError: null,
               }
-            : tab
-        )
+            : tab,
+        ),
       );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t('editor.failedOpenFile');
-      setTabs((prev) => prev.filter((tab) => tab.id !== tabId));
-      setActiveTabId((currentActiveTabId) => (currentActiveTabId === tabId ? null : currentActiveTabId));
-      throw new Error(message);
-    }
-  }, [fireData, fs]);
 
-  const insertText = useCallback(async (text: string) => {
-    const activeTab = tabsRef.current.find((tab) => tab.id === activeTabId);
-    if (!activeTab || activeTab.isDeleted || activeTab.isLoading || activeTab.loadError) {
-      return;
-    }
-
-    const currentContent = webViewContentRef.current[activeTab.id] ?? activeTab.lastSavedContent;
-    updateTabContent(activeTab.id, `${currentContent}${text}`);
-  }, [activeTabId, updateTabContent]);
-
-  const notifyFileRenamed = useCallback(async (from: string, to: string) => {
-    fireData("editor", "rename", { from, to });
-    setTabs((prev) =>
-      prev.map((tab) =>
-        tab.path === from
-          ? { ...tab, path: to, title: getFileName(to) }
-          : tab
-      )
-    );
-  }, [fireData]);
-
-  const notifyFileDeleted = useCallback(async (filePath: string) => {
-    let deletedTabTitle: string | null = null;
-    fireData("editor", "delete", { path: filePath });
-
-    setTabs((prev) =>
-      prev.map((tab) => {
-        if (tab.path !== filePath) {
-          return tab;
-        }
-
-        deletedTabTitle = tab.title;
-        clearSaveTimer(tab.id);
-        return {
-          ...tab,
-          isDeleted: true,
-          isSaving: false,
-          isDirty: false,
-          saveError: "This file was deleted from the explorer.",
-        };
-      })
-    );
-
-    if (deletedTabTitle) {
-      Alert.alert(t('editor.fileDeletedTitle'), t('editor.fileDeletedDesc', { title: deletedTabTitle }));
-    }
-  }, [clearSaveTimer, fireData]);
-
-  const reloadTabFromDisk = useCallback(async (tabId: string, filePath: string) => {
-    logger.info("editor-sync", "reloading tab from disk", { tabId, path: filePath });
-    const result = await fs.read(filePath);
-    if (result.encoding !== "utf8") {
-      throw new Error(t('editor.binaryFilesNotAllowed'));
-    }
-
-    webViewContentRef.current[tabId] = result.content;
-    setTabs((prev) =>
-      prev.map((tab) =>
-        tab.id === tabId
-          ? {
-              ...tab,
-              lastSavedContent: result.content,
-              isDirty: false,
-              isSaving: false,
-              isLoading: false,
-              isDeleted: false,
-              saveError: null,
-              loadError: null,
-            }
-          : tab
-      )
-    );
-
-    const tab = tabsRef.current.find((candidate) => candidate.id === tabId);
-    if (activeTabId === tabId && tab) {
-      webViewRef.current?.injectJavaScript(`
+      const tab = tabsRef.current.find((candidate) => candidate.id === tabId);
+      if (activeTabId === tabId && tab) {
+        webViewRef.current?.injectJavaScript(`
         window.__juktoSetValue && window.__juktoSetValue('${escapeForSingleQuotedJs(result.content)}');
         window.__juktoSetFileName && window.__juktoSetFileName('${escapeForSingleQuotedJs(tab.path)}');
         window.__juktoSetWrapLines && window.__juktoSetWrapLines(${config.wrapLines ? "true" : "false"});
         window.__juktoSetReadOnly && window.__juktoSetReadOnly(${tab.isDeleted || !!tab.loadError ? "true" : "false"});
         true;
       `);
-    }
-  }, [activeTabId, config.wrapLines, fs]);
+      }
+    },
+    [activeTabId, config.wrapLines, fs],
+  );
 
-  const controller = useMemo(() => ({
-    openFile,
-    getOpenFiles: () => tabsRef.current.map((tab) => tab.path),
-    getCurrentFile: () => tabsRef.current.find((tab) => tab.id === activeTabId)?.path ?? null,
-    insertText,
-    notifyFileRenamed,
-    notifyFileDeleted,
-  }), [activeTabId, insertText, notifyFileDeleted, notifyFileRenamed, openFile]);
+  const controller = useMemo(
+    () => ({
+      openFile,
+      getOpenFiles: () => tabsRef.current.map((tab) => tab.path),
+      getCurrentFile: () =>
+        tabsRef.current.find((tab) => tab.id === activeTabId)?.path ?? null,
+      insertText,
+      notifyFileRenamed,
+      notifyFileDeleted,
+    }),
+    [activeTabId, insertText, notifyFileDeleted, notifyFileRenamed, openFile],
+  );
 
-  const reconnectRefreshTab = useCallback(async (tabId: string) => {
-    const tab = tabsRef.current.find((candidate) => candidate.id === tabId);
-    if (!tab) {
-      return;
-    }
-    clearSaveTimer(tab.id);
-    if (tab.isDirty) {
-      setTabs((prev) =>
-        prev.map((candidate) =>
-          candidate.id === tab.id
-            ? { ...candidate, isSaving: false, isLoading: false }
-            : candidate
-        )
-      );
-      return;
-    }
-    if (tab.isDeleted || tab.loadError) return;
-    await reloadTabFromDisk(tab.id, tab.path);
-  }, [clearSaveTimer, reloadTabFromDisk]);
+  const reconnectRefreshTab = useCallback(
+    async (tabId: string) => {
+      const tab = tabsRef.current.find((candidate) => candidate.id === tabId);
+      if (!tab) {
+        return;
+      }
+      clearSaveTimer(tab.id);
+      if (tab.isDirty) {
+        setTabs((prev) =>
+          prev.map((candidate) =>
+            candidate.id === tab.id
+              ? { ...candidate, isSaving: false, isLoading: false }
+              : candidate,
+          ),
+        );
+        return;
+      }
+      if (tab.isDeleted || tab.loadError) return;
+      await reloadTabFromDisk(tab.id, tab.path);
+    },
+    [clearSaveTimer, reloadTabFromDisk],
+  );
 
   useEffect(() => {
     registerEditorController(controller);
@@ -759,12 +845,21 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
         isDeleted: !!trackedTab?.isDeleted,
         loadError: trackedTab?.loadError ?? null,
       });
-      if (!trackedTab || trackedTab.isDirty || trackedTab.isLoading || trackedTab.isDeleted || trackedTab.loadError) {
+      if (
+        !trackedTab ||
+        trackedTab.isDirty ||
+        trackedTab.isLoading ||
+        trackedTab.isDeleted ||
+        trackedTab.loadError
+      ) {
         return;
       }
 
       void reloadTabFromDisk(trackedTab.id, trackedTab.path).catch((error) => {
-        const messageText = error instanceof Error ? error.message : t('editor.failedRefreshFile');
+        const messageText =
+          error instanceof Error
+            ? error.message
+            : t("editor.failedRefreshFile");
         logger.error("editor-sync", "failed to reload tab from disk", {
           tabId: trackedTab.id,
           path: trackedTab.path,
@@ -772,10 +867,8 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
         });
         setTabs((prev) =>
           prev.map((tab) =>
-            tab.id === trackedTab.id
-              ? { ...tab, loadError: messageText }
-              : tab
-          )
+            tab.id === trackedTab.id ? { ...tab, loadError: messageText } : tab,
+          ),
         );
       });
     });
@@ -783,71 +876,94 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
     return unsubscribe;
   }, [notifyFileDeleted, onDataEvent, reloadTabFromDisk]);
 
-
   const activeTab = useMemo(
     () => tabs.find((tab) => tab.id === activeTabId) ?? null,
-    [tabs, activeTabId]
+    [tabs, activeTabId],
   );
   const activeTabEditorId = activeTab?.id ?? null;
-  const activeTabContent = activeTab ? (webViewContentRef.current[activeTab.id] ?? "") : "";
+  const activeTabContent = activeTab
+    ? (webViewContentRef.current[activeTab.id] ?? "")
+    : "";
   const activeTabPath = activeTab?.path ?? "";
   const activeTabIsDeleted = !!activeTab?.isDeleted;
   const activeTabHasLoadError = !!activeTab?.loadError;
 
-  const syncWebViewState = useCallback((tabId: string, content: string, readOnly: boolean, fileName: string, wrapLines: boolean) => {
-    webViewRef.current?.injectJavaScript(`
+  const syncWebViewState = useCallback(
+    (
+      tabId: string,
+      content: string,
+      readOnly: boolean,
+      fileName: string,
+      wrapLines: boolean,
+    ) => {
+      webViewRef.current?.injectJavaScript(`
       window.__juktoSetValue && window.__juktoSetValue('${escapeForSingleQuotedJs(content)}');
       window.__juktoSetFileName && window.__juktoSetFileName('${escapeForSingleQuotedJs(fileName)}');
       window.__juktoSetWrapLines && window.__juktoSetWrapLines(${wrapLines ? "true" : "false"});
       window.__juktoSetReadOnly && window.__juktoSetReadOnly(${readOnly ? "true" : "false"});
       true;
     `);
-    webViewContentRef.current[tabId] = content;
-  }, []);
+      webViewContentRef.current[tabId] = content;
+    },
+    [],
+  );
 
-  const handleWebViewMessage = useCallback((event: WebViewMessageEvent) => {
-    try {
-      const payload = JSON.parse(event.nativeEvent.data) as { type?: string; value?: string };
+  const handleWebViewMessage = useCallback(
+    (event: WebViewMessageEvent) => {
+      try {
+        const payload = JSON.parse(event.nativeEvent.data) as {
+          type?: string;
+          value?: string;
+        };
 
-      if (payload.type === "searchInfo") {
-        try {
-          const info = JSON.parse(payload.value as string) as { current: number; total: number };
-          setSearchMatchInfo(info);
-        } catch {}
-        return;
+        if (payload.type === "searchInfo") {
+          try {
+            const info = JSON.parse(payload.value as string) as {
+              current: number;
+              total: number;
+            };
+            setSearchMatchInfo(info);
+          } catch {}
+          return;
+        }
+
+        if (payload.type !== "change" && payload.type !== "ready") {
+          return;
+        }
+
+        if (!activeTabId) {
+          return;
+        }
+
+        if (payload.type === "ready") {
+          const tab = tabsRef.current.find(
+            (candidate) => candidate.id === activeTabId,
+          );
+          syncWebViewState(
+            activeTabId,
+            webViewContentRef.current[activeTabId] ??
+              tab?.lastSavedContent ??
+              "",
+            !!tab?.isDeleted || !!tab?.loadError,
+            tab?.path ?? "",
+            config.wrapLines,
+          );
+          return;
+        }
+
+        if (typeof payload.value !== "string") {
+          return;
+        }
+
+        if (payload.type === "change") {
+          updateTabContent(activeTabId, payload.value);
+        }
+      } catch {
+        // Ignore malformed messages from the editor webview.
       }
-
-      if (payload.type !== "change" && payload.type !== "ready") {
-        return;
-      }
-
-      if (!activeTabId) {
-        return;
-      }
-
-      if (payload.type === "ready") {
-        const tab = tabsRef.current.find((candidate) => candidate.id === activeTabId);
-        syncWebViewState(
-          activeTabId,
-          webViewContentRef.current[activeTabId] ?? tab?.lastSavedContent ?? "",
-          !!tab?.isDeleted || !!tab?.loadError,
-          tab?.path ?? "",
-          config.wrapLines
-        );
-        return;
-      }
-
-      if (typeof payload.value !== "string") {
-        return;
-      }
-
-      if (payload.type === "change") {
-        updateTabContent(activeTabId, payload.value);
-      }
-    } catch {
-      // Ignore malformed messages from the editor webview.
-    }
-  }, [activeTabId, config.wrapLines, syncWebViewState, updateTabContent]);
+    },
+    [activeTabId, config.wrapLines, syncWebViewState, updateTabContent],
+  );
 
   useEffect(() => {
     if (!activeTabId || !activeTab) {
@@ -865,8 +981,23 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
       return;
     }
 
-    syncWebViewState(activeTabId, activeTabContent, activeTabIsDeleted || activeTabHasLoadError, activeTabPath, config.wrapLines);
-  }, [activeTab, activeTabContent, activeTabHasLoadError, activeTabId, activeTabIsDeleted, activeTabPath, config.wrapLines, syncWebViewState]);
+    syncWebViewState(
+      activeTabId,
+      activeTabContent,
+      activeTabIsDeleted || activeTabHasLoadError,
+      activeTabPath,
+      config.wrapLines,
+    );
+  }, [
+    activeTab,
+    activeTabContent,
+    activeTabHasLoadError,
+    activeTabId,
+    activeTabIsDeleted,
+    activeTabPath,
+    config.wrapLines,
+    syncWebViewState,
+  ]);
 
   const editorHtml = useMemo(() => {
     if (!activeTabEditorId) {
@@ -876,7 +1007,7 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
     const webFont = getWebFontConfig(fontSelection.mono);
 
     return createEditorHtml({
-      placeholder: t('editor.startTypingPlaceholder'),
+      placeholder: t("editor.startTypingPlaceholder"),
       backgroundColor: editorBackground,
       foregroundColor: editorForeground,
       placeholderColor: colors.fg.subtle,
@@ -914,13 +1045,15 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
       return;
     }
 
-    const tab = tabsRef.current.find((candidate) => candidate.id === activeTabId);
+    const tab = tabsRef.current.find(
+      (candidate) => candidate.id === activeTabId,
+    );
     syncWebViewState(
       activeTabId,
       webViewContentRef.current[activeTabId] ?? tab?.lastSavedContent ?? "",
       !!tab?.isDeleted || !!tab?.loadError,
       tab?.path ?? "",
-      config.wrapLines
+      config.wrapLines,
     );
   }, [activeTabId, config.wrapLines, syncWebViewState]);
 
@@ -944,21 +1077,27 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
     setSearchMatchInfo(null);
   }, []);
 
-  const handleSearchQueryChange = useCallback((text: string) => {
-    setSearchQuery(text);
-    webViewRef.current?.injectJavaScript(`
+  const handleSearchQueryChange = useCallback(
+    (text: string) => {
+      setSearchQuery(text);
+      webViewRef.current?.injectJavaScript(`
       window.__juktoSetSearchQuery && window.__juktoSetSearchQuery('${escapeForSingleQuotedJs(text)}', '${escapeForSingleQuotedJs(replaceQuery)}');
       true;
     `);
-  }, [replaceQuery]);
+    },
+    [replaceQuery],
+  );
 
-  const handleReplaceQueryChange = useCallback((text: string) => {
-    setReplaceQuery(text);
-    webViewRef.current?.injectJavaScript(`
+  const handleReplaceQueryChange = useCallback(
+    (text: string) => {
+      setReplaceQuery(text);
+      webViewRef.current?.injectJavaScript(`
       window.__juktoSetSearchQuery && window.__juktoSetSearchQuery('${escapeForSingleQuotedJs(searchQuery)}', '${escapeForSingleQuotedJs(text)}');
       true;
     `);
-  }, [searchQuery]);
+    },
+    [searchQuery],
+  );
 
   const handleFindNext = useCallback(() => {
     webViewRef.current?.injectJavaScript(`
@@ -1010,8 +1149,17 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
       return;
     }
 
-    const tab = tabsRef.current.find((candidate) => candidate.id === activeTabId);
-    if (!tab || tab.isDeleted || tab.isLoading || tab.loadError || tab.isSaving || !tab.isDirty) {
+    const tab = tabsRef.current.find(
+      (candidate) => candidate.id === activeTabId,
+    );
+    if (
+      !tab ||
+      tab.isDeleted ||
+      tab.isLoading ||
+      tab.loadError ||
+      tab.isSaving ||
+      !tab.isDirty
+    ) {
       return;
     }
 
@@ -1052,7 +1200,12 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
             activeOpacity={0.85}
           >
             <Star size={14} color="#ffffff" strokeWidth={2.2} />
-            <Text style={[styles.reviewButtonLabel, { fontFamily: fonts.sans.medium }]}>
+            <Text
+              style={[
+                styles.reviewButtonLabel,
+                { fontFamily: fonts.sans.medium },
+              ]}
+            >
               Review
             </Text>
           </TouchableOpacity>
@@ -1064,10 +1217,11 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
               style={styles.headerAction}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              {isSearchOpen
-                ? <X size={22} color={colors.fg.muted} strokeWidth={2} />
-                : <Search size={22} color={colors.fg.muted} strokeWidth={2} />
-              }
+              {isSearchOpen ? (
+                <X size={22} color={colors.fg.muted} strokeWidth={2} />
+              ) : (
+                <Search size={22} color={colors.fg.muted} strokeWidth={2} />
+              )}
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleFilesButtonPress}
@@ -1099,24 +1253,40 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <Header
-        title={activeTab?.title || t('nav.editor')}
+        title={activeTab?.title || t("nav.editor")}
         colors={colors}
         showBottomBorder={!!activeTab && !isSearchOpen}
         rightAccessoryWidth={showEditorReviewButton ? 172 : 100}
         rightAccessory={headerAccessory}
       />
 
-      <View style={[styles.content, {  }]}>
+      <View style={[styles.content, {}]}>
         {isSearchOpen && (
-          <View style={[styles.searchPanel, { backgroundColor: colors.bg.base, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border.secondary }]}>
+          <View
+            style={[
+              styles.searchPanel,
+              {
+                backgroundColor: colors.bg.base,
+                borderBottomWidth: StyleSheet.hairlineWidth,
+                borderBottomColor: colors.border.secondary,
+              },
+            ]}
+          >
             <View style={styles.searchRow}>
               <TextInput
                 ref={searchInputRef}
                 value={searchQuery}
                 onChangeText={handleSearchQueryChange}
-                placeholder={t('editor.searchPlaceholder')}
+                placeholder={t("editor.searchPlaceholder")}
                 placeholderTextColor={colors.fg.subtle}
-                style={[styles.searchInput, { color: colors.fg.default, backgroundColor: colors.bg.raised, fontFamily: fonts.sans.regular }]}
+                style={[
+                  styles.searchInput,
+                  {
+                    color: colors.fg.default,
+                    backgroundColor: colors.bg.raised,
+                    fontFamily: fonts.sans.regular,
+                  },
+                ]}
                 autoCorrect={false}
                 autoCapitalize="none"
                 returnKeyType="search"
@@ -1124,27 +1294,79 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
               />
               <TouchableOpacity
                 onPress={handleFindPrev}
-                disabled={!searchMatchInfo || searchMatchInfo.total === 0 || (searchMatchInfo.current > 0 && searchMatchInfo.current <= 1)}
-                style={[styles.iconBtn, { backgroundColor: colors.bg.raised, opacity: !searchMatchInfo || searchMatchInfo.total === 0 || (searchMatchInfo.current > 0 && searchMatchInfo.current <= 1) ? 0.35 : 1 }]}
+                disabled={
+                  !searchMatchInfo ||
+                  searchMatchInfo.total === 0 ||
+                  (searchMatchInfo.current > 0 && searchMatchInfo.current <= 1)
+                }
+                style={[
+                  styles.iconBtn,
+                  {
+                    backgroundColor: colors.bg.raised,
+                    opacity:
+                      !searchMatchInfo ||
+                      searchMatchInfo.total === 0 ||
+                      (searchMatchInfo.current > 0 &&
+                        searchMatchInfo.current <= 1)
+                        ? 0.35
+                        : 1,
+                  },
+                ]}
                 activeOpacity={0.7}
               >
                 <ChevronUp size={18} color={colors.fg.muted} strokeWidth={2} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleFindNext}
-                disabled={!searchMatchInfo || searchMatchInfo.total === 0 || (searchMatchInfo.current > 0 && searchMatchInfo.current >= searchMatchInfo.total)}
-                style={[styles.iconBtn, { backgroundColor: colors.bg.raised, opacity: !searchMatchInfo || searchMatchInfo.total === 0 || (searchMatchInfo.current > 0 && searchMatchInfo.current >= searchMatchInfo.total) ? 0.35 : 1 }]}
+                disabled={
+                  !searchMatchInfo ||
+                  searchMatchInfo.total === 0 ||
+                  (searchMatchInfo.current > 0 &&
+                    searchMatchInfo.current >= searchMatchInfo.total)
+                }
+                style={[
+                  styles.iconBtn,
+                  {
+                    backgroundColor: colors.bg.raised,
+                    opacity:
+                      !searchMatchInfo ||
+                      searchMatchInfo.total === 0 ||
+                      (searchMatchInfo.current > 0 &&
+                        searchMatchInfo.current >= searchMatchInfo.total)
+                        ? 0.35
+                        : 1,
+                  },
+                ]}
                 activeOpacity={0.7}
               >
-                <ChevronDown size={18} color={colors.fg.muted} strokeWidth={2} />
+                <ChevronDown
+                  size={18}
+                  color={colors.fg.muted}
+                  strokeWidth={2}
+                />
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => setShowReplace(v => !v)}
-                style={[styles.textBtn, { backgroundColor: showReplace ? colors.accent.default : colors.bg.raised }]}
+                onPress={() => setShowReplace((v) => !v)}
+                style={[
+                  styles.textBtn,
+                  {
+                    backgroundColor: showReplace
+                      ? colors.accent.default
+                      : colors.bg.raised,
+                  },
+                ]}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.textBtnLabel, { color: showReplace ? "#fff" : colors.fg.muted, fontFamily: fonts.sans.medium }]}>
-                  {t('editor.replace')}
+                <Text
+                  style={[
+                    styles.textBtnLabel,
+                    {
+                      color: showReplace ? "#fff" : colors.fg.muted,
+                      fontFamily: fonts.sans.medium,
+                    },
+                  ]}
+                >
+                  {t("editor.replace")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1153,26 +1375,59 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
                 <TextInput
                   value={replaceQuery}
                   onChangeText={handleReplaceQueryChange}
-                  placeholder={t('editor.replacePlaceholder')}
+                  placeholder={t("editor.replacePlaceholder")}
                   placeholderTextColor={colors.fg.subtle}
-                  style={[styles.searchInput, { color: colors.fg.default, backgroundColor: colors.bg.raised, fontFamily: fonts.sans.regular }]}
+                  style={[
+                    styles.searchInput,
+                    {
+                      color: colors.fg.default,
+                      backgroundColor: colors.bg.raised,
+                      fontFamily: fonts.sans.regular,
+                    },
+                  ]}
                   autoCorrect={false}
                   autoCapitalize="none"
                   returnKeyType="done"
                 />
                 <TouchableOpacity
                   onPress={handleReplaceNext}
-                  style={[styles.textBtn, { backgroundColor: colors.bg.raised }]}
+                  style={[
+                    styles.textBtn,
+                    { backgroundColor: colors.bg.raised },
+                  ]}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.textBtnLabel, { color: colors.fg.default, fontFamily: fonts.sans.medium }]}>{t('editor.replace')}</Text>
+                  <Text
+                    style={[
+                      styles.textBtnLabel,
+                      {
+                        color: colors.fg.default,
+                        fontFamily: fonts.sans.medium,
+                      },
+                    ]}
+                  >
+                    {t("editor.replace")}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleReplaceAll}
-                  style={[styles.textBtn, { backgroundColor: colors.bg.raised }]}
+                  style={[
+                    styles.textBtn,
+                    { backgroundColor: colors.bg.raised },
+                  ]}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.textBtnLabel, { color: colors.fg.default, fontFamily: fonts.sans.medium }]}>{t('editor.replaceAll')}</Text>
+                  <Text
+                    style={[
+                      styles.textBtnLabel,
+                      {
+                        color: colors.fg.default,
+                        fontFamily: fonts.sans.medium,
+                      },
+                    ]}
+                  >
+                    {t("editor.replaceAll")}
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -1191,8 +1446,14 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
             >
               <View style={{ alignItems: "center", gap: 8 }}>
                 <File size={48} color={colors.fg.muted} strokeWidth={1.5} />
-                <Text style={{ color: colors.fg.muted, fontSize: 16, fontFamily: fonts.sans.regular }}>
-                  {t('common.noFilesOpen')}
+                <Text
+                  style={{
+                    color: colors.fg.muted,
+                    fontSize: 16,
+                    fontFamily: fonts.sans.regular,
+                  }}
+                >
+                  {t("common.noFilesOpen")}
                 </Text>
               </View>
               <TouchableOpacity
@@ -1212,14 +1473,19 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
                     fontFamily: fonts.sans.medium,
                   }}
                 >
-                  {t('common.openExplorer')}
+                  {t("common.openExplorer")}
                 </Text>
               </TouchableOpacity>
             </View>
           ) : activeTab.isLoading ? (
             <Loading />
           ) : (
-            <View style={[styles.webviewContainer, { backgroundColor: editorBackground }]}>
+            <View
+              style={[
+                styles.webviewContainer,
+                { backgroundColor: editorBackground },
+              ]}
+            >
               <WebView
                 key={activeTab.id}
                 ref={webViewRef}
@@ -1255,13 +1521,26 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
             {!config.autoSave ? (
               <TouchableOpacity
                 onPress={handleManualSave}
-                disabled={!activeTab.isDirty || activeTab.isSaving || activeTab.isDeleted || activeTab.isLoading || !!activeTab.loadError}
+                disabled={
+                  !activeTab.isDirty ||
+                  activeTab.isSaving ||
+                  activeTab.isDeleted ||
+                  activeTab.isLoading ||
+                  !!activeTab.loadError
+                }
                 style={[
                   styles.floatingActionButton,
                   {
                     backgroundColor: colors.bg.raised,
                     borderColor: colors.border.secondary,
-                    opacity: !activeTab.isDirty || activeTab.isSaving || activeTab.isDeleted || activeTab.isLoading || !!activeTab.loadError ? 0.45 : 1,
+                    opacity:
+                      !activeTab.isDirty ||
+                      activeTab.isSaving ||
+                      activeTab.isDeleted ||
+                      activeTab.isLoading ||
+                      !!activeTab.loadError
+                        ? 0.45
+                        : 1,
                   },
                 ]}
                 activeOpacity={0.7}
@@ -1271,7 +1550,13 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
             ) : null}
             <TouchableOpacity
               onPress={handleKeyboardButtonPress}
-              style={[styles.floatingActionButton, { backgroundColor: colors.bg.raised, borderColor: colors.border.secondary }]}
+              style={[
+                styles.floatingActionButton,
+                {
+                  backgroundColor: colors.bg.raised,
+                  borderColor: colors.border.secondary,
+                },
+              ]}
               activeOpacity={0.7}
             >
               <KeyboardIcon size={22} color={colors.fg.muted} strokeWidth={2} />

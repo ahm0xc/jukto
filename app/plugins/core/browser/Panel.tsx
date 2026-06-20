@@ -2937,7 +2937,7 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
                       fontFamily: fonts.sans.medium,
                     }}
                   >
-                    {t(`browser.hint${activeDevsoleSection.charAt(0).toUpperCase() + activeDevsoleSection.slice(1)}`)}
+                    {t(`browser.hint${(activeDevsoleSection as string).charAt(0).toUpperCase() + (activeDevsoleSection as string).slice(1)}`)}
                   </Text>
                 </View>
               </View>

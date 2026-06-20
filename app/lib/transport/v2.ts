@@ -404,7 +404,7 @@ export class V2SessionTransport {
       const expectedAuth = this.computeHandshakeAuth(
         'server_ready',
         'cli',
-        sodium.to_base64(this.remotePublicKey, sodium.base64_variants.URLSAFE_NO_PADDING),
+        sodium.to_base64(this.remotePublicKey!, sodium.base64_variants.URLSAFE_NO_PADDING),
       );
       if (frame.auth !== expectedAuth) {
         throw new Error('server_ready authentication failed');
@@ -465,7 +465,7 @@ export class V2SessionTransport {
     const authKey = sodium.crypto_generichash(
       sodium.crypto_auth_KEYBYTES,
       encodeUtf8(this.options.sessionSecret),
-      undefined,
+      null,
     ) as Uint8Array;
     const parts = [
       phase,
@@ -474,7 +474,7 @@ export class V2SessionTransport {
       nonce ? sodium.to_base64(nonce, sodium.base64_variants.URLSAFE_NO_PADDING) : '',
       boxed ? sodium.to_base64(boxed, sodium.base64_variants.URLSAFE_NO_PADDING) : '',
     ];
-    const tag = sodium.crypto_auth(parts.join(':'), authKey) as Uint8Array;
+    const tag = sodium.crypto_auth(parts.join(':'), authKey ?? new Uint8Array(0)) as Uint8Array;
     return sodium.to_base64(tag, sodium.base64_variants.URLSAFE_NO_PADDING);
   }
 
@@ -490,7 +490,7 @@ export class V2SessionTransport {
       throw new Error('v2 transport is not connected');
     }
     const framed = encodeV2EncryptedFrame(ciphertext);
-    this.ws.send(framed.buffer.slice(framed.byteOffset, framed.byteOffset + framed.byteLength));
+    this.ws.send(framed.buffer.slice(framed.byteOffset, framed.byteOffset + framed.byteLength) as ArrayBuffer);
   }
 
   private markSecure(): void {
