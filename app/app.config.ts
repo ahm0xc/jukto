@@ -4,7 +4,7 @@ const IS_DEV = process.env.APP_VARIANT === "development";
 const IS_PREVIEW = process.env.APP_VARIANT === "preview";
 
 function getUniqueIdentifier() {
-  if (IS_DEV) return "io.somossa.jukto.dev";
+  if (IS_DEV) return "io.somossa.jukto.pw";
   if (IS_PREVIEW) return "io.somossa.jukto.prev";
   return "io.somossa.jukto";
 }

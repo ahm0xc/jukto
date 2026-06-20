@@ -1,9 +1,9 @@
 <div align="center">
-  <a href="https://jukto.dev">
+  <a href="https://jukto.pw">
     <picture>
-      <source srcset="https://jukto.dev/img/github/github-main-dark.png" media="(prefers-color-scheme: dark)" width="600">
-      <source srcset="https://jukto.dev/img/github/github-main-light.png" media="(prefers-color-scheme: light)" width="600">
-      <img src="https://jukto.dev/img/github/github-main-dark.png" alt="Jukto">
+      <source srcset="https://jukto.pw/img/github/github-main-dark.png" media="(prefers-color-scheme: dark)" width="600">
+      <source srcset="https://jukto.pw/img/github/github-main-light.png" media="(prefers-color-scheme: light)" width="600">
+      <img src="https://jukto.pw/img/github/github-main-dark.png" alt="Jukto">
     </picture>
   </a>
 </div><br />
@@ -64,7 +64,7 @@ npx jukto-cli
 
 ## Manager and Proxy
 
-Bun-based WebSocket relay server that connects CLI and app using session codes. Public verion deployed on gateway.jukto.dev
+Bun-based WebSocket relay server that connects CLI and app using session codes. Public verion deployed on gateway.jukto.pw
 
 - Session management with 10-min TTL
 - Dual-channel architecture (control + data)

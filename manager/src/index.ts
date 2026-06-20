@@ -2245,7 +2245,7 @@ function startManager(): void {
         </div>
         <div class="card-body border-bottom-line">
           <div class="proxy-form">
-            <input id="newUrl" class="input-app" placeholder="https://gateway-1.jukto.dev" />
+            <input id="newUrl" class="input-app" placeholder="https://gateway-1.jukto.pw" />
             <input id="newProxyPw" type="password" class="input-app" placeholder="Proxy password" />
             <button id="addBtn" class="btn-app btn-app-primary">Add Proxy</button>
           </div>

@@ -40,8 +40,8 @@ Options:
 
 By default, the CLI uses the public Jukto services:
 
-- Gateway: `https://gateway.jukto.dev`
-- Manager: `https://manager.jukto.dev`
+- Gateway: `https://gateway.jukto.pw`
+- Manager: `https://manager.jukto.pw`
 
 Override them with environment variables when developing against local or custom infrastructure:
 

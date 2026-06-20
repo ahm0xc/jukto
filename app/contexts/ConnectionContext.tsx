@@ -6,8 +6,8 @@ import { configureProxy, startPortServers, stopAllServers } from '@/lib/proxySer
 import { logger } from '@/lib/logger';
 import { V2SessionTransport } from '@/lib/transport/v2';
 
-const DEFAULT_GATEWAY = 'wss://gateway.jukto.dev';
-const MANAGER_URL = 'https://manager.jukto.dev';
+const DEFAULT_GATEWAY = 'wss://gateway.jukto.pw';
+const MANAGER_URL = 'https://manager.jukto.pw';
 const LAST_SESSION_STORAGE_KEY = 'jukto_last_session';
 const LAST_SESSION_FALLBACK_STORAGE_KEY = '@jukto_last_session_fallback';
 const PAIRED_SESSIONS_STORAGE_KEY = 'jukto_paired_sessions';

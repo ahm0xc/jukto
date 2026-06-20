@@ -105,9 +105,9 @@ export default function HelpPage() {
           {t('help.links')}
         </Text>
         <View style={[styles.linkList, { marginHorizontal: 12 }]}>
-          <LinkRow label={t('help.terms')} url="https://app.jukto.dev/terms" />
-          <LinkRow label={t('help.policy')} url="https://app.jukto.dev/policy" />
-          <LinkRow label={t('help.security')} url="https://app.jukto.dev/security" />
+          <LinkRow label={t('help.terms')} url="https://jukto.pw/terms" />
+          <LinkRow label={t('help.policy')} url="https://app.jukto.pw/policy" />
+          <LinkRow label={t('help.security')} url="https://jukto.pw/security" />
           <LinkRow label={t('help.discord')} url="https://discord.gg/tdaywsP4HK" />
           <LinkRow label={t('help.github')} url="https://github.com/jukto-dev" />
           <LinkRow label={t('help.twitter')} url="https://twitter.com/usejukto" />

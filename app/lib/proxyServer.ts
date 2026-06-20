@@ -14,7 +14,7 @@ try {
   });
 }
 
-const DEFAULT_GATEWAY_WS_URL = 'wss://gateway.jukto.dev';
+const DEFAULT_GATEWAY_WS_URL = 'wss://gateway.jukto.pw';
 
 // ============================================================================
 // Types

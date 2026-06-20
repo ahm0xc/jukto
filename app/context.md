@@ -29,7 +29,7 @@ Jukto is a React Native/Expo mobile IDE that connects to developer machines via 
 
 ### 4. Other Fixes
 - ✅ Fixed proxy session locking bug (app couldn't connect both channels)
-- ✅ Updated proxy URL to `gateway.jukto.dev`
+- ✅ Updated proxy URL to `gateway.jukto.pw`
 - ✅ Fixed TypeScript errors (`accent.primary` → `accent.default`, etc.)
 - ✅ Fixed duplicate key error in Ports plugin
 

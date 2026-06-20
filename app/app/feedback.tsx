@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 
-const FEEDBACK_ENDPOINT = "https://internal-api.jukto.dev/app/feedback";
+const FEEDBACK_ENDPOINT = "https://jukto.pw/feedback";
 
 function RatingStars({
   rating,
