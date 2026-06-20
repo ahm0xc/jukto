@@ -3649,9 +3649,9 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     )));
   }, []);
 
-  const createNewTab = () => {
+  const createNewTab = useCallback(() => {
     setBackendPickerVisible(true);
-  };
+  }, []);
 
   const createNewTabWithBackend = async (backend: "opencode" | "codex") => {
     const previousActiveTabId = activeTabId;
@@ -3749,7 +3749,7 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     );
   }, [deleteTab]);
 
-  const renameTab = (tabId: string, nextTitle: string) => {
+  const renameTab = useCallback((tabId: string, nextTitle: string) => {
     const tab = tabs.find((t) => t.id === tabId);
     if (!tab?.sessionId) return;
     const trimmed = nextTitle.trim();
@@ -3775,7 +3775,7 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
         Alert.alert(t('aiPanel.renameFailed'), message);
       }
     })();
-  };
+  }, [ai, tabs, t]);
 
   const handleTabPress = useCallback(async (tabId: string) => {
     setPendingBackend(null);

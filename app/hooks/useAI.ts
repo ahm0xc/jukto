@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useMemo } from 'react';
 import { useConnection, Message } from '../contexts/ConnectionContext';
 import type { AiBackend, AIEvent, AISession, AIMessage, AIAgent, AIProvider, ModelRef, PermissionResponse, AIFileAttachment, CodexPromptOptions } from '../plugins/core/ai/types';
 
@@ -159,7 +159,7 @@ export function useAI(events?: AIEvents) {
     if (!res.ok) throw new Error(res.error?.message || 'Failed to reject question');
   }, [sendControl]);
 
-  return {
+  return useMemo(() => ({
     isConnected,
     getBackends,
     createSession,
@@ -181,5 +181,27 @@ export function useAI(events?: AIEvents) {
     replyPermission,
     replyQuestion,
     rejectQuestion,
-  };
+  }), [
+    isConnected,
+    getBackends,
+    createSession,
+    listSessions,
+    getSession,
+    deleteSession,
+    renameSession,
+    getMessages,
+    getStatuses,
+    sendPrompt,
+    abort,
+    getAgents,
+    getProviders,
+    setAuth,
+    runCommand,
+    revert,
+    unrevert,
+    share,
+    replyPermission,
+    replyQuestion,
+    rejectQuestion,
+  ]);
 }
