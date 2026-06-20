@@ -5,12 +5,46 @@ import { logger } from "@/lib/logger";
 import InfoSheet from "@/components/InfoSheet";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
-import { ChevronRight, History, Loader2, ScanLine, X } from "lucide-react-native";
+import {
+  ChevronRight,
+  History,
+  Loader2,
+  ScanLine,
+  X,
+} from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, BackHandler, Dimensions, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View, useWindowDimensions } from "react-native";
+import {
+  Alert,
+  BackHandler,
+  Dimensions,
+  Image,
+  Linking,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
-import Animated, { Easing, cancelAnimation, runOnJS, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
+import Animated, {
+  Easing,
+  cancelAnimation,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Svg, { Path } from "react-native-svg";
@@ -18,10 +52,11 @@ import Svg, { Path } from "react-native-svg";
 const TABLET_BREAKPOINT = 768;
 const TERMS_URL = "https://jukto.pw/terms";
 const PRIVACY_URL = "https://jukto.pw/privacy";
-const UPDATE_CHECK_URL = "https://internal-api.jukto.pw/updateNeeded?version=1.0.1";
+const UPDATE_CHECK_URL =
+  "https://internal-api.jukto.pw/updateNeeded?version=1.0.1";
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
-const LOGO_SOURCE_DARK = require("@/assets/images/icon-bg.png");
-const LOGO_SOURCE_LIGHT = require("@/assets/images/icon-bg-light.png");
+const LOGO_SOURCE_DARK = require("@/assets/images/icon.png");
+const LOGO_SOURCE_LIGHT = require("@/assets/images/icon.png");
 
 type UpdateCheckResponse = {
   updateNeeded: true;
@@ -45,22 +80,70 @@ function getPreferredUpdateUrl(update: UpdateCheckResponse): string {
   return update.android;
 }
 
-function OpenActionIcon({ size = 18, color }: { size?: number; color: string }) {
+function OpenActionIcon({
+  size = 18,
+  color,
+}: {
+  size?: number;
+  color: string;
+}) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M15 3h6v6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M10 14 21 3" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path
+        d="M15 3h6v6"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M10 14 21 3"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }
 
-function DeleteActionIcon({ size = 18, color }: { size?: number; color: string }) {
+function DeleteActionIcon({
+  size = 18,
+  color,
+}: {
+  size?: number;
+  color: string;
+}) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M3 6h18" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path
+        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M3 6h18"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }
@@ -118,7 +201,7 @@ function SessionActionsSheet({
         },
         (finished) => {
           if (finished) runOnJS(hideModal)();
-        }
+        },
       );
     }
   }, [visible, backdropOpacity, hideModal, sheetTranslateY]);
@@ -136,7 +219,10 @@ function SessionActionsSheet({
     <Modal transparent animationType="none" visible onRequestClose={onClose}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={{ flex: 1 }}>
-          <Animated.View style={[styles.sheetBackdrop, backdropAnimatedStyle]} pointerEvents="box-none">
+          <Animated.View
+            style={[styles.sheetBackdrop, backdropAnimatedStyle]}
+            pointerEvents="box-none"
+          >
             <Pressable style={{ flex: 1 }} onPress={onClose} />
           </Animated.View>
           <Animated.View
@@ -152,10 +238,24 @@ function SessionActionsSheet({
           >
             <View style={styles.sheetHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.sheetTitle, { color: colors.fg.default, fontFamily: fonts.sans.semibold }]}>
+                <Text
+                  style={[
+                    styles.sheetTitle,
+                    {
+                      color: colors.fg.default,
+                      fontFamily: fonts.sans.semibold,
+                    },
+                  ]}
+                >
                   {session.hostname}
                 </Text>
-                <Text style={[styles.sheetSubtitle, { color: colors.fg.muted, fontFamily: fonts.sans.regular }]} numberOfLines={1}>
+                <Text
+                  style={[
+                    styles.sheetSubtitle,
+                    { color: colors.fg.muted, fontFamily: fonts.sans.regular },
+                  ]}
+                  numberOfLines={1}
+                >
                   {session.root}
                 </Text>
               </View>
@@ -165,7 +265,10 @@ function SessionActionsSheet({
                   onClose();
                 }}
                 activeOpacity={0.7}
-                style={[styles.sheetCloseButton, { backgroundColor: colors.bg.base }]}
+                style={[
+                  styles.sheetCloseButton,
+                  { backgroundColor: colors.bg.base },
+                ]}
               >
                 <X size={18} color={colors.fg.default} strokeWidth={2} />
               </TouchableOpacity>
@@ -175,21 +278,49 @@ function SessionActionsSheet({
               <TouchableOpacity
                 onPress={() => onOpen(session)}
                 activeOpacity={0.75}
-                style={[styles.sheetRow, { backgroundColor: colors.bg.raised, borderRadius: radius.lg }]}
+                style={[
+                  styles.sheetRow,
+                  {
+                    backgroundColor: colors.bg.raised,
+                    borderRadius: radius.lg,
+                  },
+                ]}
               >
                 <OpenActionIcon color={colors.fg.default} />
-                <Text style={[styles.sheetRowLabel, { color: colors.fg.default, fontFamily: fonts.sans.semibold }]}>
-                  {t('auth.openAction')}
+                <Text
+                  style={[
+                    styles.sheetRowLabel,
+                    {
+                      color: colors.fg.default,
+                      fontFamily: fonts.sans.semibold,
+                    },
+                  ]}
+                >
+                  {t("auth.openAction")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => onDelete(session)}
                 activeOpacity={0.75}
-                style={[styles.sheetRow, { backgroundColor: colors.bg.raised, borderRadius: radius.lg }]}
+                style={[
+                  styles.sheetRow,
+                  {
+                    backgroundColor: colors.bg.raised,
+                    borderRadius: radius.lg,
+                  },
+                ]}
               >
                 <DeleteActionIcon color={colors.git.deleted} />
-                <Text style={[styles.sheetDeleteLabel, { color: colors.git.deleted, fontFamily: fonts.sans.semibold }]}>
-                  {t('auth.deleteAction')}
+                <Text
+                  style={[
+                    styles.sheetDeleteLabel,
+                    {
+                      color: colors.git.deleted,
+                      fontFamily: fonts.sans.semibold,
+                    },
+                  ]}
+                >
+                  {t("auth.deleteAction")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -224,8 +355,8 @@ function PastSessionsSheet({
     <InfoSheet
       visible={visible}
       onClose={onClose}
-      title={t('auth.pastSessionsSheetTitle')}
-      description={t('auth.pastSessionsSheetDesc')}
+      title={t("auth.pastSessionsSheetTitle")}
+      description={t("auth.pastSessionsSheetDesc")}
     >
       {sessions.length === 0 ? (
         <View style={pastSessionsSheetStyles.emptyContainer}>
@@ -241,11 +372,14 @@ function PastSessionsSheet({
               { color: colors.fg.muted, fontFamily: fonts.sans.regular },
             ]}
           >
-            {t('auth.noPastSessions')}
+            {t("auth.noPastSessions")}
           </Text>
         </View>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 48 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 48 }}
+        >
           {sessions.map((session) => (
             <TouchableOpacity
               key={session.sessionPassword}
@@ -256,19 +390,48 @@ function PastSessionsSheet({
               style={pastSessionsSheetStyles.sessionRow}
             >
               <View style={{ flex: 1 }}>
-                <Text numberOfLines={1} style={[pastSessionsSheetStyles.sessionHostname, { color: colors.fg.default, fontFamily: fonts.sans.regular, fontSize: typography.body }]}>
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    pastSessionsSheetStyles.sessionHostname,
+                    {
+                      color: colors.fg.default,
+                      fontFamily: fonts.sans.regular,
+                      fontSize: typography.body,
+                    },
+                  ]}
+                >
                   {session.hostname}
                 </Text>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 }}>
-                  <FontAwesome name="folder" size={11} color={colors.fg.muted} style={{ opacity: 0.7 }} />
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 5,
+                    marginTop: 2,
+                  }}
+                >
+                  <FontAwesome
+                    name="folder"
+                    size={11}
+                    color={colors.fg.muted}
+                    style={{ opacity: 0.7 }}
+                  />
                   <Text
                     numberOfLines={1}
                     style={[
                       pastSessionsSheetStyles.sessionRoot,
-                      { color: colors.fg.muted, fontFamily: fonts.sans.regular, flex: 1, fontSize: typography.caption },
+                      {
+                        color: colors.fg.muted,
+                        fontFamily: fonts.sans.regular,
+                        flex: 1,
+                        fontSize: typography.caption,
+                      },
                     ]}
                   >
-                    {session.root.startsWith("/") ? session.root.slice(1) : session.root}
+                    {session.root.startsWith("/")
+                      ? session.root.slice(1)
+                      : session.root}
                   </Text>
                 </View>
               </View>
@@ -287,14 +450,25 @@ export default function Auth() {
   const insets = useSafeAreaInsets();
   const ctaRadius = 16;
   const router = useRouter();
-  const { getPairedSessions, removePairedSession, resumeSession, revokePairedSession, status, capabilities, disconnect } = useConnection();
+  const {
+    getPairedSessions,
+    removePairedSession,
+    resumeSession,
+    revokePairedSession,
+    status,
+    capabilities,
+    disconnect,
+  } = useConnection();
   const { width } = useWindowDimensions();
   const isTablet = width >= TABLET_BREAKPOINT;
   const [pairedSessions, setPairedSessions] = useState<PairedSession[]>([]);
   const [isContinuing, setIsContinuing] = useState(false);
-  const [connectingHostname, setConnectingHostname] = useState<string | null>(null);
+  const [connectingHostname, setConnectingHostname] = useState<string | null>(
+    null,
+  );
   const [showPastSessionsSheet, setShowPastSessionsSheet] = useState(false);
-  const [availableUpdate, setAvailableUpdate] = useState<UpdateCheckResponse | null>(null);
+  const [availableUpdate, setAvailableUpdate] =
+    useState<UpdateCheckResponse | null>(null);
   const cancelledContinueRef = useRef(false);
   const connectingSpinner = useSharedValue(0);
   const connectingSpinnerStyle = useAnimatedStyle(() => ({
@@ -310,7 +484,7 @@ export default function Auth() {
           easing: Easing.linear,
         }),
         -1,
-        false
+        false,
       );
       return;
     }
@@ -327,7 +501,7 @@ export default function Auth() {
         return true;
       });
       return () => sub.remove();
-    }, [])
+    }, []),
   );
 
   useFocusEffect(
@@ -347,19 +521,22 @@ export default function Auth() {
       return () => {
         cancelled = true;
       };
-    }, [getPairedSessions])
+    }, [getPairedSessions]),
   );
 
   const openExternalUrl = useCallback(async (url: string) => {
     try {
       const canOpen = await Linking.canOpenURL(url);
       if (!canOpen) {
-        Alert.alert(t('auth.unableOpenLinkTitle'), t('auth.unableOpenLinkDesc'));
+        Alert.alert(
+          t("auth.unableOpenLinkTitle"),
+          t("auth.unableOpenLinkDesc"),
+        );
         return;
       }
       await Linking.openURL(url);
     } catch {
-      Alert.alert(t('auth.unableOpenLinkTitle'), t('auth.unableOpenLinkDesc'));
+      Alert.alert(t("auth.unableOpenLinkTitle"), t("auth.unableOpenLinkDesc"));
     }
   }, []);
 
@@ -402,35 +579,51 @@ export default function Auth() {
     }
   }, [status, capabilities, router]);
 
-  const handlePairedSession = useCallback(async (session: PairedSession) => {
-    if (isContinuing) return;
-    cancelledContinueRef.current = false;
-    setIsContinuing(true);
-    setConnectingHostname(session.hostname);
-    try {
-      await resumeSession(session);
-    } catch (error) {
-      if (cancelledContinueRef.current) return;
-      const message = error instanceof Error ? error.message : String(error);
-      const isExpiredSession = /invalid stored session|failed \(404\)|expired|revoked|password revoked|connection closed during setup|session unavailable/i.test(message);
-      logger.error("auth", "resume paired session failed", {
-        error: message,
-        hostname: session.hostname,
-        root: session.root,
-        isExpiredSession,
-      });
-      if (isExpiredSession) {
-        await removePairedSession(session.sessionPassword);
-        setPairedSessions((current) => current.filter((entry) => entry.sessionPassword !== session.sessionPassword));
-        Alert.alert(t('auth.sessionUnavailableTitle'), t('auth.sessionUnavailableDesc'));
-      } else {
-        Alert.alert(t('auth.unableConnectTitle'), t('auth.unableConnectDesc'));
+  const handlePairedSession = useCallback(
+    async (session: PairedSession) => {
+      if (isContinuing) return;
+      cancelledContinueRef.current = false;
+      setIsContinuing(true);
+      setConnectingHostname(session.hostname);
+      try {
+        await resumeSession(session);
+      } catch (error) {
+        if (cancelledContinueRef.current) return;
+        const message = error instanceof Error ? error.message : String(error);
+        const isExpiredSession =
+          /invalid stored session|failed \(404\)|expired|revoked|password revoked|connection closed during setup|session unavailable/i.test(
+            message,
+          );
+        logger.error("auth", "resume paired session failed", {
+          error: message,
+          hostname: session.hostname,
+          root: session.root,
+          isExpiredSession,
+        });
+        if (isExpiredSession) {
+          await removePairedSession(session.sessionPassword);
+          setPairedSessions((current) =>
+            current.filter(
+              (entry) => entry.sessionPassword !== session.sessionPassword,
+            ),
+          );
+          Alert.alert(
+            t("auth.sessionUnavailableTitle"),
+            t("auth.sessionUnavailableDesc"),
+          );
+        } else {
+          Alert.alert(
+            t("auth.unableConnectTitle"),
+            t("auth.unableConnectDesc"),
+          );
+        }
+      } finally {
+        setIsContinuing(false);
+        setConnectingHostname(null);
       }
-    } finally {
-      setIsContinuing(false);
-      setConnectingHostname(null);
-    }
-  }, [isContinuing, removePairedSession, resumeSession]);
+    },
+    [isContinuing, removePairedSession, resumeSession],
+  );
 
   const handleCancelContinue = useCallback(() => {
     if (!isContinuing) return;
@@ -440,55 +633,70 @@ export default function Auth() {
     disconnect();
   }, [disconnect, isContinuing]);
 
-  const handleDeleteSession = useCallback(async (session: PairedSession) => {
-    try {
-      await revokePairedSession(session.sessionPassword);
-      await removePairedSession(session.sessionPassword);
-      setPairedSessions((current) => current.filter((entry) => entry.sessionPassword !== session.sessionPassword));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Could not delete saved session.";
-      Alert.alert(t('auth.unableDeleteTitle'), message);
-    }
-  }, [removePairedSession, revokePairedSession]);
+  const handleDeleteSession = useCallback(
+    async (session: PairedSession) => {
+      try {
+        await revokePairedSession(session.sessionPassword);
+        await removePairedSession(session.sessionPassword);
+        setPairedSessions((current) =>
+          current.filter(
+            (entry) => entry.sessionPassword !== session.sessionPassword,
+          ),
+        );
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not delete saved session.";
+        Alert.alert(t("auth.unableDeleteTitle"), message);
+      }
+    },
+    [removePairedSession, revokePairedSession],
+  );
 
+  const handleSessionPress = useCallback(
+    (session: PairedSession) => {
+      setShowPastSessionsSheet(false);
+      setTimeout(() => {
+        Alert.alert(
+          t("auth.connectToSessionTitle"),
+          `${session.hostname}\n${session.root}`,
+          [
+            { text: t("common.cancel"), style: "cancel" },
+            {
+              text: t("common.connect"),
+              onPress: () => {
+                setTimeout(() => {
+                  void handlePairedSession(session);
+                }, 100);
+              },
+            },
+          ],
+        );
+      }, 280);
+    },
+    [handlePairedSession],
+  );
 
-  const handleSessionPress = useCallback((session: PairedSession) => {
-    setShowPastSessionsSheet(false);
-    setTimeout(() => {
+  const handleSessionLongPress = useCallback(
+    (session: PairedSession) => {
       Alert.alert(
-        t('auth.connectToSessionTitle'),
+        t("auth.deleteSessionTitle"),
         `${session.hostname}\n${session.root}`,
         [
-          { text: t('common.cancel'), style: 'cancel' },
+          { text: t("common.cancel"), style: "cancel" },
           {
-            text: t('common.connect'),
+            text: t("common.delete"),
+            style: "destructive",
             onPress: () => {
-              setTimeout(() => {
-                void handlePairedSession(session);
-              }, 100);
+              void handleDeleteSession(session);
             },
           },
-        ]
+        ],
       );
-    }, 280);
-  }, [handlePairedSession]);
-
-  const handleSessionLongPress = useCallback((session: PairedSession) => {
-    Alert.alert(
-      t('auth.deleteSessionTitle'),
-      `${session.hostname}\n${session.root}`,
-      [
-        { text: t('common.cancel'), style: "cancel" },
-        {
-          text: t('common.delete'),
-          style: "destructive",
-          onPress: () => {
-            void handleDeleteSession(session);
-          },
-        },
-      ]
-    );
-  }, [handleDeleteSession]);
+    },
+    [handleDeleteSession],
+  );
 
   useEffect(() => {
     logger.info("auth", "rendering past sessions list", {
@@ -498,10 +706,13 @@ export default function Auth() {
     });
   }, [pairedSessions]);
 
-
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg.base, paddingTop: insets.top }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.bg.base, paddingTop: insets.top },
+      ]}
+    >
       {availableUpdate ? (
         <View
           style={[
@@ -511,11 +722,18 @@ export default function Auth() {
             },
           ]}
         >
-          <Text style={[styles.updateBannerTitle, { color: colors.fg.default, fontFamily: fonts.sans.semibold }]}>
-            {t('auth.updateTitle')}
+          <Text
+            style={[
+              styles.updateBannerTitle,
+              { color: colors.fg.default, fontFamily: fonts.sans.semibold },
+            ]}
+          >
+            {t("auth.updateTitle")}
           </Text>
           <TouchableOpacity
-            onPress={() => openExternalUrl(getPreferredUpdateUrl(availableUpdate))}
+            onPress={() =>
+              openExternalUrl(getPreferredUpdateUrl(availableUpdate))
+            }
             activeOpacity={0.75}
             style={[
               styles.updateBannerButton,
@@ -525,13 +743,24 @@ export default function Auth() {
               },
             ]}
           >
-            <Text style={[styles.updateBannerButtonText, { color: colors.bg.base, fontFamily: fonts.sans.semibold }]}>
-              {t('auth.updateButton')}
+            <Text
+              style={[
+                styles.updateBannerButtonText,
+                { color: colors.bg.base, fontFamily: fonts.sans.semibold },
+              ]}
+            >
+              {t("auth.updateButton")}
             </Text>
           </TouchableOpacity>
         </View>
       ) : null}
-      <View style={[styles.page, isTablet && styles.pageTablet, { paddingBottom: Math.max(insets.bottom, 28) }]}>
+      <View
+        style={[
+          styles.page,
+          isTablet && styles.pageTablet,
+          { paddingBottom: Math.max(insets.bottom, 28) },
+        ]}
+      >
         <View style={styles.hero}>
           <View style={styles.centerContent}>
             <View style={styles.brand}>
@@ -545,11 +774,24 @@ export default function Auth() {
                 resizeMode="cover"
               />
               <View style={styles.brandText}>
-                <Text style={[styles.appName, { color: colors.fg.default, fontFamily: fonts.sans.semibold }]}>
-                  {t('auth.appName')}
+                <Text
+                  style={[
+                    styles.appName,
+                    {
+                      color: colors.fg.default,
+                      fontFamily: fonts.sans.semibold,
+                    },
+                  ]}
+                >
+                  {t("auth.appName")}
                 </Text>
-                <Text style={[styles.tagline, { color: colors.fg.muted, fontFamily: fonts.sans.regular }]}>
-                  {t('auth.tagline')}
+                <Text
+                  style={[
+                    styles.tagline,
+                    { color: colors.fg.muted, fontFamily: fonts.sans.regular },
+                  ]}
+                >
+                  {t("auth.tagline")}
                 </Text>
               </View>
             </View>
@@ -561,34 +803,73 @@ export default function Auth() {
             <TouchableOpacity
               onPress={() => router.push("/jukto-connect")}
               activeOpacity={0.75}
-              style={[styles.btn, { backgroundColor: colors.fg.default, borderColor: colors.fg.default, borderRadius: ctaRadius }]}
+              style={[
+                styles.btn,
+                {
+                  backgroundColor: colors.fg.default,
+                  borderColor: colors.fg.default,
+                  borderRadius: ctaRadius,
+                },
+              ]}
             >
               <ScanLine size={20} color={colors.bg.base} strokeWidth={2} />
-              <Text style={[styles.btnText, isTablet && styles.btnTextTablet, { color: colors.bg.base, fontFamily: fonts.sans.medium }]}>
-                {t('auth.scanConnect')}
+              <Text
+                style={[
+                  styles.btnText,
+                  isTablet && styles.btnTextTablet,
+                  { color: colors.bg.base, fontFamily: fonts.sans.medium },
+                ]}
+              >
+                {t("auth.scanConnect")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setShowPastSessionsSheet(true)}
               activeOpacity={0.75}
-              style={[styles.pastSessionsButton, { backgroundColor: colors.bg.raised, borderRadius: ctaRadius }]}
+              style={[
+                styles.pastSessionsButton,
+                { backgroundColor: colors.bg.raised, borderRadius: ctaRadius },
+              ]}
             >
               <History size={21} color={colors.fg.default} strokeWidth={2} />
-              <Text style={[styles.pastSessionsButtonText, { color: colors.fg.default, fontFamily: fonts.sans.medium }]}>
-                {t('auth.pastSessions')}
+              <Text
+                style={[
+                  styles.pastSessionsButtonText,
+                  { color: colors.fg.default, fontFamily: fonts.sans.medium },
+                ]}
+              >
+                {t("auth.pastSessions")}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
 
-<Text style={[styles.legal, isTablet && styles.legalTablet, { color: colors.fg.muted, fontFamily: fonts.sans.regular }]}>
-          {t('auth.legal')}{" "}
-          <Text style={[styles.legalLink, { color: colors.fg.default, fontFamily: fonts.sans.regular }]} onPress={() => openExternalUrl(TERMS_URL)}>
-            {t('auth.termsOfService')}
-          </Text>
-          {" "}{t('auth.and')}{" "}
-          <Text style={[styles.legalLink, { color: colors.fg.default, fontFamily: fonts.sans.regular }]} onPress={() => openExternalUrl(PRIVACY_URL)}>
-            {t('auth.privacyPolicy')}
+        <Text
+          style={[
+            styles.legal,
+            isTablet && styles.legalTablet,
+            { color: colors.fg.muted, fontFamily: fonts.sans.regular },
+          ]}
+        >
+          {t("auth.legal")}{" "}
+          <Text
+            style={[
+              styles.legalLink,
+              { color: colors.fg.default, fontFamily: fonts.sans.regular },
+            ]}
+            onPress={() => openExternalUrl(TERMS_URL)}
+          >
+            {t("auth.termsOfService")}
+          </Text>{" "}
+          {t("auth.and")}{" "}
+          <Text
+            style={[
+              styles.legalLink,
+              { color: colors.fg.default, fontFamily: fonts.sans.regular },
+            ]}
+            onPress={() => openExternalUrl(PRIVACY_URL)}
+          >
+            {t("auth.privacyPolicy")}
           </Text>
           .
         </Text>
@@ -604,23 +885,46 @@ export default function Auth() {
       />
       {isContinuing && connectingHostname && (
         <View style={styles.loadingOverlay}>
-          <View style={[styles.loadingCard, { backgroundColor: colors.bg.raised }]}>
+          <View
+            style={[styles.loadingCard, { backgroundColor: colors.bg.raised }]}
+          >
             <Animated.View style={connectingSpinnerStyle}>
               <Loader2 size={26} color={colors.fg.default} strokeWidth={2.25} />
             </Animated.View>
-            <Text style={[styles.loadingTitle, { color: colors.fg.default, fontFamily: fonts.sans.medium }]}>
-              {t('auth.connectingTitle')}
+            <Text
+              style={[
+                styles.loadingTitle,
+                { color: colors.fg.default, fontFamily: fonts.sans.medium },
+              ]}
+            >
+              {t("auth.connectingTitle")}
             </Text>
-            <Text style={[styles.loadingSubtitle, { color: colors.fg.muted, fontFamily: fonts.sans.regular }]}>
-              {t('auth.connectingTo', { hostname: connectingHostname })}
+            <Text
+              style={[
+                styles.loadingSubtitle,
+                { color: colors.fg.muted, fontFamily: fonts.sans.regular },
+              ]}
+            >
+              {t("auth.connectingTo", { hostname: connectingHostname })}
             </Text>
             <TouchableOpacity
               onPress={handleCancelContinue}
               activeOpacity={0.75}
-              style={[styles.loadingCancelButton, { backgroundColor: isDark ? "#FFFFFF" : "#000000" }]}
+              style={[
+                styles.loadingCancelButton,
+                { backgroundColor: isDark ? "#FFFFFF" : "#000000" },
+              ]}
             >
-              <Text style={[styles.loadingCancelText, { color: isDark ? "#000000" : "#FFFFFF", fontFamily: fonts.sans.semibold }]}>
-                {t('common.cancel')}
+              <Text
+                style={[
+                  styles.loadingCancelText,
+                  {
+                    color: isDark ? "#000000" : "#FFFFFF",
+                    fontFamily: fonts.sans.semibold,
+                  },
+                ]}
+              >
+                {t("common.cancel")}
               </Text>
             </TouchableOpacity>
           </View>

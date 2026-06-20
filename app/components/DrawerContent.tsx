@@ -8,7 +8,10 @@ import { gPI } from "@/plugins";
 import { usePlugins } from "@/plugins/context";
 import InfoSheet from "@/components/InfoSheet";
 import InputModal from "@/components/InputModal";
-import { DrawerContentComponentProps, useDrawerStatus } from "@react-navigation/drawer";
+import {
+  DrawerContentComponentProps,
+  useDrawerStatus,
+} from "@react-navigation/drawer";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -48,7 +51,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-function SpinningLoader({ color, opacity = 1, size = 18 }: { color: string; opacity?: number; size?: number }) {
+function SpinningLoader({
+  color,
+  opacity = 1,
+  size = 18,
+}: {
+  color: string;
+  opacity?: number;
+  size?: number;
+}) {
   const rotation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -58,11 +69,14 @@ function SpinningLoader({ color, opacity = 1, size = 18 }: { color: string; opac
         duration: 900,
         easing: Easing.linear,
         useNativeDriver: true,
-      })
+      }),
     ).start();
   }, [rotation]);
 
-  const rotate = rotation.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
+  const rotate = rotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
 
   return (
     <Animated.View style={{ transform: [{ rotate }], opacity }}>
@@ -101,7 +115,10 @@ const sortEntries = (entries: FileEntry[]) => {
   });
 };
 
-const toEditorTreeNodes = (entries: FileEntry[], parentPath: string): EditorTreeNode[] => {
+const toEditorTreeNodes = (
+  entries: FileEntry[],
+  parentPath: string,
+): EditorTreeNode[] => {
   return sortEntries(entries).map((entry) => ({
     name: entry.name,
     type: entry.type,
@@ -113,7 +130,7 @@ const toEditorTreeNodes = (entries: FileEntry[], parentPath: string): EditorTree
 const attachChildrenAtPath = (
   nodes: EditorTreeNode[],
   targetPath: string,
-  children: EditorTreeNode[]
+  children: EditorTreeNode[],
 ): EditorTreeNode[] => {
   return nodes.map((node) => {
     if (node.path === targetPath && node.type === "directory") {
@@ -134,13 +151,17 @@ const attachChildrenAtPath = (
 const flattenTree = (
   nodes: EditorTreeNode[],
   expandedPaths: Set<string>,
-  depth = 0
+  depth = 0,
 ): TreeListItem[] => {
   const result: TreeListItem[] = [];
 
   for (const node of nodes) {
     result.push({ node, depth });
-    if (node.type === "directory" && expandedPaths.has(node.path) && node.children?.length) {
+    if (
+      node.type === "directory" &&
+      expandedPaths.has(node.path) &&
+      node.children?.length
+    ) {
       result.push(...flattenTree(node.children, expandedPaths, depth + 1));
     }
   }
@@ -158,9 +179,11 @@ function TreeIcon({
   colors: any;
 }) {
   if (node.type === "directory") {
-    return isExpanded
-      ? <FolderOpen size={16} color={colors.accent.default} strokeWidth={2} />
-      : <Folder size={16} color={colors.accent.default} strokeWidth={2} />;
+    return isExpanded ? (
+      <FolderOpen size={16} color={colors.accent.default} strokeWidth={2} />
+    ) : (
+      <Folder size={16} color={colors.accent.default} strokeWidth={2} />
+    );
   }
 
   return <File size={16} color={colors.fg.muted} strokeWidth={2} />;
@@ -193,18 +216,33 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
-  const [expandedBackends, setExpandedBackends] = useState<Set<string>>(new Set());
-  const [loadingBackends, setLoadingBackends] = useState<Set<string>>(new Set());
+  const [expandedBackends, setExpandedBackends] = useState<Set<string>>(
+    new Set(),
+  );
+  const [loadingBackends, setLoadingBackends] = useState<Set<string>>(
+    new Set(),
+  );
   const [editorTree, setEditorTree] = useState<EditorTreeNode[]>([]);
-  const [expandedEditorDirs, setExpandedEditorDirs] = useState<Set<string>>(new Set());
-  const [loadedEditorDirs, setLoadedEditorDirs] = useState<Set<string>>(new Set());
-  const [loadingEditorDirs, setLoadingEditorDirs] = useState<Set<string>>(new Set());
+  const [expandedEditorDirs, setExpandedEditorDirs] = useState<Set<string>>(
+    new Set(),
+  );
+  const [loadedEditorDirs, setLoadedEditorDirs] = useState<Set<string>>(
+    new Set(),
+  );
+  const [loadingEditorDirs, setLoadingEditorDirs] = useState<Set<string>>(
+    new Set(),
+  );
   const [editorTreeError, setEditorTreeError] = useState<string | null>(null);
-  const [selectedSessionAction, setSelectedSessionAction] = useState<SessionItem | null>(null);
-  const [renameSessionTarget, setRenameSessionTarget] = useState<SessionItem | null>(null);
-  const [pendingRenameSessionTarget, setPendingRenameSessionTarget] = useState<SessionItem | null>(null);
+  const [selectedSessionAction, setSelectedSessionAction] =
+    useState<SessionItem | null>(null);
+  const [renameSessionTarget, setRenameSessionTarget] =
+    useState<SessionItem | null>(null);
+  const [pendingRenameSessionTarget, setPendingRenameSessionTarget] =
+    useState<SessionItem | null>(null);
   const inputRef = useRef<TextInput>(null);
-  const pendingNavigationRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingNavigationRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const interactionHandleRef = useRef<{ cancel?: () => void } | null>(null);
 
   const SESSIONS_LIMIT = 5;
@@ -212,7 +250,11 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
   const handleViewAll = useCallback((backend: string) => {
     setLoadingBackends((prev) => new Set(prev).add(backend));
     setTimeout(() => {
-      setLoadingBackends((prev) => { const next = new Set(prev); next.delete(backend); return next; });
+      setLoadingBackends((prev) => {
+        const next = new Set(prev);
+        next.delete(backend);
+        return next;
+      });
       setExpandedBackends((prev) => new Set(prev).add(backend));
     }, 400);
   }, []);
@@ -251,41 +293,54 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
 
   // Get sessions for the active plugin — reads live from useState registry
   // For explorer, show editor's open files instead (explorer has no sessions)
-  const effectivePluginId = activePluginId === 'explorer' ? 'editor' : activePluginId;
+  const effectivePluginId =
+    activePluginId === "explorer" ? "editor" : activePluginId;
   const reg = effectivePluginId ? (registry[effectivePluginId] ?? null) : null;
   const sessions = reg?.sessions ?? [];
   const activeSessionId = reg?.activeSessionId ?? null;
 
-  const filteredSessions = [...sessions].reverse().filter((s) =>
-    s.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredSessions = [...sessions]
+    .reverse()
+    .filter((s) => s.title.toLowerCase().includes(search.toLowerCase()));
 
   // Group sessions by backend for AI plugin; flat list for other plugins
-  const isAiPlugin = effectivePluginId === 'ai';
-  type SessionGroup = { backend: string; label: string; sessions: SessionItem[] };
+  const isAiPlugin = effectivePluginId === "ai";
+  type SessionGroup = {
+    backend: string;
+    label: string;
+    sessions: SessionItem[];
+  };
   const sessionGroups: SessionGroup[] = isAiPlugin
     ? (() => {
-        const opencode = filteredSessions.filter((s) => !s.backend || s.backend === 'opencode');
-        const codex = filteredSessions.filter((s) => s.backend === 'codex');
+        const opencode = filteredSessions.filter(
+          (s) => !s.backend || s.backend === "opencode",
+        );
+        const codex = filteredSessions.filter((s) => s.backend === "codex");
         const groups: SessionGroup[] = [];
-        if (opencode.length > 0) groups.push({ backend: 'opencode', label: 'OpenCode', sessions: opencode });
-        if (codex.length > 0) groups.push({ backend: 'codex', label: 'Codex', sessions: codex });
+        if (opencode.length > 0)
+          groups.push({
+            backend: "opencode",
+            label: "OpenCode",
+            sessions: opencode,
+          });
+        if (codex.length > 0)
+          groups.push({ backend: "codex", label: "Codex", sessions: codex });
         return groups;
       })()
     : filteredSessions.length > 0
-    ? [{ backend: '', label: '', sessions: filteredSessions }]
-    : [];
+      ? [{ backend: "", label: "", sessions: filteredSessions }]
+      : [];
 
   const pluginDef = effectivePluginId ? getPlugin(effectivePluginId) : null;
-  const pluginName = pluginDef?.name ?? t('drawer.sessionsDefault');
+  const pluginName = pluginDef?.name ?? t("drawer.sessionsDefault");
   const shouldHideSearchAndSessions = effectivePluginId
     ? HIDE_SIDEBAR_SESSION_PLUGIN_IDS.has(effectivePluginId)
     : false;
 
   const handleSessionPress = (id: string) => {
     // If viewing editor sessions from explorer tab, switch to editor first
-    if (activePluginId === 'explorer') {
-      openTab('editor');
+    if (activePluginId === "explorer") {
+      openTab("editor");
     }
     reg?.onSessionPress(id);
     props.navigation.closeDrawer();
@@ -297,18 +352,14 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
       return;
     }
 
-    Alert.alert(
-      t('drawer.deleteSessionTitle'),
-      t('drawer.deleteSessionDesc'),
-      [
-        { text: t('common.cancel'), style: "cancel" },
-        {
-          text: t('common.delete'),
-          style: "destructive",
-          onPress: () => reg?.onSessionClose(id),
-        },
-      ],
-    );
+    Alert.alert(t("drawer.deleteSessionTitle"), t("drawer.deleteSessionDesc"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("common.delete"),
+        style: "destructive",
+        onPress: () => reg?.onSessionClose(id),
+      },
+    ]);
   };
 
   const handleSessionRenameStart = (id: string, currentTitle: string) => {
@@ -318,7 +369,8 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
     setRenameSessionTarget({ ...target, title: currentTitle });
   };
 
-  const hideCreateButton = activePluginId === 'editor' || activePluginId === 'explorer';
+  const hideCreateButton =
+    activePluginId === "editor" || activePluginId === "explorer";
 
   const handleCreate = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -326,41 +378,42 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
     props.navigation.closeDrawer();
   };
 
-  const closeDrawerThen = useCallback((action: () => void) => {
-    if (pendingNavigationRef.current) {
-      clearTimeout(pendingNavigationRef.current);
-      pendingNavigationRef.current = null;
-    }
-    interactionHandleRef.current?.cancel?.();
-
-    props.navigation.closeDrawer();
-    interactionHandleRef.current = InteractionManager.runAfterInteractions(() => {
-      pendingNavigationRef.current = setTimeout(() => {
+  const closeDrawerThen = useCallback(
+    (action: () => void) => {
+      if (pendingNavigationRef.current) {
+        clearTimeout(pendingNavigationRef.current);
         pendingNavigationRef.current = null;
-        action();
-      }, 0);
-    });
-  }, [props.navigation]);
+      }
+      interactionHandleRef.current?.cancel?.();
+
+      props.navigation.closeDrawer();
+      interactionHandleRef.current = InteractionManager.runAfterInteractions(
+        () => {
+          pendingNavigationRef.current = setTimeout(() => {
+            pendingNavigationRef.current = null;
+            action();
+          }, 0);
+        },
+      );
+    },
+    [props.navigation],
+  );
 
   const handleHomePress = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert(
-      t('drawer.goHomeTitle'),
-      t('drawer.goHomeDesc'),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.home'),
-          style: 'destructive',
-          onPress: () => {
-            closeDrawerThen(() => {
-              router.replace("/auth");
-              if (isConnected) disconnect();
-            });
-          },
+    Alert.alert(t("drawer.goHomeTitle"), t("drawer.goHomeDesc"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("common.home"),
+        style: "destructive",
+        onPress: () => {
+          closeDrawerThen(() => {
+            router.replace("/auth");
+            if (isConnected) disconnect();
+          });
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleSettings = () => {
@@ -384,40 +437,46 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
     });
   };
 
-  const loadEditorDirectory = useCallback(async (dirPath: string) => {
-    setLoadingEditorDirs((prev) => {
-      const next = new Set(prev);
-      next.add(dirPath);
-      return next;
-    });
-
-    try {
-      const entries = await fs.list(dirPath);
-      const children = toEditorTreeNodes(entries, dirPath);
-
-      if (dirPath === ".") {
-        setEditorTree(children);
-      } else {
-        setEditorTree((prev) => attachChildrenAtPath(prev, dirPath, children));
-      }
-
-      setLoadedEditorDirs((prev) => {
+  const loadEditorDirectory = useCallback(
+    async (dirPath: string) => {
+      setLoadingEditorDirs((prev) => {
         const next = new Set(prev);
         next.add(dirPath);
         return next;
       });
-      setEditorTreeError(null);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : t('drawer.failedLoadFiles');
-      setEditorTreeError(message);
-    } finally {
-      setLoadingEditorDirs((prev) => {
-        const next = new Set(prev);
-        next.delete(dirPath);
-        return next;
-      });
-    }
-  }, [fs]);
+
+      try {
+        const entries = await fs.list(dirPath);
+        const children = toEditorTreeNodes(entries, dirPath);
+
+        if (dirPath === ".") {
+          setEditorTree(children);
+        } else {
+          setEditorTree((prev) =>
+            attachChildrenAtPath(prev, dirPath, children),
+          );
+        }
+
+        setLoadedEditorDirs((prev) => {
+          const next = new Set(prev);
+          next.add(dirPath);
+          return next;
+        });
+        setEditorTreeError(null);
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : t("drawer.failedLoadFiles");
+        setEditorTreeError(message);
+      } finally {
+        setLoadingEditorDirs((prev) => {
+          const next = new Set(prev);
+          next.delete(dirPath);
+          return next;
+        });
+      }
+    },
+    [fs],
+  );
 
   useEffect(() => {
     if (drawerStatus !== "open" || drawerContentVariant !== "editor-files") {
@@ -427,39 +486,56 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
       return;
     }
     void loadEditorDirectory(".");
-  }, [drawerContentVariant, drawerStatus, loadEditorDirectory, loadedEditorDirs]);
+  }, [
+    drawerContentVariant,
+    drawerStatus,
+    loadEditorDirectory,
+    loadedEditorDirs,
+  ]);
 
-  const handleEditorDirectoryToggle = useCallback((dirPath: string) => {
-    const isExpanded = expandedEditorDirs.has(dirPath);
-    if (isExpanded) {
+  const handleEditorDirectoryToggle = useCallback(
+    (dirPath: string) => {
+      const isExpanded = expandedEditorDirs.has(dirPath);
+      if (isExpanded) {
+        setExpandedEditorDirs((prev) => {
+          const next = new Set(prev);
+          next.delete(dirPath);
+          return next;
+        });
+        return;
+      }
+
       setExpandedEditorDirs((prev) => {
         const next = new Set(prev);
-        next.delete(dirPath);
+        next.add(dirPath);
         return next;
       });
-      return;
-    }
 
-    setExpandedEditorDirs((prev) => {
-      const next = new Set(prev);
-      next.add(dirPath);
-      return next;
-    });
+      if (!loadedEditorDirs.has(dirPath) && !loadingEditorDirs.has(dirPath)) {
+        void loadEditorDirectory(dirPath);
+      }
+    },
+    [
+      expandedEditorDirs,
+      loadedEditorDirs,
+      loadingEditorDirs,
+      loadEditorDirectory,
+    ],
+  );
 
-    if (!loadedEditorDirs.has(dirPath) && !loadingEditorDirs.has(dirPath)) {
-      void loadEditorDirectory(dirPath);
-    }
-  }, [expandedEditorDirs, loadedEditorDirs, loadingEditorDirs, loadEditorDirectory]);
-
-  const handleEditorFileOpen = useCallback(async (filePath: string) => {
-    setDrawerContentVariant("default");
-    openTab("editor");
-    props.navigation.closeDrawer();
-    void gPI.editor.openFile(filePath).catch((error) => {
-      const message = error instanceof Error ? error.message : t('drawer.failedOpenFile');
-      Alert.alert(t('common.error'), message);
-    });
-  }, [openTab, props.navigation, setDrawerContentVariant]);
+  const handleEditorFileOpen = useCallback(
+    async (filePath: string) => {
+      setDrawerContentVariant("default");
+      openTab("editor");
+      props.navigation.closeDrawer();
+      void gPI.editor.openFile(filePath).catch((error) => {
+        const message =
+          error instanceof Error ? error.message : t("drawer.failedOpenFile");
+        Alert.alert(t("common.error"), message);
+      });
+    },
+    [openTab, props.navigation, setDrawerContentVariant],
+  );
 
   const visibleEditorTree = flattenTree(editorTree, expandedEditorDirs);
 
@@ -469,8 +545,13 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
       <View style={{ flex: 1, backgroundColor: colors.bg.base }}>
         <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
           <View style={styles.editorFilesHeader}>
-            <Text style={[styles.editorFilesTitle, { color: colors.fg.muted, fontFamily: fonts.sans.medium }]}>
-              {t('common.files')}
+            <Text
+              style={[
+                styles.editorFilesTitle,
+                { color: colors.fg.muted, fontFamily: fonts.sans.medium },
+              ]}
+            >
+              {t("common.files")}
             </Text>
             <View style={styles.editorFilesHeaderActions}>
               <TouchableOpacity
@@ -482,7 +563,12 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
                 activeOpacity={0.7}
                 style={styles.editorFilesHeaderButton}
               >
-                <Folder size={16} color={colors.fg.muted} strokeWidth={2} style={{ opacity: 0.9 }} />
+                <Folder
+                  size={16}
+                  color={colors.fg.muted}
+                  strokeWidth={2}
+                  style={{ opacity: 0.9 }}
+                />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => {
@@ -494,14 +580,24 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
                 activeOpacity={0.7}
                 style={styles.editorFilesHeaderButton}
               >
-                <RefreshCw size={16} color={colors.fg.muted} strokeWidth={2} style={{ opacity: 0.9 }} />
+                <RefreshCw
+                  size={16}
+                  color={colors.fg.muted}
+                  strokeWidth={2}
+                  style={{ opacity: 0.9 }}
+                />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setExpandedEditorDirs(new Set())}
                 activeOpacity={0.7}
                 style={styles.editorFilesHeaderButton}
               >
-                <CopyMinus size={16} color={colors.fg.muted} strokeWidth={2} style={{ opacity: 0.9 }} />
+                <CopyMinus
+                  size={16}
+                  color={colors.fg.muted}
+                  strokeWidth={2}
+                  style={{ opacity: 0.9 }}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -517,24 +613,42 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
           {isRootLoading ? (
             <View style={[styles.emptyState, { paddingTop: 32 }]}>
               <SpinningLoader color={colors.fg.muted} opacity={0.6} />
-              <Text style={[styles.emptyText, { color: colors.fg.subtle, fontFamily: fonts.sans.regular }]}>
-                {t('drawer.loadingFiles')}
+              <Text
+                style={[
+                  styles.emptyText,
+                  { color: colors.fg.subtle, fontFamily: fonts.sans.regular },
+                ]}
+              >
+                {t("drawer.loadingFiles")}
               </Text>
             </View>
           ) : editorTreeError ? (
             <View style={[styles.emptyState, { paddingTop: 32 }]}>
-              <Text style={[styles.emptyText, { color: colors.fg.subtle, fontFamily: fonts.sans.regular }]}>
+              <Text
+                style={[
+                  styles.emptyText,
+                  { color: colors.fg.subtle, fontFamily: fonts.sans.regular },
+                ]}
+              >
                 {editorTreeError}
               </Text>
             </View>
           ) : visibleEditorTree.length === 0 ? (
             <View style={[styles.emptyState, { paddingTop: 32 }]}>
-              <Text style={[styles.emptyText, { color: colors.fg.subtle, fontFamily: fonts.sans.regular }]}>
-                {t('drawer.noFilesFound')}
+              <Text
+                style={[
+                  styles.emptyText,
+                  { color: colors.fg.subtle, fontFamily: fonts.sans.regular },
+                ]}
+              >
+                {t("drawer.noFilesFound")}
               </Text>
             </View>
           ) : (
-            <ScrollView showsVerticalScrollIndicator keyboardDismissMode="on-drag">
+            <ScrollView
+              showsVerticalScrollIndicator
+              keyboardDismissMode="on-drag"
+            >
               {visibleEditorTree.map(({ node, depth }) => {
                 const isDir = node.type === "directory";
                 const isExpanded = expandedEditorDirs.has(node.path);
@@ -559,27 +673,52 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
                   >
                     {isDir ? (
                       <View style={styles.editorTreeChevron}>
-                        {isExpanded
-                          ? <ChevronDown size={14} color={colors.fg.subtle} strokeWidth={2} />
-                          : <ChevronRight size={14} color={colors.fg.subtle} strokeWidth={2} />
-                        }
+                        {isExpanded ? (
+                          <ChevronDown
+                            size={14}
+                            color={colors.fg.subtle}
+                            strokeWidth={2}
+                          />
+                        ) : (
+                          <ChevronRight
+                            size={14}
+                            color={colors.fg.subtle}
+                            strokeWidth={2}
+                          />
+                        )}
                       </View>
                     ) : (
                       <View style={styles.editorTreeChevron} />
                     )}
 
                     <View style={styles.editorTreeIcon}>
-                      <TreeIcon node={node} isExpanded={isExpanded} colors={colors} />
+                      <TreeIcon
+                        node={node}
+                        isExpanded={isExpanded}
+                        colors={colors}
+                      />
                     </View>
 
                     <Text
                       numberOfLines={1}
-                      style={[styles.editorTreeLabel, { color: colors.fg.default, fontFamily: fonts.sans.regular }]}
+                      style={[
+                        styles.editorTreeLabel,
+                        {
+                          color: colors.fg.default,
+                          fontFamily: fonts.sans.regular,
+                        },
+                      ]}
                     >
                       {node.name}
                     </Text>
 
-                    {isLoading ? <SpinningLoader color={colors.fg.subtle} opacity={0.7} size={12} /> : null}
+                    {isLoading ? (
+                      <SpinningLoader
+                        color={colors.fg.subtle}
+                        opacity={0.7}
+                        size={12}
+                      />
+                    ) : null}
                   </TouchableOpacity>
                 );
               })}
@@ -592,18 +731,28 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg.base }}>
-      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-
+      <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
         {!shouldHideSearchAndSessions ? (
           <>
             {/* Top: Search + Create/Cancel */}
             <View style={styles.topRow}>
-              <View style={[styles.searchWrap, { backgroundColor: colors.bg.raised }]}>
+              <View
+                style={[
+                  styles.searchWrap,
+                  { backgroundColor: colors.bg.raised },
+                ]}
+              >
                 <Search size={18} color={colors.fg.muted} strokeWidth={2} />
                 <TextInput
                   ref={inputRef}
-                  style={[styles.searchInput, { color: colors.fg.default, fontFamily: fonts.sans.regular }]}
-                  placeholder={t('drawer.searchPlaceholder')}
+                  style={[
+                    styles.searchInput,
+                    {
+                      color: colors.fg.default,
+                      fontFamily: fonts.sans.regular,
+                    },
+                  ]}
+                  placeholder={t("drawer.searchPlaceholder")}
                   placeholderTextColor={colors.fg.subtle}
                   value={search}
                   onChangeText={setSearch}
@@ -615,54 +764,106 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
                 <TouchableOpacity
                   onPress={searchFocused ? handleCancelSearch : handleCreate}
                   activeOpacity={0.7}
-                  style={[styles.createBtn, { backgroundColor: colors.bg.raised }]}
+                  style={[
+                    styles.createBtn,
+                    { backgroundColor: colors.bg.raised },
+                  ]}
                 >
-                  {searchFocused
-                    ? <X size={18} color={colors.fg.default} strokeWidth={2} />
-                    : <PencilLine size={18} color={colors.fg.default} strokeWidth={2} />
-                  }
+                  {searchFocused ? (
+                    <X size={18} color={colors.fg.default} strokeWidth={2} />
+                  ) : (
+                    <PencilLine
+                      size={18}
+                      color={colors.fg.default}
+                      strokeWidth={2}
+                    />
+                  )}
                 </TouchableOpacity>
               )}
             </View>
 
             {/* Sessions */}
             <View style={styles.sessionsSection}>
-              {effectivePluginId === 'ai' ? null : (
-                <Text style={[styles.sessionsLabel, { color: colors.fg.muted, fontFamily: fonts.sans.medium }]}>
-                  {t('drawer.sessions', { name: pluginName })}
+              {effectivePluginId === "ai" ? null : (
+                <Text
+                  style={[
+                    styles.sessionsLabel,
+                    { color: colors.fg.muted, fontFamily: fonts.sans.medium },
+                  ]}
+                >
+                  {t("drawer.sessions", { name: pluginName })}
                 </Text>
               )}
 
               {reg?.loading ? (
                 <View style={styles.emptyState}>
                   <SpinningLoader color={colors.fg.muted} opacity={0.6} />
-                  <Text style={[styles.emptyText, { color: colors.fg.subtle, fontFamily: fonts.sans.regular }]}>
-                    {t('drawer.loadingSessions')}
+                  <Text
+                    style={[
+                      styles.emptyText,
+                      {
+                        color: colors.fg.subtle,
+                        fontFamily: fonts.sans.regular,
+                      },
+                    ]}
+                  >
+                    {t("drawer.loadingSessions")}
                   </Text>
                 </View>
               ) : filteredSessions.length === 0 ? (
                 <View style={[styles.emptyState, { paddingTop: 50 }]}>
-                  <Ionicons name="chatbox-ellipses" size={26} color={colors.fg.muted} />
-                  <Text style={[styles.emptyText, { color: colors.fg.subtle, fontFamily: fonts.sans.regular }]}>
-                    {t('drawer.noSessionsYet')}
+                  <Ionicons
+                    name="chatbox-ellipses"
+                    size={26}
+                    color={colors.fg.muted}
+                  />
+                  <Text
+                    style={[
+                      styles.emptyText,
+                      {
+                        color: colors.fg.subtle,
+                        fontFamily: fonts.sans.regular,
+                      },
+                    ]}
+                  >
+                    {t("drawer.noSessionsYet")}
                   </Text>
                 </View>
               ) : (
-                <ScrollView showsVerticalScrollIndicator keyboardDismissMode="on-drag">
+                <ScrollView
+                  showsVerticalScrollIndicator
+                  keyboardDismissMode="on-drag"
+                >
                   {sessionGroups.map((group) => (
-                    <View key={group.backend || 'default'} style={styles.sessionGroup}>
+                    <View
+                      key={group.backend || "default"}
+                      style={styles.sessionGroup}
+                    >
                       {group.label ? (
-                        <Text style={[styles.groupLabel, { color: colors.fg.muted, fontFamily: fonts.sans.medium }]}>
+                        <Text
+                          style={[
+                            styles.groupLabel,
+                            {
+                              color: colors.fg.muted,
+                              fontFamily: fonts.sans.medium,
+                            },
+                          ]}
+                        >
                           {group.label}
                         </Text>
                       ) : null}
                       {(() => {
                         const isExpanded = expandedBackends.has(group.backend);
                         const isLoading = loadingBackends.has(group.backend);
-                        const limited = isAiPlugin && !isExpanded && !search
-                          ? group.sessions.slice(0, SESSIONS_LIMIT)
-                          : group.sessions;
-                        const hasMore = isAiPlugin && !isExpanded && !search && group.sessions.length > SESSIONS_LIMIT;
+                        const limited =
+                          isAiPlugin && !isExpanded && !search
+                            ? group.sessions.slice(0, SESSIONS_LIMIT)
+                            : group.sessions;
+                        const hasMore =
+                          isAiPlugin &&
+                          !isExpanded &&
+                          !search &&
+                          group.sessions.length > SESSIONS_LIMIT;
                         return (
                           <>
                             {limited.map((item) => {
@@ -670,27 +871,43 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
                               const rawFileName = item.title.endsWith(" *")
                                 ? item.title.slice(0, -2)
                                 : item.title;
-                              const showEditorFileIcon = effectivePluginId === "editor";
+                              const showEditorFileIcon =
+                                effectivePluginId === "editor";
                               return (
                                 <TouchableOpacity
                                   key={item.id}
                                   onPress={() => handleSessionPress(item.id)}
-                                  onLongPress={() => setSelectedSessionAction(item)}
+                                  onLongPress={() =>
+                                    setSelectedSessionAction(item)
+                                  }
                                   activeOpacity={0.7}
                                   style={[
                                     styles.sessionItem,
                                     {
-                                      backgroundColor: isActive ? colors.bg.raised : "transparent",
+                                      backgroundColor: isActive
+                                        ? colors.bg.raised
+                                        : "transparent",
                                     },
                                   ]}
                                 >
                                   {showEditorFileIcon ? (
                                     <View style={styles.sessionFileIconWrap}>
-                                      <SessionFileIcon fileName={rawFileName} colors={colors} />
+                                      <SessionFileIcon
+                                        fileName={rawFileName}
+                                        colors={colors}
+                                      />
                                     </View>
                                   ) : null}
                                   <Text
-                                    style={[styles.sessionTitle, { color: colors.fg.default, fontFamily: fonts.sans.regular, flex: 1, opacity: isActive ? 1 : 0.8 }]}
+                                    style={[
+                                      styles.sessionTitle,
+                                      {
+                                        color: colors.fg.default,
+                                        fontFamily: fonts.sans.regular,
+                                        flex: 1,
+                                        opacity: isActive ? 1 : 0.8,
+                                      },
+                                    ]}
                                     numberOfLines={1}
                                   >
                                     {item.title}
@@ -700,9 +917,22 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
                             })}
                             {isLoading && (
                               <View style={styles.viewAllRow}>
-                                <SpinningLoader color={colors.fg.muted} opacity={0.6} size={14} />
-                                <Text style={[styles.viewAllText, { color: colors.fg.muted, fontFamily: fonts.sans.regular, opacity: 0.6 }]}>
-                                  {t('drawer.loadingMore')}
+                                <SpinningLoader
+                                  color={colors.fg.muted}
+                                  opacity={0.6}
+                                  size={14}
+                                />
+                                <Text
+                                  style={[
+                                    styles.viewAllText,
+                                    {
+                                      color: colors.fg.muted,
+                                      fontFamily: fonts.sans.regular,
+                                      opacity: 0.6,
+                                    },
+                                  ]}
+                                >
+                                  {t("drawer.loadingMore")}
                                 </Text>
                               </View>
                             )}
@@ -712,10 +942,27 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
                                 activeOpacity={0.7}
                                 style={styles.viewAllRow}
                               >
-                                <Text style={[styles.viewAllText, { color: colors.fg.muted, fontFamily: fonts.sans.regular, opacity: 0.6 }]}>
-                                  {t('drawer.viewAll', { count: group.sessions.length - SESSIONS_LIMIT })}
+                                <Text
+                                  style={[
+                                    styles.viewAllText,
+                                    {
+                                      color: colors.fg.muted,
+                                      fontFamily: fonts.sans.regular,
+                                      opacity: 0.6,
+                                    },
+                                  ]}
+                                >
+                                  {t("drawer.viewAll", {
+                                    count:
+                                      group.sessions.length - SESSIONS_LIMIT,
+                                  })}
                                 </Text>
-                                <ChevronDown size={17} color={colors.fg.muted} strokeWidth={2} style={{ opacity: 0.8 }} />
+                                <ChevronDown
+                                  size={17}
+                                  color={colors.fg.muted}
+                                  strokeWidth={2}
+                                  style={{ opacity: 0.8 }}
+                                />
                               </TouchableOpacity>
                             )}
                           </>
@@ -728,8 +975,18 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
             </View>
           </>
         ) : (
-          <View style={[styles.sessionsSection, { justifyContent: 'flex-start' }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, gap: 12 }}>
+          <View
+            style={[styles.sessionsSection, { justifyContent: "flex-start" }]}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 16,
+                paddingTop: 8,
+                gap: 12,
+              }}
+            >
               <View
                 style={{
                   width: 56,
@@ -742,17 +999,31 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
                 }}
               >
                 <Image
-                  source={require('@/assets/images/icon-bg.png')}
+                  source={require("@/assets/images/icon.png")}
                   style={{ width: 56, height: 56, borderRadius: 14 }}
                   resizeMode="contain"
                 />
               </View>
-              <View style={{ justifyContent: 'center' }}>
-                <Text style={{ fontSize: 20, fontFamily: 'PublicSans_700Bold', color: colors.fg.default, lineHeight: 26 }}>
+              <View style={{ justifyContent: "center" }}>
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontFamily: "PublicSans_700Bold",
+                    color: colors.fg.default,
+                    lineHeight: 26,
+                  }}
+                >
                   Jukto
                 </Text>
-                <Text style={{ fontSize: 12, fontFamily: fonts.sans.regular, color: colors.fg.subtle, lineHeight: 17 }}>
-                  {t('auth.tagline')}
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontFamily: fonts.sans.regular,
+                    color: colors.fg.subtle,
+                    lineHeight: 17,
+                  }}
+                >
+                  {t("auth.tagline")}
                 </Text>
               </View>
             </View>
@@ -760,27 +1031,85 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
         )}
 
         {/* Bottom bar */}
-        <View style={[styles.bottomBar, { borderTopColor: colors.border.secondary }]}>
-          <TouchableOpacity onPress={handleHomePress} style={styles.bottomBtn} activeOpacity={0.7}>
+        <View
+          style={[
+            styles.bottomBar,
+            { borderTopColor: colors.border.secondary },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={handleHomePress}
+            style={styles.bottomBtn}
+            activeOpacity={0.7}
+          >
             <Home size={22} color={colors.fg.muted} strokeWidth={1.6} />
-            <Text style={[styles.bottomBtnLabel, { color: colors.fg.subtle, fontFamily: fonts.sans.regular }]}>{t('common.home')}</Text>
+            <Text
+              style={[
+                styles.bottomBtnLabel,
+                { color: colors.fg.subtle, fontFamily: fonts.sans.regular },
+              ]}
+            >
+              {t("common.home")}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleSettings} style={styles.bottomBtn} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={handleSettings}
+            style={styles.bottomBtn}
+            activeOpacity={0.7}
+          >
             <Settings size={22} color={colors.fg.muted} strokeWidth={1.6} />
-            <Text style={[styles.bottomBtnLabel, { color: colors.fg.subtle, fontFamily: fonts.sans.regular }]}>{t('common.settings')}</Text>
+            <Text
+              style={[
+                styles.bottomBtnLabel,
+                { color: colors.fg.subtle, fontFamily: fonts.sans.regular },
+              ]}
+            >
+              {t("common.settings")}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleHelp} style={styles.bottomBtn} activeOpacity={0.7}>
+          <TouchableOpacity
+            onPress={handleHelp}
+            style={styles.bottomBtn}
+            activeOpacity={0.7}
+          >
             <HelpCircle size={22} color={colors.fg.muted} strokeWidth={1.6} />
-            <Text style={[styles.bottomBtnLabel, { color: colors.fg.subtle, fontFamily: fonts.sans.regular }]}>{t('common.help')}</Text>
+            <Text
+              style={[
+                styles.bottomBtnLabel,
+                { color: colors.fg.subtle, fontFamily: fonts.sans.regular },
+              ]}
+            >
+              {t("common.help")}
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleFeedback} style={styles.bottomBtn} activeOpacity={0.7}>
-            <MessageCircle size={22} color={colors.fg.muted} strokeWidth={1.6} />
-            <Text style={[styles.bottomBtnLabel, { color: colors.fg.subtle, fontFamily: fonts.sans.regular }]}>{t('common.feedback')}</Text>
+          <TouchableOpacity
+            onPress={handleFeedback}
+            style={styles.bottomBtn}
+            activeOpacity={0.7}
+          >
+            <MessageCircle
+              size={22}
+              color={colors.fg.muted}
+              strokeWidth={1.6}
+            />
+            <Text
+              style={[
+                styles.bottomBtnLabel,
+                { color: colors.fg.subtle, fontFamily: fonts.sans.regular },
+              ]}
+            >
+              {t("common.feedback")}
+            </Text>
           </TouchableOpacity>
 
           <View style={{ flex: 1 }} />
 
-          <View style={[styles.statusDot, { backgroundColor: isConnected ? '#22c55e' : colors.fg.subtle }]} />
+          <View
+            style={[
+              styles.statusDot,
+              { backgroundColor: isConnected ? "#22c55e" : colors.fg.subtle },
+            ]}
+          />
         </View>
 
         <InfoSheet
@@ -791,11 +1120,16 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
           }}
           onAfterClose={() => {
             if (!pendingRenameSessionTarget) return;
-            handleSessionRenameStart(pendingRenameSessionTarget.id, pendingRenameSessionTarget.title);
+            handleSessionRenameStart(
+              pendingRenameSessionTarget.id,
+              pendingRenameSessionTarget.title,
+            );
             setPendingRenameSessionTarget(null);
           }}
-          title={selectedSessionAction?.title ?? t('drawer.sessionFallbackTitle')}
-          description={t('drawer.sessionActions')}
+          title={
+            selectedSessionAction?.title ?? t("drawer.sessionFallbackTitle")
+          }
+          description={t("drawer.sessionActions")}
         >
           <View style={{ gap: 8, paddingBottom: 8 }}>
             {reg?.onSessionRename ? (
@@ -806,13 +1140,35 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
                   setSelectedSessionAction(null);
                 }}
                 activeOpacity={0.7}
-                style={[styles.sheetRow, { backgroundColor: colors.bg.raised, borderRadius: 10, marginBottom: 0 }]}
+                style={[
+                  styles.sheetRow,
+                  {
+                    backgroundColor: colors.bg.raised,
+                    borderRadius: 10,
+                    marginBottom: 0,
+                  },
+                ]}
               >
-                <PencilLine size={18} color={colors.fg.default} strokeWidth={2} />
-                <Text style={{ flex: 1, fontSize: typography.body, fontFamily: fonts.sans.medium, color: colors.fg.default }}>
-                  {t('common.rename')}
+                <PencilLine
+                  size={18}
+                  color={colors.fg.default}
+                  strokeWidth={2}
+                />
+                <Text
+                  style={{
+                    flex: 1,
+                    fontSize: typography.body,
+                    fontFamily: fonts.sans.medium,
+                    color: colors.fg.default,
+                  }}
+                >
+                  {t("common.rename")}
                 </Text>
-                <ChevronRight size={18} color={colors.fg.subtle} strokeWidth={2} />
+                <ChevronRight
+                  size={18}
+                  color={colors.fg.subtle}
+                  strokeWidth={2}
+                />
               </TouchableOpacity>
             ) : null}
 
@@ -824,13 +1180,31 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
                 handleSessionClose(id);
               }}
               activeOpacity={0.7}
-              style={[styles.sheetRow, { backgroundColor: colors.bg.raised, borderRadius: 10, marginBottom: 0 }]}
+              style={[
+                styles.sheetRow,
+                {
+                  backgroundColor: colors.bg.raised,
+                  borderRadius: 10,
+                  marginBottom: 0,
+                },
+              ]}
             >
               <Trash size={18} color={colors.git.deleted} strokeWidth={2} />
-              <Text style={{ flex: 1, fontSize: typography.body, fontFamily: fonts.sans.medium, color: colors.git.deleted }}>
-                {t('common.delete')}
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: typography.body,
+                  fontFamily: fonts.sans.medium,
+                  color: colors.git.deleted,
+                }}
+              >
+                {t("common.delete")}
               </Text>
-              <ChevronRight size={18} color={colors.git.deleted} strokeWidth={2} />
+              <ChevronRight
+                size={18}
+                color={colors.git.deleted}
+                strokeWidth={2}
+              />
             </TouchableOpacity>
           </View>
         </InfoSheet>
@@ -847,14 +1221,13 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
             reg.onSessionRename(renameSessionTarget.id, trimmed);
             setRenameSessionTarget(null);
           }}
-          title={t('drawer.renameSession')}
-          description={t('drawer.renameSessionDesc')}
-          placeholder={t('drawer.sessionTitlePlaceholder')}
-          acceptLabel={t('common.rename')}
-          cancelLabel={t('common.cancel')}
+          title={t("drawer.renameSession")}
+          description={t("drawer.renameSessionDesc")}
+          placeholder={t("drawer.sessionTitlePlaceholder")}
+          acceptLabel={t("common.rename")}
+          cancelLabel={t("common.cancel")}
           initialValue={renameSessionTarget?.title ?? ""}
         />
-
       </SafeAreaView>
     </View>
   );
