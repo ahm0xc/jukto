@@ -15,17 +15,56 @@ import { useEditorConfig } from "@/contexts/EditorContext";
 import { useAI } from "@/hooks/useAI";
 import { useApi } from "@/hooks/useApi";
 import { logger } from "@/lib/logger";
-import type { AIEvent, AISession, AIMessage, AIPart, AIAgent, AIProvider, AIModel, AIPermission, AIQuestion, AIFileAttachment, ModelRef, PermissionResponse, AiBackend, CodexPromptOptions } from "./types";
+import type {
+  AIEvent,
+  AISession,
+  AIMessage,
+  AIPart,
+  AIAgent,
+  AIProvider,
+  AIModel,
+  AIPermission,
+  AIQuestion,
+  AIFileAttachment,
+  ModelRef,
+  PermissionResponse,
+  AiBackend,
+  CodexPromptOptions,
+} from "./types";
 import Markdown from "./Markdown";
 import ToolCall from "./ToolCall";
 import FileChange from "./FileChange";
 import {
-  Sparkle, Sparkles, Check, X, Plus,
-  Hammer, Map as MapIcon, Square, AlertTriangle, Key,
-  EllipsisVertical, ChevronDown, LoaderCircle, SquaresSubtract, Search, BookOpen, SlidersHorizontal, Mic, PieChart, File,
+  Sparkle,
+  Sparkles,
+  Check,
+  X,
+  Plus,
+  Hammer,
+  Map as MapIcon,
+  Square,
+  AlertTriangle,
+  Key,
+  EllipsisVertical,
+  ChevronDown,
+  LoaderCircle,
+  SquaresSubtract,
+  Search,
+  BookOpen,
+  SlidersHorizontal,
+  Mic,
+  PieChart,
+  File,
 } from "lucide-react-native";
 import { Canvas, Circle } from "@shopify/react-native-skia";
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -40,7 +79,13 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Gesture, GestureDetector, GestureHandlerRootView, ScrollView, TouchableOpacity } from "react-native-gesture-handler";
+import {
+  Gesture,
+  GestureDetector,
+  GestureHandlerRootView,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native-gesture-handler";
 import { FlashList, FlashListRef } from "@shopify/flash-list";
 import Animated, {
   Easing,
@@ -64,11 +109,16 @@ import Feather from "@expo/vector-icons/Feather";
 import Fontisto from "@expo/vector-icons/Fontisto";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Foundation from "@expo/vector-icons/Foundation";
-import { RecordingPresets, setAudioModeAsync, requestRecordingPermissionsAsync, useAudioRecorder } from "expo-audio";
+import {
+  RecordingPresets,
+  setAudioModeAsync,
+  requestRecordingPermissionsAsync,
+  useAudioRecorder,
+} from "expo-audio";
 import Svg, { Path } from "react-native-svg";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MenuView } from "@react-native-menu/menu";
-import { useDrawerStatus } from "@react-navigation/drawer";
+import { useDrawerStatus } from "expo-router/drawer";
 import { innerApi } from "../../innerApi";
 import { PluginPanelProps } from "../../types";
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -91,11 +141,19 @@ interface AITab extends BaseTab {
   updatedAt?: number;
 }
 
-const DEFAULT_OPENCODE_AGENTS: { id: string; name: string; icon?: React.ComponentType<any> }[] = [
+const DEFAULT_OPENCODE_AGENTS: {
+  id: string;
+  name: string;
+  icon?: React.ComponentType<any>;
+}[] = [
   { id: "build", name: "Build", icon: Hammer },
   { id: "plan", name: "Plan", icon: MapIcon },
 ];
-const DEFAULT_CODEX_AGENTS: { id: string; name: string; icon?: React.ComponentType<any> }[] = [
+const DEFAULT_CODEX_AGENTS: {
+  id: string;
+  name: string;
+  icon?: React.ComponentType<any>;
+}[] = [
   { id: "default", name: "Build", icon: Hammer },
   { id: "plan", name: "Plan", icon: MapIcon },
 ];
@@ -104,7 +162,10 @@ type ComposerSheet = "configure" | "tune" | null;
 
 const BUTTON_LABEL_MAX_CHARS = 12;
 
-function truncateButtonLabel(value: string, maxChars: number = BUTTON_LABEL_MAX_CHARS): string {
+function truncateButtonLabel(
+  value: string,
+  maxChars: number = BUTTON_LABEL_MAX_CHARS,
+): string {
   if (value.length <= maxChars) return value;
   return `${value.slice(0, maxChars)}..`;
 }
@@ -119,8 +180,9 @@ function isAbortLikeError(error: unknown): boolean {
   }
 
   const record = error as Record<string, unknown>;
-  const values = [record.name, record.message, record.code]
-    .filter((value): value is string => typeof value === "string");
+  const values = [record.name, record.message, record.code].filter(
+    (value): value is string => typeof value === "string",
+  );
 
   return values.some((value) => /abort|interrupt|cancel/i.test(value));
 }
@@ -149,24 +211,68 @@ function MentionFileIcon({
   return <File size={14} color={colors.fg.subtle} />;
 }
 
-function AISkeleton({ colors, paddingTop = 0 }: { colors: any; paddingTop?: number }) {
+function AISkeleton({
+  colors,
+  paddingTop = 0,
+}: {
+  colors: any;
+  paddingTop?: number;
+}) {
   const opacity = useSharedValue(0.35);
 
   useEffect(() => {
     opacity.value = withRepeat(
       withTiming(0.9, { duration: 750, easing: Easing.inOut(Easing.ease) }),
       -1,
-      true
+      true,
     );
   }, [opacity]);
 
   const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   return (
-    <View style={{ paddingHorizontal: 12, paddingVertical: 14, paddingTop: paddingTop + 20, gap: 10, alignItems: "flex-end" }}>
-      <Animated.View style={[{ height: 26, width: "70%", borderRadius: 8, backgroundColor: colors.bg.raised}, animStyle]} />
-      <Animated.View style={[{ height: 26, width: "45%", borderRadius: 8, backgroundColor: colors.bg.raised}, animStyle]} />
-      <Animated.View style={[{ height: 26, width: "52%", borderRadius: 8, backgroundColor: colors.bg.raised}, animStyle]} />
+    <View
+      style={{
+        paddingHorizontal: 12,
+        paddingVertical: 14,
+        paddingTop: paddingTop + 20,
+        gap: 10,
+        alignItems: "flex-end",
+      }}
+    >
+      <Animated.View
+        style={[
+          {
+            height: 26,
+            width: "70%",
+            borderRadius: 8,
+            backgroundColor: colors.bg.raised,
+          },
+          animStyle,
+        ]}
+      />
+      <Animated.View
+        style={[
+          {
+            height: 26,
+            width: "45%",
+            borderRadius: 8,
+            backgroundColor: colors.bg.raised,
+          },
+          animStyle,
+        ]}
+      />
+      <Animated.View
+        style={[
+          {
+            height: 26,
+            width: "52%",
+            borderRadius: 8,
+            backgroundColor: colors.bg.raised,
+          },
+          animStyle,
+        ]}
+      />
     </View>
   );
 }
@@ -177,26 +283,38 @@ function formatBackendSessionTitle(backend: AiBackend, title?: string) {
 
 function isBackendUnavailableError(message: string): boolean {
   return (
-    /backend\s+"?(opencode|codex)"?\s+is not available/i.test(message)
-    || /eunavailable/i.test(message)
-    || /no ai backends available/i.test(message)
-    || /ai manager not initialized/i.test(message)
+    /backend\s+"?(opencode|codex)"?\s+is not available/i.test(message) ||
+    /eunavailable/i.test(message) ||
+    /no ai backends available/i.test(message) ||
+    /ai manager not initialized/i.test(message)
   );
 }
 
 function showBackendMissingInstallAlert(backend: AiBackend): void {
   const backendLabel = formatBackendSessionTitle(backend);
   Alert.alert(
-    i18n.t('aiPanel.notInstalledTitle', { backend: backendLabel }),
-    i18n.t('aiPanel.notInstalledDesc', { backend: backendLabel }),
+    i18n.t("aiPanel.notInstalledTitle", { backend: backendLabel }),
+    i18n.t("aiPanel.notInstalledDesc", { backend: backendLabel }),
   );
 }
 
 function isAiStatusRunning(status: unknown): boolean {
-  const statusObj = status && typeof status === "object" ? status as Record<string, unknown> : null;
-  const statusType = typeof statusObj?.type === "string" ? statusObj.type : typeof status === "string" ? status : "";
+  const statusObj =
+    status && typeof status === "object"
+      ? (status as Record<string, unknown>)
+      : null;
+  const statusType =
+    typeof statusObj?.type === "string"
+      ? statusObj.type
+      : typeof status === "string"
+        ? status
+        : "";
   const normalized = statusType.toLowerCase();
-  return normalized === "busy" || normalized === "running" || normalized === "working";
+  return (
+    normalized === "busy" ||
+    normalized === "running" ||
+    normalized === "working"
+  );
 }
 
 function sortTabsByUpdatedAt(tabs: AITab[]): AITab[] {
@@ -222,7 +340,10 @@ function renderColorfulBrandIcon(
   return React.createElement(Icon, { size, color: fallbackColor });
 }
 
-function mergeSessionTabs(existingTabs: AITab[], incomingSessions: AISession[]): AITab[] {
+function mergeSessionTabs(
+  existingTabs: AITab[],
+  incomingSessions: AISession[],
+): AITab[] {
   const byKey = new Map<string, AITab>();
 
   for (const tab of existingTabs) {
@@ -234,7 +355,8 @@ function mergeSessionTabs(existingTabs: AITab[], incomingSessions: AISession[]):
     const backend = session.backend ?? "opencode";
     const key = `${backend}:${session.id}`;
     const existing = byKey.get(key);
-    const nextTitle = (session.title || "").trim() || existing?.title || `Session ${i + 1}`;
+    const nextTitle =
+      (session.title || "").trim() || existing?.title || `Session ${i + 1}`;
     const nextUpdatedAt = session.time?.updated;
 
     byKey.set(key, {
@@ -244,23 +366,35 @@ function mergeSessionTabs(existingTabs: AITab[], incomingSessions: AISession[]):
       title: nextTitle,
       // Keep local ordering stable for existing tabs. We only move a tab when
       // the user sends a new prompt from that tab.
-      updatedAt: existing?.updatedAt
-        ?? (typeof nextUpdatedAt === "number" ? nextUpdatedAt : Date.now()),
+      updatedAt:
+        existing?.updatedAt ??
+        (typeof nextUpdatedAt === "number" ? nextUpdatedAt : Date.now()),
     });
   }
 
   return sortTabsByUpdatedAt(Array.from(byKey.values()));
 }
 
-function reconcileSessionTabs(existingTabs: AITab[], incomingSessions: AISession[]): AITab[] {
+function reconcileSessionTabs(
+  existingTabs: AITab[],
+  incomingSessions: AISession[],
+): AITab[] {
   const incomingKeys = new Set(
-    incomingSessions.map((session) => `${session.backend ?? "opencode"}:${session.id}`),
+    incomingSessions.map(
+      (session) => `${session.backend ?? "opencode"}:${session.id}`,
+    ),
   );
   const merged = mergeSessionTabs(existingTabs, incomingSessions);
-  return merged.filter((tab) => !!tab.sessionId && incomingKeys.has(`${tab.backend}:${tab.sessionId}`));
+  return merged.filter(
+    (tab) =>
+      !!tab.sessionId && incomingKeys.has(`${tab.backend}:${tab.sessionId}`),
+  );
 }
 
-function sameMessagesShape(a: AIMessage[] | undefined, b: AIMessage[]): boolean {
+function sameMessagesShape(
+  a: AIMessage[] | undefined,
+  b: AIMessage[],
+): boolean {
   if (!a) return false;
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i += 1) {
@@ -272,22 +406,32 @@ function sameMessagesShape(a: AIMessage[] | undefined, b: AIMessage[]): boolean 
   return true;
 }
 
-function mergeMessagePartsPreservingRichState(existingParts: AIPart[] = [], incomingParts: AIPart[] = []): AIPart[] {
+function mergeMessagePartsPreservingRichState(
+  existingParts: AIPart[] = [],
+  incomingParts: AIPart[] = [],
+): AIPart[] {
   if (existingParts.length === 0) return incomingParts;
   if (incomingParts.length === 0) return existingParts;
 
   const merged = [...existingParts];
 
   for (const incomingPart of incomingParts) {
-    const incomingId = typeof (incomingPart as any).id === "string" ? (incomingPart as any).id : undefined;
+    const incomingId =
+      typeof (incomingPart as any).id === "string"
+        ? (incomingPart as any).id
+        : undefined;
     const existingIndex = incomingId
       ? merged.findIndex((part) => (part as any).id === incomingId)
       : findStreamingPartIndex(merged, incomingPart);
 
     if (existingIndex >= 0) {
-      merged[existingIndex] = mergePartUpdate(merged[existingIndex], incomingPart, {
-        replaceText: true,
-      });
+      merged[existingIndex] = mergePartUpdate(
+        merged[existingIndex],
+        incomingPart,
+        {
+          replaceText: true,
+        },
+      );
       continue;
     }
 
@@ -297,7 +441,10 @@ function mergeMessagePartsPreservingRichState(existingParts: AIPart[] = [], inco
   return merged;
 }
 
-function mergeMessagesPreservingRichState(existing: AIMessage[] = [], incoming: AIMessage[] = []): AIMessage[] {
+function mergeMessagesPreservingRichState(
+  existing: AIMessage[] = [],
+  incoming: AIMessage[] = [],
+): AIMessage[] {
   if (existing.length === 0) return incoming;
   if (incoming.length === 0) return existing;
 
@@ -320,7 +467,10 @@ function mergeMessagesPreservingRichState(existing: AIMessage[] = [], incoming: 
     mergedById.set(message.id, {
       ...previous,
       ...message,
-      parts: mergeMessagePartsPreservingRichState(previous.parts || [], message.parts || []),
+      parts: mergeMessagePartsPreservingRichState(
+        previous.parts || [],
+        message.parts || [],
+      ),
       time: message.time ?? previous.time,
     });
   }
@@ -346,16 +496,33 @@ function inferImageMime(uri: string, providedMime?: string | null): string {
 // Custom SVG icons
 // ============================================================================
 
-function PaperclipIcon({ size = 24, color = "currentColor" }: { size?: number; color?: string }) {
+function PaperclipIcon({
+  size = 24,
+  color = "currentColor",
+}: {
+  size?: number;
+  color?: string;
+}) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="m15 7l-6.5 6.5a1.5 1.5 0 0 0 3 3L18 10a3 3 0 0 0-6-6l-6.5 6.5a4.5 4.5 0 0 0 9 9L21 13" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path
+        d="m15 7l-6.5 6.5a1.5 1.5 0 0 0 3 3L18 10a3 3 0 0 0-6-6l-6.5 6.5a4.5 4.5 0 0 0 9 9L21 13"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }
 
-
-function TrashIcon({ size = 24, color = "currentColor" }: { size?: number; color?: string }) {
+function TrashIcon({
+  size = 24,
+  color = "currentColor",
+}: {
+  size?: number;
+  color?: string;
+}) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
@@ -369,42 +536,121 @@ function TrashIcon({ size = 24, color = "currentColor" }: { size?: number; color
   );
 }
 
-function SendIcon({ size = 24, color = "currentColor" }: { size?: number; color?: string }) {
+function SendIcon({
+  size = 24,
+  color = "currentColor",
+}: {
+  size?: number;
+  color?: string;
+}) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M12 5v14m6-8l-6-6m-6 6l6-6" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+      <Path
+        d="M12 5v14m6-8l-6-6m-6 6l6-6"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }
 
-function BrainIcon({ size = 14, color = "currentColor" }: { size?: number; color?: string }) {
+function BrainIcon({
+  size = 14,
+  color = "currentColor",
+}: {
+  size?: number;
+  color?: string;
+}) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M15.5 13a3.5 3.5 0 0 0-3.5 3.5v1a3.5 3.5 0 0 0 7 0v-1.8M8.5 13a3.5 3.5 0 0 1 3.5 3.5v1a3.5 3.5 0 0 1-7 0v-1.8" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M17.5 16a3.5 3.5 0 0 0 0-7H17" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M19 9.3V6.5a3.5 3.5 0 0 0-7 0M6.5 16a3.5 3.5 0 0 1 0-7H7" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="M5 9.3V6.5a3.5 3.5 0 0 1 7 0v10" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path
+        d="M15.5 13a3.5 3.5 0 0 0-3.5 3.5v1a3.5 3.5 0 0 0 7 0v-1.8M8.5 13a3.5 3.5 0 0 1 3.5 3.5v1a3.5 3.5 0 0 1-7 0v-1.8"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M17.5 16a3.5 3.5 0 0 0 0-7H17"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M19 9.3V6.5a3.5 3.5 0 0 0-7 0M6.5 16a3.5 3.5 0 0 1 0-7H7"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M5 9.3V6.5a3.5 3.5 0 0 1 7 0v10"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }
 
-function InlineChevronIcon({ size = 14, color = "currentColor", expanded = false }: { size?: number; color?: string; expanded?: boolean }) {
+function InlineChevronIcon({
+  size = 14,
+  color = "currentColor",
+  expanded = false,
+}: {
+  size?: number;
+  color?: string;
+  expanded?: boolean;
+}) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={expanded ? { transform: [{ rotate: "90deg" }] } : undefined}>
-      <Path d="m9 6l6 6l-6 6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      style={expanded ? { transform: [{ rotate: "90deg" }] } : undefined}
+    >
+      <Path
+        d="m9 6l6 6l-6 6"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }
 
-function ArrowDownIcon({ size = 20, color = "currentColor" }: { size?: number; color?: string }) {
+function ArrowDownIcon({
+  size = 20,
+  color = "currentColor",
+}: {
+  size?: number;
+  color?: string;
+}) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M12 5v14" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-      <Path d="m19 12-7 7-7-7" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+      <Path
+        d="M12 5v14"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="m19 12-7 7-7-7"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }
-
 
 // ============================================================================
 // Helpers
@@ -464,7 +710,12 @@ function findStreamingPartIndex(parts: AIPart[], incoming: AIPart): number {
     return -1;
   }
 
-  if (incomingType === "tool" || incomingType === "tool-call" || incomingType === "tool-result" || incomingType === "file-change") {
+  if (
+    incomingType === "tool" ||
+    incomingType === "tool-call" ||
+    incomingType === "tool-result" ||
+    incomingType === "file-change"
+  ) {
     const incomingName = String(incoming.name || incoming.toolName || "");
     for (let i = parts.length - 1; i >= 0; i -= 1) {
       const candidate = parts[i];
@@ -480,14 +731,22 @@ function findStreamingPartIndex(parts: AIPart[], incoming: AIPart): number {
   return -1;
 }
 
-function mergePartUpdate(previous: AIPart, incoming: AIPart, options?: { replaceText?: boolean }): AIPart {
-  if ((incoming.type === "text" || incoming.type === "reasoning")
-      && typeof previous.text === "string"
-      && typeof incoming.text === "string") {
+function mergePartUpdate(
+  previous: AIPart,
+  incoming: AIPart,
+  options?: { replaceText?: boolean },
+): AIPart {
+  if (
+    (incoming.type === "text" || incoming.type === "reasoning") &&
+    typeof previous.text === "string" &&
+    typeof incoming.text === "string"
+  ) {
     return {
       ...previous,
       ...incoming,
-      text: options?.replaceText ? incoming.text : mergeStreamingText(previous.text, incoming.text),
+      text: options?.replaceText
+        ? incoming.text
+        : mergeStreamingText(previous.text, incoming.text),
     };
   }
 
@@ -510,10 +769,13 @@ function readMetadataString(
   return null;
 }
 
-function getPermissionFields(permission: AIPermission): Array<{ label: string; value: string }> {
-  const metadata = permission.metadata && typeof permission.metadata === "object"
-    ? permission.metadata
-    : {};
+function getPermissionFields(
+  permission: AIPermission,
+): Array<{ label: string; value: string }> {
+  const metadata =
+    permission.metadata && typeof permission.metadata === "object"
+      ? permission.metadata
+      : {};
 
   const reason = readMetadataString(metadata, ["reason", "title", "message"]);
   const command = readMetadataString(metadata, [
@@ -523,17 +785,21 @@ function getPermissionFields(permission: AIPermission): Array<{ label: string; v
     "rawCommand",
     "invocation",
   ]);
-  const cwd = readMetadataString(metadata, ["cwd", "workingDirectory", "working_directory"]);
+  const cwd = readMetadataString(metadata, [
+    "cwd",
+    "workingDirectory",
+    "working_directory",
+  ]);
 
   const fields: Array<{ label: string; value: string }> = [];
   if (reason && reason !== permission.title) {
-    fields.push({ label: i18n.t('aiPanel.fieldReason'), value: reason });
+    fields.push({ label: i18n.t("aiPanel.fieldReason"), value: reason });
   }
   if (command) {
-    fields.push({ label: i18n.t('aiPanel.fieldCommand'), value: command });
+    fields.push({ label: i18n.t("aiPanel.fieldCommand"), value: command });
   }
   if (cwd) {
-    fields.push({ label: i18n.t('aiPanel.fieldDirectory'), value: cwd });
+    fields.push({ label: i18n.t("aiPanel.fieldDirectory"), value: cwd });
   }
   return fields;
 }
@@ -549,55 +815,84 @@ function TextPartView({ part, isUser }: { part: AIPart; isUser: boolean }) {
 
   if (isUser) {
     // User messages: plain text (no markdown), styled for accent bg
-    const displayText = text.replace(/<file path="[^"]*">[\s\S]*?<\/file>\n*/g, "").trim();
+    const displayText = text
+      .replace(/<file path="[^"]*">[\s\S]*?<\/file>\n*/g, "")
+      .trim();
     return <UserText text={displayText} />;
   }
   // Assistant messages: full markdown rendering
   return <Markdown>{text}</Markdown>;
 }
 
-function FilePartView({ part, enforceBottomSpacing = false }: { part: AIPart; enforceBottomSpacing?: boolean }) {
+function FilePartView({
+  part,
+  enforceBottomSpacing = false,
+}: {
+  part: AIPart;
+  enforceBottomSpacing?: boolean;
+}) {
   const { colors, fonts, radius } = useTheme();
   const { t } = useTranslation();
   const mime = typeof part.mime === "string" ? part.mime : "";
   const url = typeof part.url === "string" ? part.url : "";
-  const filename = typeof part.filename === "string" ? part.filename : t('aiPanel.attachment');
+  const filename =
+    typeof part.filename === "string" ? part.filename : t("aiPanel.attachment");
   const isImage = mime.startsWith("image/") && url.length > 0;
   const [fullscreen, setFullscreen] = useState(false);
-  const [imagePreviewSize, setImagePreviewSize] = useState<{ width: number; height: number } | null>(null);
+  const [imagePreviewSize, setImagePreviewSize] = useState<{
+    width: number;
+    height: number;
+  } | null>(null);
 
-  const updateImagePreviewSize = useCallback((sourceWidth: number, sourceHeight: number) => {
-    if (sourceWidth <= 0 || sourceHeight <= 0) return;
+  const updateImagePreviewSize = useCallback(
+    (sourceWidth: number, sourceHeight: number) => {
+      if (sourceWidth <= 0 || sourceHeight <= 0) return;
 
-    const scale = Math.min(AI_IMAGE_PREVIEW_MAX_WIDTH / sourceWidth, AI_IMAGE_PREVIEW_MAX_HEIGHT / sourceHeight);
-    setImagePreviewSize({
-      width: Math.round(sourceWidth * scale),
-      height: Math.round(sourceHeight * scale),
-    });
-  }, []);
+      const scale = Math.min(
+        AI_IMAGE_PREVIEW_MAX_WIDTH / sourceWidth,
+        AI_IMAGE_PREVIEW_MAX_HEIGHT / sourceHeight,
+      );
+      setImagePreviewSize({
+        width: Math.round(sourceWidth * scale),
+        height: Math.round(sourceHeight * scale),
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!isImage) return;
     setImagePreviewSize(null);
     Image.getSize(
       url,
-      (sourceWidth, sourceHeight) => updateImagePreviewSize(sourceWidth, sourceHeight),
-      () => {}
+      (sourceWidth, sourceHeight) =>
+        updateImagePreviewSize(sourceWidth, sourceHeight),
+      () => {},
     );
   }, [isImage, updateImagePreviewSize, url]);
 
-  const handleImageLoad = useCallback((event: { nativeEvent: { source?: { width?: number; height?: number } } }) => {
-    const source = event.nativeEvent.source;
-    const sourceWidth = source?.width ?? 0;
-    const sourceHeight = source?.height ?? 0;
-    updateImagePreviewSize(sourceWidth, sourceHeight);
-  }, [updateImagePreviewSize]);
+  const handleImageLoad = useCallback(
+    (event: {
+      nativeEvent: { source?: { width?: number; height?: number } };
+    }) => {
+      const source = event.nativeEvent.source;
+      const sourceWidth = source?.width ?? 0;
+      const sourceHeight = source?.height ?? 0;
+      updateImagePreviewSize(sourceWidth, sourceHeight);
+    },
+    [updateImagePreviewSize],
+  );
 
   if (isImage) {
     return (
       <>
-        <View style={{ marginTop: 4, marginBottom: enforceBottomSpacing ? 4 : 0 }}>
-          <TouchableOpacity onPress={() => setFullscreen(true)} activeOpacity={0.8}>
+        <View
+          style={{ marginTop: 4, marginBottom: enforceBottomSpacing ? 4 : 0 }}
+        >
+          <TouchableOpacity
+            onPress={() => setFullscreen(true)}
+            activeOpacity={0.8}
+          >
             <Image
               source={{ uri: url }}
               style={{
@@ -630,7 +925,13 @@ function FilePartView({ part, enforceBottomSpacing = false }: { part: AIPart; en
         backgroundColor: colors.bg.raised,
       }}
     >
-      <Text style={{ color: colors.fg.default, fontSize: 13, fontFamily: fonts.sans.medium }}>
+      <Text
+        style={{
+          color: colors.fg.default,
+          fontSize: 13,
+          fontFamily: fonts.sans.medium,
+        }}
+      >
         {filename}
       </Text>
     </View>
@@ -668,7 +969,10 @@ function UserText({ text }: { text: string }) {
 function ReasoningPartView({ part }: { part: AIPart }) {
   const { colors, fonts, radius } = useTheme();
   const [expanded, setExpanded] = useState(false);
-  const text = ((part.text as string) || (typeof part.reasoning === "string" ? part.reasoning : "")).trim();
+  const text = (
+    (part.text as string) ||
+    (typeof part.reasoning === "string" ? part.reasoning : "")
+  ).trim();
   if (!text) return null;
   if (isHiddenAssistantMetaText(text)) return null;
 
@@ -676,20 +980,47 @@ function ReasoningPartView({ part }: { part: AIPart }) {
     <View style={styles.reasoningContainer}>
       <TouchableOpacity
         onPress={() => setExpanded(!expanded)}
-        style={[styles.commandGroupHeader, styles.reasoningHeader, expanded ? { backgroundColor: colors.bg.raised } : null]}
+        style={[
+          styles.commandGroupHeader,
+          styles.reasoningHeader,
+          expanded ? { backgroundColor: colors.bg.raised } : null,
+        ]}
         activeOpacity={0.7}
       >
-        <View style={[styles.commandGroupHeaderLeft, styles.reasoningHeaderLeft]}>
-          <View style={[styles.commandGroupIconFrame, { borderColor: `${colors.fg.subtle}4D` }]}>
+        <View
+          style={[styles.commandGroupHeaderLeft, styles.reasoningHeaderLeft]}
+        >
+          <View
+            style={[
+              styles.commandGroupIconFrame,
+              { borderColor: `${colors.fg.subtle}4D` },
+            ]}
+          >
             <BrainIcon size={15} color={colors.fg.muted} />
           </View>
-          <Text style={{ color: colors.fg.muted, fontSize: typography.subHeading, fontFamily: fonts.sans.regular, flex: 1 }}>
+          <Text
+            style={{
+              color: colors.fg.muted,
+              fontSize: typography.subHeading,
+              fontFamily: fonts.sans.regular,
+              flex: 1,
+            }}
+          >
             Thinking
           </Text>
         </View>
       </TouchableOpacity>
       {expanded && text ? (
-        <View style={[styles.reasoningBody, { borderColor: colors.bg.raised, backgroundColor: colors.bg.raised, borderRadius: radius.md }]}>
+        <View
+          style={[
+            styles.reasoningBody,
+            {
+              borderColor: colors.bg.raised,
+              backgroundColor: colors.bg.raised,
+              borderRadius: radius.md,
+            },
+          ]}
+        >
           <Markdown compact>{text}</Markdown>
         </View>
       ) : null}
@@ -704,17 +1035,46 @@ function PlanPartView({ part }: { part: AIPart }) {
 
   return (
     <View style={styles.reasoningContainer}>
-      <View style={[styles.commandGroupHeader, styles.reasoningHeader, { backgroundColor: colors.bg.raised }]}>
-        <View style={[styles.commandGroupHeaderLeft, styles.reasoningHeaderLeft]}>
-          <View style={[styles.commandGroupIconFrame, { borderColor: `${colors.fg.subtle}4D` }]}>
+      <View
+        style={[
+          styles.commandGroupHeader,
+          styles.reasoningHeader,
+          { backgroundColor: colors.bg.raised },
+        ]}
+      >
+        <View
+          style={[styles.commandGroupHeaderLeft, styles.reasoningHeaderLeft]}
+        >
+          <View
+            style={[
+              styles.commandGroupIconFrame,
+              { borderColor: `${colors.fg.subtle}4D` },
+            ]}
+          >
             <MapIcon size={15} color={colors.fg.muted} />
           </View>
-          <Text style={{ color: colors.fg.muted, fontSize: typography.subHeading, fontFamily: fonts.sans.regular, flex: 1 }}>
+          <Text
+            style={{
+              color: colors.fg.muted,
+              fontSize: typography.subHeading,
+              fontFamily: fonts.sans.regular,
+              flex: 1,
+            }}
+          >
             Plan
           </Text>
         </View>
       </View>
-      <View style={[styles.reasoningBody, { borderColor: colors.bg.raised, backgroundColor: colors.bg.raised, borderRadius: radius.md }]}>
+      <View
+        style={[
+          styles.reasoningBody,
+          {
+            borderColor: colors.bg.raised,
+            backgroundColor: colors.bg.raised,
+            borderRadius: radius.md,
+          },
+        ]}
+      >
         <Markdown compact>{text}</Markdown>
       </View>
     </View>
@@ -730,7 +1090,13 @@ function StepStartView({ part }: { part: AIPart }) {
   return (
     <View style={styles.stepContainer}>
       <View style={styles.stepContent}>
-        <Text style={{ color: colors.fg.subtle, fontSize: 11, fontFamily: fonts.mono.regular }}>
+        <Text
+          style={{
+            color: colors.fg.subtle,
+            fontSize: 11,
+            fontFamily: fonts.mono.regular,
+          }}
+        >
           {title}
         </Text>
       </View>
@@ -738,7 +1104,13 @@ function StepStartView({ part }: { part: AIPart }) {
   );
 }
 
-function StepFinishView({ part, showDetailedView }: { part: AIPart; showDetailedView: boolean }) {
+function StepFinishView({
+  part,
+  showDetailedView,
+}: {
+  part: AIPart;
+  showDetailedView: boolean;
+}) {
   const { colors, fonts, radius } = useTheme();
   if (!showDetailedView) return null;
   const tokens = part.tokens;
@@ -747,10 +1119,14 @@ function StepFinishView({ part, showDetailedView }: { part: AIPart; showDetailed
   if (!tokens && !cost) return null;
 
   const chips: { label: string; value: string }[] = [];
-  if (tokens?.input) chips.push({ label: "In", value: formatTokens(tokens.input) });
-  if (tokens?.output) chips.push({ label: "Out", value: formatTokens(tokens.output) });
-  if (tokens?.reasoning) chips.push({ label: "Think", value: formatTokens(tokens.reasoning) });
-  if (tokens?.cache?.read) chips.push({ label: "Cache", value: formatTokens(tokens.cache.read) });
+  if (tokens?.input)
+    chips.push({ label: "In", value: formatTokens(tokens.input) });
+  if (tokens?.output)
+    chips.push({ label: "Out", value: formatTokens(tokens.output) });
+  if (tokens?.reasoning)
+    chips.push({ label: "Think", value: formatTokens(tokens.reasoning) });
+  if (tokens?.cache?.read)
+    chips.push({ label: "Cache", value: formatTokens(tokens.cache.read) });
   if (cost) chips.push({ label: "Cost", value: formatCost(cost) });
 
   if (chips.length === 0) return null;
@@ -758,11 +1134,29 @@ function StepFinishView({ part, showDetailedView }: { part: AIPart; showDetailed
   return (
     <View style={styles.tokenRow}>
       {chips.map((chip, i) => (
-        <View key={i} style={[styles.tokenChip, { backgroundColor: colors.bg.raised, borderRadius: radius.sm }]}>
-          <Text style={{ color: colors.fg.subtle, fontSize: 9, fontFamily: fonts.mono.regular }}>
+        <View
+          key={i}
+          style={[
+            styles.tokenChip,
+            { backgroundColor: colors.bg.raised, borderRadius: radius.sm },
+          ]}
+        >
+          <Text
+            style={{
+              color: colors.fg.subtle,
+              fontSize: 9,
+              fontFamily: fonts.mono.regular,
+            }}
+          >
             {chip.label}
           </Text>
-          <Text style={{ color: colors.fg.muted, fontSize: 10, fontFamily: fonts.mono.medium }}>
+          <Text
+            style={{
+              color: colors.fg.muted,
+              fontSize: 10,
+              fontFamily: fonts.mono.medium,
+            }}
+          >
             {chip.value}
           </Text>
         </View>
@@ -771,7 +1165,6 @@ function StepFinishView({ part, showDetailedView }: { part: AIPart; showDetailed
   );
 }
 
-
 function PulsingDots({ color }: { color: string }) {
   const opacity = useSharedValue(0.08);
 
@@ -779,18 +1172,31 @@ function PulsingDots({ color }: { color: string }) {
     opacity.value = withRepeat(
       withSequence(
         withTiming(0.85, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.08, { duration: 1000, easing: Easing.inOut(Easing.ease) })
+        withTiming(0.08, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
       ),
       -1,
-      false
+      false,
     );
   }, []);
 
   const s = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  const dot = { width: 4, height: 4, borderRadius: 2, backgroundColor: color, marginHorizontal: 1.5 };
+  const dot = {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: color,
+    marginHorizontal: 1.5,
+  };
 
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", marginTop: 6, marginRight: 4 }}>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 6,
+        marginRight: 4,
+      }}
+    >
       <Animated.View style={[dot, s]} />
       <Animated.View style={[dot, s]} />
       <Animated.View style={[dot, s]} />
@@ -801,9 +1207,25 @@ function PulsingDots({ color }: { color: string }) {
 function ErrorMessageView({ text }: { text: string }) {
   const { colors, fonts, radius } = useTheme();
   return (
-    <View style={[styles.errorMessage, { backgroundColor: '#ef444420', borderRadius: radius.sm, borderLeftColor: '#ef4444' }]}>
-      <AlertTriangle size={13} color={'#ef4444'} strokeWidth={2} />
-      <Text style={{ color: '#ef4444', fontSize: 12, fontFamily: fonts.mono.regular, flex: 1 }}>
+    <View
+      style={[
+        styles.errorMessage,
+        {
+          backgroundColor: "#ef444420",
+          borderRadius: radius.sm,
+          borderLeftColor: "#ef4444",
+        },
+      ]}
+    >
+      <AlertTriangle size={13} color={"#ef4444"} strokeWidth={2} />
+      <Text
+        style={{
+          color: "#ef4444",
+          fontSize: 12,
+          fontFamily: fonts.mono.regular,
+          flex: 1,
+        }}
+      >
         {text}
       </Text>
     </View>
@@ -816,7 +1238,12 @@ function ThinkingIndicatorView({ label = "Thinking..." }: { label?: string }) {
   return (
     <View style={styles.thinkingMessage}>
       <SnakeDotsLoader />
-      <Text style={[styles.thinkingText, { color: "#9a9a9a", fontFamily: fonts.sans.medium }]}>
+      <Text
+        style={[
+          styles.thinkingText,
+          { color: "#9a9a9a", fontFamily: fonts.sans.medium },
+        ]}
+      >
         {label}
       </Text>
     </View>
@@ -825,9 +1252,15 @@ function ThinkingIndicatorView({ label = "Thinking..." }: { label?: string }) {
 
 const SNAKE_PATH_ORDER = [2, 1, 0, 3, 6, 7, 8, 5, 4, 1] as const;
 const GRID_POSITIONS = [
-  [0, 0], [1, 0], [2, 0],
-  [0, 1], [1, 1], [2, 1],
-  [0, 2], [1, 2], [2, 2],
+  [0, 0],
+  [1, 0],
+  [2, 0],
+  [0, 1],
+  [1, 1],
+  [2, 1],
+  [0, 2],
+  [1, 2],
+  [2, 2],
 ] as const;
 
 function SnakeDotsLoader({
@@ -852,7 +1285,9 @@ function SnakeDotsLoader({
   }, [totalSteps]);
 
   const getDistanceFromHead = (dotIndex: number) => {
-    const pathIndex = SNAKE_PATH_ORDER.indexOf(dotIndex as (typeof SNAKE_PATH_ORDER)[number]);
+    const pathIndex = SNAKE_PATH_ORDER.indexOf(
+      dotIndex as (typeof SNAKE_PATH_ORDER)[number],
+    );
     if (pathIndex < 0) return totalSteps;
     return (step - pathIndex + totalSteps) % totalSteps;
   };
@@ -895,59 +1330,64 @@ function SnakeDotsLoader({
 }
 
 function deriveActivityLabelFromPart(part: AIPart): string | null {
-  if (part.type === "reasoning") return i18n.t('aiPanel.activityThinking');
-  if (part.type === "plan") return i18n.t('aiPanel.activityPlanning');
-  if (part.type !== "tool" && part.type !== "tool-call" && part.type !== "tool-result") return null;
+  if (part.type === "reasoning") return i18n.t("aiPanel.activityThinking");
+  if (part.type === "plan") return i18n.t("aiPanel.activityPlanning");
+  if (
+    part.type !== "tool" &&
+    part.type !== "tool-call" &&
+    part.type !== "tool-result"
+  )
+    return null;
 
-  const inputRaw = typeof part.input === "string"
-    ? part.input
-    : (part.input && typeof part.input === "object")
-      ? JSON.stringify(part.input)
-      : "";
-  const outputRaw = typeof part.output === "string"
-    ? part.output
-    : "";
-  const raw = `${String(part.toolName || "")} ${String(part.name || "")} ${inputRaw} ${outputRaw}`.toLowerCase();
-  if (!raw) return i18n.t('aiPanel.activityWorking');
+  const inputRaw =
+    typeof part.input === "string"
+      ? part.input
+      : part.input && typeof part.input === "object"
+        ? JSON.stringify(part.input)
+        : "";
+  const outputRaw = typeof part.output === "string" ? part.output : "";
+  const raw =
+    `${String(part.toolName || "")} ${String(part.name || "")} ${inputRaw} ${outputRaw}`.toLowerCase();
+  if (!raw) return i18n.t("aiPanel.activityWorking");
 
   if (
-    raw.includes("search")
-    || raw.includes("grep")
-    || raw.includes("ripgrep")
-    || raw.includes("glob")
-    || raw.includes("find")
-    || raw.includes("scan")
-    || raw.includes("list_files")
-    || raw.includes("listfiles")
-    || raw.includes("ls ")
-    || raw.includes("ls\n")
-    || raw.includes("tree")
-    || raw.includes("read")
-    || raw.includes("cat ")
-    || raw.includes("cat\n")
-    || raw.includes("open file")
-    || raw.includes("open_file")
-    || raw.includes("view file")
+    raw.includes("search") ||
+    raw.includes("grep") ||
+    raw.includes("ripgrep") ||
+    raw.includes("glob") ||
+    raw.includes("find") ||
+    raw.includes("scan") ||
+    raw.includes("list_files") ||
+    raw.includes("listfiles") ||
+    raw.includes("ls ") ||
+    raw.includes("ls\n") ||
+    raw.includes("tree") ||
+    raw.includes("read") ||
+    raw.includes("cat ") ||
+    raw.includes("cat\n") ||
+    raw.includes("open file") ||
+    raw.includes("open_file") ||
+    raw.includes("view file")
   ) {
-    return i18n.t('aiPanel.activitySearching');
+    return i18n.t("aiPanel.activitySearching");
   }
 
   if (
-    raw.includes("edit")
-    || raw.includes("write")
-    || raw.includes("patch")
-    || raw.includes("file-change")
-    || raw.includes("filechange")
-    || raw.includes("diff")
+    raw.includes("edit") ||
+    raw.includes("write") ||
+    raw.includes("patch") ||
+    raw.includes("file-change") ||
+    raw.includes("filechange") ||
+    raw.includes("diff")
   ) {
-    return i18n.t('aiPanel.activityWorking');
+    return i18n.t("aiPanel.activityWorking");
   }
 
   if (raw.includes("command") || raw.includes("exec")) {
-    return i18n.t('aiPanel.activityWorking');
+    return i18n.t("aiPanel.activityWorking");
   }
 
-  return i18n.t('aiPanel.activityWorking');
+  return i18n.t("aiPanel.activityWorking");
 }
 
 type MessageDisplayItem =
@@ -957,16 +1397,21 @@ type MessageDisplayItem =
   | { kind: "exploration-group"; key: string; parts: AIPart[] };
 
 function getPartToolName(part: AIPart): string {
-  return String(part.name || part.toolName || "").trim().toLowerCase();
+  return String(part.name || part.toolName || "")
+    .trim()
+    .toLowerCase();
 }
 
 function getToolInputRecord(part: AIPart): Record<string, unknown> {
   return part.input && typeof part.input === "object"
-    ? part.input as Record<string, unknown>
+    ? (part.input as Record<string, unknown>)
     : {};
 }
 
-function readToolInputString(input: Record<string, unknown>, keys: string[]): string {
+function readToolInputString(
+  input: Record<string, unknown>,
+  keys: string[],
+): string {
   for (const key of keys) {
     const value = input[key];
     if (typeof value === "string" && value.trim().length > 0) {
@@ -977,28 +1422,33 @@ function readToolInputString(input: Record<string, unknown>, keys: string[]): st
 }
 
 function getExplorationKind(part: AIPart): "read" | "search" | null {
-  if (part.type !== "tool" && part.type !== "tool-call" && part.type !== "tool-result") return null;
+  if (
+    part.type !== "tool" &&
+    part.type !== "tool-call" &&
+    part.type !== "tool-result"
+  )
+    return null;
   const toolName = getPartToolName(part);
   if (!toolName) return null;
 
   if (
-    toolName.includes("read")
-    || toolName.includes("open_file")
-    || toolName.includes("openfile")
-    || toolName.includes("view_file")
-    || toolName.includes("cat")
+    toolName.includes("read") ||
+    toolName.includes("open_file") ||
+    toolName.includes("openfile") ||
+    toolName.includes("view_file") ||
+    toolName.includes("cat")
   ) {
     return "read";
   }
 
   if (
-    toolName.includes("glob")
-    || toolName.includes("search")
-    || toolName.includes("grep")
-    || toolName.includes("find")
-    || toolName.includes("ls")
-    || toolName.includes("tree")
-    || toolName.includes("list")
+    toolName.includes("glob") ||
+    toolName.includes("search") ||
+    toolName.includes("grep") ||
+    toolName.includes("find") ||
+    toolName.includes("ls") ||
+    toolName.includes("tree") ||
+    toolName.includes("list")
   ) {
     return "search";
   }
@@ -1016,32 +1466,57 @@ function formatExplorationEntry(part: AIPart): string | null {
 
   const toolName = getPartToolName(part);
   const input = getToolInputRecord(part);
-  const path = readToolInputString(input, ["path", "file_path", "filePath", "dir", "directory", "cwd"]);
-  const pattern = readToolInputString(input, ["pattern", "glob", "query", "search", "needle"]);
+  const path = readToolInputString(input, [
+    "path",
+    "file_path",
+    "filePath",
+    "dir",
+    "directory",
+    "cwd",
+  ]);
+  const pattern = readToolInputString(input, [
+    "pattern",
+    "glob",
+    "query",
+    "search",
+    "needle",
+  ]);
 
   if (kind === "read") {
     const label = path || pattern;
-    return label ? `${i18n.t('aiPanel.toolRead')}  ${label}` : i18n.t('aiPanel.toolRead');
+    return label
+      ? `${i18n.t("aiPanel.toolRead")}  ${label}`
+      : i18n.t("aiPanel.toolRead");
   }
 
   if (toolName.includes("glob")) {
-    const g = i18n.t('aiPanel.toolGlob');
+    const g = i18n.t("aiPanel.toolGlob");
     if (path && pattern) return `${g}  ${path} / pattern=${pattern}`;
     if (pattern) return `${g}  pattern=${pattern}`;
     if (path) return `${g}  ${path}`;
     return g;
   }
 
-  if (toolName.includes("grep") || toolName.includes("search") || toolName.includes("find")) {
-    const s = i18n.t('aiPanel.toolSearch');
+  if (
+    toolName.includes("grep") ||
+    toolName.includes("search") ||
+    toolName.includes("find")
+  ) {
+    const s = i18n.t("aiPanel.toolSearch");
     if (path && pattern) return `${s}  ${path} / pattern=${pattern}`;
     if (pattern) return `${s}  pattern=${pattern}`;
     if (path) return `${s}  ${path}`;
     return s;
   }
 
-  if (toolName.includes("tree") || toolName === "ls" || toolName.includes("list")) {
-    return path ? `${i18n.t('aiPanel.toolBrowse')}  ${path}` : i18n.t('aiPanel.toolBrowse');
+  if (
+    toolName.includes("tree") ||
+    toolName === "ls" ||
+    toolName.includes("list")
+  ) {
+    return path
+      ? `${i18n.t("aiPanel.toolBrowse")}  ${path}`
+      : i18n.t("aiPanel.toolBrowse");
   }
 
   return path || pattern ? `${toolName}  ${path || pattern}` : toolName;
@@ -1057,15 +1532,24 @@ function buildExplorationSummary(parts: AIPart[]): string {
     else if (kind === "search") searchEntries.add(line);
   }
   const labels: string[] = [];
-  if (readEntries.size > 0) labels.push(`${readEntries.size} Read${readEntries.size === 1 ? "" : "s"}`);
-  if (searchEntries.size > 0) labels.push(`${searchEntries.size} Search${searchEntries.size === 1 ? "" : "es"}`);
+  if (readEntries.size > 0)
+    labels.push(`${readEntries.size} Read${readEntries.size === 1 ? "" : "s"}`);
+  if (searchEntries.size > 0)
+    labels.push(
+      `${searchEntries.size} Search${searchEntries.size === 1 ? "" : "es"}`,
+    );
   const eventCount = parts.length;
-  return labels.length > 0 ? `${eventCount} Event${eventCount === 1 ? "" : "s"} · ${labels.join(", ")}` : `${eventCount} Event${eventCount === 1 ? "" : "s"} · Explored`;
+  return labels.length > 0
+    ? `${eventCount} Event${eventCount === 1 ? "" : "s"} · ${labels.join(", ")}`
+    : `${eventCount} Event${eventCount === 1 ? "" : "s"} · Explored`;
 }
 
 function isGroupablePart(part: AIPart): boolean {
   if (part.type === "reasoning") {
-    const text = ((part.text as string) || (typeof part.reasoning === "string" ? part.reasoning : "")).trim();
+    const text = (
+      (part.text as string) ||
+      (typeof part.reasoning === "string" ? part.reasoning : "")
+    ).trim();
     if (isHiddenAssistantMetaText(text)) return false;
     return text.length > 0;
   }
@@ -1073,18 +1557,24 @@ function isGroupablePart(part: AIPart): boolean {
 }
 
 function isCommandToolPart(part: AIPart): boolean {
-  if (part.type !== "tool" && part.type !== "tool-call" && part.type !== "tool-result") {
+  if (
+    part.type !== "tool" &&
+    part.type !== "tool-call" &&
+    part.type !== "tool-result"
+  ) {
     return false;
   }
 
   const toolName = getPartToolName(part);
   if (!toolName) return false;
 
-  return toolName === "command"
-    || toolName.includes("bash")
-    || toolName.includes("shell")
-    || toolName.includes("terminal")
-    || toolName.includes("exec");
+  return (
+    toolName === "command" ||
+    toolName.includes("bash") ||
+    toolName.includes("shell") ||
+    toolName.includes("terminal") ||
+    toolName.includes("exec")
+  );
 }
 
 function isHiddenMetaPart(part: AIPart): boolean {
@@ -1095,7 +1585,10 @@ function isHiddenMetaPart(part: AIPart): boolean {
     return isHiddenAssistantMetaText(text);
   }
   if (part.type === "reasoning") {
-    const text = ((part.text as string) || (typeof part.reasoning === "string" ? part.reasoning : "")).trim();
+    const text = (
+      (part.text as string) ||
+      (typeof part.reasoning === "string" ? part.reasoning : "")
+    ).trim();
     if (!text) return true;
     return isHiddenAssistantMetaText(text);
   }
@@ -1109,9 +1602,11 @@ function isHiddenMetaPart(part: AIPart): boolean {
 function isHiddenAssistantMetaText(text: string): boolean {
   const normalized = text.trim().toLowerCase();
   if (!normalized) return false;
-  return normalized === "responding"
-    || normalized === "responding..."
-    || normalized.startsWith("responding to ");
+  return (
+    normalized === "responding" ||
+    normalized === "responding..." ||
+    normalized.startsWith("responding to ")
+  );
 }
 
 function buildToolGroupLabel(parts: AIPart[]): string {
@@ -1119,12 +1614,21 @@ function buildToolGroupLabel(parts: AIPart[]): string {
   let toolCount = 0;
   for (const p of parts) {
     if (p.type === "reasoning") thinkingCount += 1;
-    else if (p.type === "tool" || p.type === "tool-call" || p.type === "tool-result" || p.type === "file-change") toolCount += 1;
+    else if (
+      p.type === "tool" ||
+      p.type === "tool-call" ||
+      p.type === "tool-result" ||
+      p.type === "file-change"
+    )
+      toolCount += 1;
   }
   const eventCount = parts.length;
-  if (thinkingCount > 0 && toolCount > 0) return `${eventCount} Event${eventCount === 1 ? "" : "s"} · Thinking, ${toolCount} Tool${toolCount !== 1 ? "s" : ""}`;
-  if (thinkingCount > 0) return `${eventCount} Event${eventCount === 1 ? "" : "s"} · Thinking`;
-  if (toolCount > 0) return `${eventCount} Event${eventCount === 1 ? "" : "s"} · ${toolCount} Tool${toolCount !== 1 ? "s" : ""}`;
+  if (thinkingCount > 0 && toolCount > 0)
+    return `${eventCount} Event${eventCount === 1 ? "" : "s"} · Thinking, ${toolCount} Tool${toolCount !== 1 ? "s" : ""}`;
+  if (thinkingCount > 0)
+    return `${eventCount} Event${eventCount === 1 ? "" : "s"} · Thinking`;
+  if (toolCount > 0)
+    return `${eventCount} Event${eventCount === 1 ? "" : "s"} · ${toolCount} Tool${toolCount !== 1 ? "s" : ""}`;
   return `${eventCount} Event${eventCount === 1 ? "" : "s"}`;
 }
 
@@ -1140,7 +1644,12 @@ function buildCommandGroupLabel(parts: AIPart[]): string {
 function isEventDisplayPart(part: AIPart): boolean {
   if (isHiddenMetaPart(part)) return false;
   if (part.type === "reasoning" || part.type === "plan") return true;
-  if (part.type === "tool" || part.type === "tool-call" || part.type === "tool-result" || part.type === "file-change") {
+  if (
+    part.type === "tool" ||
+    part.type === "tool-call" ||
+    part.type === "tool-result" ||
+    part.type === "file-change"
+  ) {
     return true;
   }
   return false;
@@ -1197,7 +1706,9 @@ function previewPartText(value: unknown, maxLength = 80): string | undefined {
   if (typeof value !== "string") return undefined;
   const normalized = value.replace(/\s+/g, " ").trim();
   if (!normalized) return undefined;
-  return normalized.length <= maxLength ? normalized : `${normalized.slice(0, maxLength - 3)}...`;
+  return normalized.length <= maxLength
+    ? normalized
+    : `${normalized.slice(0, maxLength - 3)}...`;
 }
 
 function summarizeMessagesForDebug(messages: AIMessage[]) {
@@ -1208,7 +1719,7 @@ function summarizeMessagesForDebug(messages: AIMessage[]) {
       id: message.id,
       role: message.role,
       partCount: parts.length,
-      displayItems: displayItems.map((item) => (
+      displayItems: displayItems.map((item) =>
         item.kind === "part"
           ? {
               kind: "part",
@@ -1216,16 +1727,20 @@ function summarizeMessagesForDebug(messages: AIMessage[]) {
               type: item.part.type,
               name: String(item.part.name || item.part.toolName || ""),
               state: String(item.part.state || ""),
-              text: previewPartText(item.part.text ?? item.part.output ?? item.part.reasoning),
+              text: previewPartText(
+                item.part.text ?? item.part.output ?? item.part.reasoning,
+              ),
             }
           : {
               kind: item.kind,
               count: item.parts.length,
               ids: item.parts.map((part) => String((part as any).id || "")),
               types: item.parts.map((part) => part.type),
-              names: item.parts.map((part) => String(part.name || part.toolName || "")),
-            }
-      )),
+              names: item.parts.map((part) =>
+                String(part.name || part.toolName || ""),
+              ),
+            },
+      ),
       parts: parts.map((part, index) => ({
         index,
         id: String((part as any).id || ""),
@@ -1240,25 +1755,44 @@ function summarizeMessagesForDebug(messages: AIMessage[]) {
   });
 }
 
-function logLoadedChatState(source: string, sessionId: string, backend: AiBackend, messages: AIMessage[]) {
+function logLoadedChatState(
+  source: string,
+  sessionId: string,
+  backend: AiBackend,
+  messages: AIMessage[],
+) {
   logger.info("ai-panel", "loaded chat state", {
     source,
     sessionId,
     backend,
     messageCount: messages.length,
-    partCount: messages.reduce((sum, message) => sum + (message.parts?.length || 0), 0),
+    partCount: messages.reduce(
+      (sum, message) => sum + (message.parts?.length || 0),
+      0,
+    ),
     messages: summarizeMessagesForDebug(messages),
   });
 }
 
-function logMergedChatState(source: string, backend: AiBackend, originalMessages: AIMessage[], mergedMessages: AIMessage[]) {
+function logMergedChatState(
+  source: string,
+  backend: AiBackend,
+  originalMessages: AIMessage[],
+  mergedMessages: AIMessage[],
+) {
   logger.info("ai-panel", "merged chat state", {
     source,
     backend,
     originalMessageCount: originalMessages.length,
-    originalPartCount: originalMessages.reduce((sum, message) => sum + (message.parts?.length || 0), 0),
+    originalPartCount: originalMessages.reduce(
+      (sum, message) => sum + (message.parts?.length || 0),
+      0,
+    ),
     mergedMessageCount: mergedMessages.length,
-    mergedPartCount: mergedMessages.reduce((sum, message) => sum + (message.parts?.length || 0), 0),
+    mergedPartCount: mergedMessages.reduce(
+      (sum, message) => sum + (message.parts?.length || 0),
+      0,
+    ),
     originalMessages: summarizeMessagesForDebug(originalMessages),
     mergedMessages: summarizeMessagesForDebug(mergedMessages),
   });
@@ -1267,7 +1801,12 @@ function logMergedChatState(source: string, backend: AiBackend, originalMessages
 function isEventOnlyAssistantPart(part: AIPart): boolean {
   if (isHiddenMetaPart(part)) return true;
   if (part.type === "reasoning" || part.type === "plan") return true;
-  if (part.type === "tool" || part.type === "tool-call" || part.type === "tool-result" || part.type === "file-change") {
+  if (
+    part.type === "tool" ||
+    part.type === "tool-call" ||
+    part.type === "tool-result" ||
+    part.type === "file-change"
+  ) {
     return true;
   }
   return false;
@@ -1286,16 +1825,22 @@ function isVisibleAssistantTextPart(part: AIPart): boolean {
   return text.trim().length > 0 && !isHiddenAssistantMetaText(text);
 }
 
-function splitLeadingAssistantEventParts(message: AIMessage): { leading: AIPart[]; trailing: AIPart[] } | null {
+function splitLeadingAssistantEventParts(
+  message: AIMessage,
+): { leading: AIPart[]; trailing: AIPart[] } | null {
   if (message.role !== "assistant") return null;
   const parts = message.parts || [];
-  const firstVisibleTextIndex = parts.findIndex((part) => isVisibleAssistantTextPart(part));
+  const firstVisibleTextIndex = parts.findIndex((part) =>
+    isVisibleAssistantTextPart(part),
+  );
   if (firstVisibleTextIndex <= 0) return null;
 
   const leading = parts.slice(0, firstVisibleTextIndex);
   const trailing = parts.slice(firstVisibleTextIndex);
   const hasEventLeadingPart = leading.some((part) => isEventDisplayPart(part));
-  const leadingIsEventOnly = leading.every((part) => isHiddenMetaPart(part) || isEventDisplayPart(part));
+  const leadingIsEventOnly = leading.every(
+    (part) => isHiddenMetaPart(part) || isEventDisplayPart(part),
+  );
 
   if (!hasEventLeadingPart || !leadingIsEventOnly) return null;
   return { leading, trailing };
@@ -1318,7 +1863,8 @@ function mergeAssistantActivityMessages(messages: AIMessage[]): AIMessage[] {
       continue;
     }
 
-    const maybeSplit: { leading: AIPart[]; trailing: AIPart[] } | null = pendingAssistantCluster ? splitLeadingAssistantEventParts(message) : null;
+    const maybeSplit: { leading: AIPart[]; trailing: AIPart[] } | null =
+      pendingAssistantCluster ? splitLeadingAssistantEventParts(message) : null;
     if (maybeSplit && pendingAssistantCluster) {
       const cluster: AIMessage = pendingAssistantCluster;
       pendingAssistantCluster = {
@@ -1326,12 +1872,17 @@ function mergeAssistantActivityMessages(messages: AIMessage[]): AIMessage[] {
         parts: [...(cluster.parts || []), ...maybeSplit.leading],
         time: {
           created: cluster.time?.created ?? message.time?.created ?? Date.now(),
-          updated: message.time?.updated ?? cluster.time?.updated ?? cluster.time?.created ?? Date.now(),
+          updated:
+            message.time?.updated ??
+            cluster.time?.updated ??
+            cluster.time?.created ??
+            Date.now(),
         },
         metadata: {
           ...(cluster.metadata || {}),
           mergedMessageIds: [
-            ...(((cluster.metadata?.mergedMessageIds as string[] | undefined) || [])),
+            ...((cluster.metadata?.mergedMessageIds as string[] | undefined) ||
+              []),
             `${message.id}:leading-events`,
           ],
         },
@@ -1366,15 +1917,27 @@ function mergeAssistantActivityMessages(messages: AIMessage[]): AIMessage[] {
 
     pendingAssistantCluster = {
       ...pendingAssistantCluster,
-      parts: [...(pendingAssistantCluster.parts || []), ...(message.parts || [])],
+      parts: [
+        ...(pendingAssistantCluster.parts || []),
+        ...(message.parts || []),
+      ],
       time: {
-        created: pendingAssistantCluster.time?.created ?? message.time?.created ?? Date.now(),
-        updated: message.time?.updated ?? pendingAssistantCluster.time?.updated ?? pendingAssistantCluster.time?.created ?? Date.now(),
+        created:
+          pendingAssistantCluster.time?.created ??
+          message.time?.created ??
+          Date.now(),
+        updated:
+          message.time?.updated ??
+          pendingAssistantCluster.time?.updated ??
+          pendingAssistantCluster.time?.created ??
+          Date.now(),
       },
       metadata: {
         ...(pendingAssistantCluster.metadata || {}),
         mergedMessageIds: [
-          ...(((pendingAssistantCluster.metadata?.mergedMessageIds as string[] | undefined) || [])),
+          ...((pendingAssistantCluster.metadata?.mergedMessageIds as
+            | string[]
+            | undefined) || []),
           message.id,
         ],
       },
@@ -1418,39 +1981,56 @@ function MessageBubble({
     if (text) await Clipboard.setStringAsync(text);
   };
 
-      if (isUser) {
-        const localStatus = typeof message.metadata?.localStatus === "string" ? message.metadata.localStatus : undefined;
-        const isSending = localStatus === "sending" || (localStatus == null && message.id.startsWith("opt-"));
-        const safeParts = parts.filter((part): part is AIPart => !!part && typeof part === "object");
-        const userItems: ({ type: "bubble"; parts: AIPart[]; key: string } | { type: "image"; part: AIPart; key: string })[] = [];
-        let bubbleParts: AIPart[] = [];
-        const flushBubbleParts = () => {
-          if (bubbleParts.length === 0) return;
-          userItems.push({
-            type: "bubble",
-            parts: bubbleParts,
-            key: `bubble-${userItems.length}`,
-          });
-          bubbleParts = [];
-        };
+  if (isUser) {
+    const localStatus =
+      typeof message.metadata?.localStatus === "string"
+        ? message.metadata.localStatus
+        : undefined;
+    const isSending =
+      localStatus === "sending" ||
+      (localStatus == null && message.id.startsWith("opt-"));
+    const safeParts = parts.filter(
+      (part): part is AIPart => !!part && typeof part === "object",
+    );
+    const userItems: (
+      | { type: "bubble"; parts: AIPart[]; key: string }
+      | { type: "image"; part: AIPart; key: string }
+    )[] = [];
+    let bubbleParts: AIPart[] = [];
+    const flushBubbleParts = () => {
+      if (bubbleParts.length === 0) return;
+      userItems.push({
+        type: "bubble",
+        parts: bubbleParts,
+        key: `bubble-${userItems.length}`,
+      });
+      bubbleParts = [];
+    };
 
-        safeParts.forEach((part, index) => {
-          if (isImageFilePart(part)) {
-            flushBubbleParts();
-            userItems.push({
-              type: "image",
-              part,
-              key: String((part as any).id || `image-${index}`),
-            });
-            return;
-          }
-          bubbleParts.push(part);
-        });
+    safeParts.forEach((part, index) => {
+      if (isImageFilePart(part)) {
         flushBubbleParts();
+        userItems.push({
+          type: "image",
+          part,
+          key: String((part as any).id || `image-${index}`),
+        });
+        return;
+      }
+      bubbleParts.push(part);
+    });
+    flushBubbleParts();
 
-        return (
-          <View style={{ alignSelf: "flex-end", alignItems: "flex-end", marginVertical: 7, gap: 4 }}>
-        {userItems.map((item) => (
+    return (
+      <View
+        style={{
+          alignSelf: "flex-end",
+          alignItems: "flex-end",
+          marginVertical: 7,
+          gap: 4,
+        }}
+      >
+        {userItems.map((item) =>
           item.type === "image" ? (
             <FilePartView key={item.key} part={item.part} />
           ) : (
@@ -1467,7 +2047,18 @@ function MessageBubble({
               ]}
             >
               {item.parts.map((part, i) => (
-                <View key={i} style={i > 0 ? getMessagePartSpacingStyle(item.parts[i - 1], part, styles) : undefined}>
+                <View
+                  key={i}
+                  style={
+                    i > 0
+                      ? getMessagePartSpacingStyle(
+                          item.parts[i - 1],
+                          part,
+                          styles,
+                        )
+                      : undefined
+                  }
+                >
                   <MessagePartView
                     part={part}
                     isUser={true}
@@ -1480,11 +2071,9 @@ function MessageBubble({
                 </View>
               ))}
             </TouchableOpacity>
-          )
-        ))}
-        {isSending ? (
-          <PulsingDots color={colors.fg.subtle} />
-        ) : null}
+          ),
+        )}
+        {isSending ? <PulsingDots color={colors.fg.subtle} /> : null}
       </View>
     );
   }
@@ -1499,7 +2088,11 @@ function MessageBubble({
       {displayItems.map((item, i) => (
         <View
           key={item.key}
-          style={i > 0 ? getDisplayItemSpacingStyle(displayItems[i - 1], item, styles) : undefined}
+          style={
+            i > 0
+              ? getDisplayItemSpacingStyle(displayItems[i - 1], item, styles)
+              : undefined
+          }
         >
           {item.kind === "command-group" ? (
             <CommandPartsDropdown
@@ -1546,7 +2139,11 @@ function MessageBubble({
   );
 }
 
-function getMessagePartSpacingStyle(previous: AIPart | undefined, current: AIPart | undefined, styles: any) {
+function getMessagePartSpacingStyle(
+  previous: AIPart | undefined,
+  current: AIPart | undefined,
+  styles: any,
+) {
   if (!previous || !current) return undefined;
 
   const previousHasTextOutput = partHasTextOutput(previous);
@@ -1562,20 +2159,34 @@ function getMessagePartSpacingStyle(previous: AIPart | undefined, current: AIPar
 function partHasTextOutput(part: AIPart | undefined | null) {
   if (!part || typeof part !== "object") return false;
   if (part.type === "text" || part.type === "reasoning") return true;
-  if ((part.type === "tool" || part.type === "tool-call" || part.type === "tool-result" || part.type === "file-change") && typeof part.output === "string") {
+  if (
+    (part.type === "tool" ||
+      part.type === "tool-call" ||
+      part.type === "tool-result" ||
+      part.type === "file-change") &&
+    typeof part.output === "string"
+  ) {
     return part.output.trim().length > 0;
   }
   return false;
 }
 
-function getDisplayItemSpacingStyle(previous: MessageDisplayItem, current: MessageDisplayItem, styles: any) {
+function getDisplayItemSpacingStyle(
+  previous: MessageDisplayItem,
+  current: MessageDisplayItem,
+  styles: any,
+) {
   if (
-    (previous.kind === "command-group" || previous.kind === "command-run-group")
-    && (current.kind === "command-group" || current.kind === "command-run-group")
+    (previous.kind === "command-group" ||
+      previous.kind === "command-run-group") &&
+    (current.kind === "command-group" || current.kind === "command-run-group")
   ) {
     return styles.messagePartSpacingGroups;
   }
-  if (previous.kind === "exploration-group" || current.kind === "exploration-group") {
+  if (
+    previous.kind === "exploration-group" ||
+    current.kind === "exploration-group"
+  ) {
     return styles.messagePartSpacingLoose;
   }
 
@@ -1591,9 +2202,9 @@ function getDisplayItemSpacingStyle(previous: MessageDisplayItem, current: Messa
 
 function itemHasTextOutput(item: MessageDisplayItem) {
   if (
-    item.kind === "command-group"
-    || item.kind === "command-run-group"
-    || item.kind === "exploration-group"
+    item.kind === "command-group" ||
+    item.kind === "command-run-group" ||
+    item.kind === "exploration-group"
   ) {
     return false;
   }
@@ -1628,13 +2239,32 @@ function ExplorationGroup({
       <TouchableOpacity
         onPress={() => setExpanded((value) => !value)}
         activeOpacity={0.7}
-        style={[styles.commandGroupHeader, expanded ? { backgroundColor: colors.bg.raised } : null]}
+        style={[
+          styles.commandGroupHeader,
+          expanded ? { backgroundColor: colors.bg.raised } : null,
+        ]}
       >
         <View style={styles.commandGroupHeaderLeft}>
-          <View style={[styles.commandGroupIconFrame, { borderColor: `${colors.fg.subtle}4D` }]}>
-            <SquaresSubtract size={15} color={colors.fg.muted} strokeWidth={2} />
+          <View
+            style={[
+              styles.commandGroupIconFrame,
+              { borderColor: `${colors.fg.subtle}4D` },
+            ]}
+          >
+            <SquaresSubtract
+              size={15}
+              color={colors.fg.muted}
+              strokeWidth={2}
+            />
           </View>
-          <Text style={{ color: colors.fg.muted, fontSize: typography.subHeading, fontFamily: fonts.sans.medium, flex: 1 }}>
+          <Text
+            style={{
+              color: colors.fg.muted,
+              fontSize: typography.subHeading,
+              fontFamily: fonts.sans.medium,
+              flex: 1,
+            }}
+          >
             {summary}
           </Text>
         </View>
@@ -1643,13 +2273,30 @@ function ExplorationGroup({
         <View style={styles.explorationGroupBody}>
           {entries.map((entry, index) => (
             <View key={`${entry.line}:${index}`} style={styles.groupListRow}>
-              <View style={[styles.commandGroupIconFrame, { borderColor: `${colors.fg.subtle}4D` }]}>
-                {entry.kind === "read"
-                  ? <BookOpen size={15} color={colors.fg.muted} strokeWidth={2} />
-                  : <Search size={15} color={colors.fg.muted} strokeWidth={2} />}
+              <View
+                style={[
+                  styles.commandGroupIconFrame,
+                  { borderColor: `${colors.fg.subtle}4D` },
+                ]}
+              >
+                {entry.kind === "read" ? (
+                  <BookOpen size={15} color={colors.fg.muted} strokeWidth={2} />
+                ) : (
+                  <Search size={15} color={colors.fg.muted} strokeWidth={2} />
+                )}
               </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
-                <Text style={{ color: colors.fg.muted, fontSize: typography.subHeading, fontFamily: fonts.sans.regular }}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ flex: 1 }}
+              >
+                <Text
+                  style={{
+                    color: colors.fg.muted,
+                    fontSize: typography.subHeading,
+                    fontFamily: fonts.sans.regular,
+                  }}
+                >
                   {entry.line}
                 </Text>
               </ScrollView>
@@ -1686,13 +2333,32 @@ function CommandPartsDropdown({
       <TouchableOpacity
         onPress={() => setExpanded((value) => !value)}
         activeOpacity={0.7}
-        style={[styles.commandGroupHeader, expanded ? { backgroundColor: colors.bg.raised } : null]}
+        style={[
+          styles.commandGroupHeader,
+          expanded ? { backgroundColor: colors.bg.raised } : null,
+        ]}
       >
         <View style={styles.commandGroupHeaderLeft}>
-          <View style={[styles.commandGroupIconFrame, { borderColor: `${colors.fg.subtle}4D` }]}>
-            <SquaresSubtract size={15} color={colors.fg.muted} strokeWidth={2} />
+          <View
+            style={[
+              styles.commandGroupIconFrame,
+              { borderColor: `${colors.fg.subtle}4D` },
+            ]}
+          >
+            <SquaresSubtract
+              size={15}
+              color={colors.fg.muted}
+              strokeWidth={2}
+            />
           </View>
-          <Text style={{ color: colors.fg.muted, fontSize: typography.subHeading, fontFamily: fonts.sans.medium, flex: 1 }}>
+          <Text
+            style={{
+              color: colors.fg.muted,
+              fontSize: typography.subHeading,
+              fontFamily: fonts.sans.medium,
+              flex: 1,
+            }}
+          >
             {label}
           </Text>
         </View>
@@ -1700,7 +2366,10 @@ function CommandPartsDropdown({
       {expanded ? (
         <View style={styles.commandGroupBody}>
           {commandParts.map((part, index) => (
-            <View key={String((part as any).id || `command-part-${index}`)} style={styles.groupListRowWrap}>
+            <View
+              key={String((part as any).id || `command-part-${index}`)}
+              style={styles.groupListRowWrap}
+            >
               <MessagePartView
                 part={part}
                 isUser={false}
@@ -1745,13 +2414,32 @@ function CommandRunGroup({
       <TouchableOpacity
         onPress={() => setExpanded((value) => !value)}
         activeOpacity={0.7}
-        style={[styles.commandGroupHeader, expanded ? { backgroundColor: colors.bg.raised } : null]}
+        style={[
+          styles.commandGroupHeader,
+          expanded ? { backgroundColor: colors.bg.raised } : null,
+        ]}
       >
         <View style={styles.commandGroupHeaderLeft}>
-          <View style={[styles.commandGroupIconFrame, { borderColor: `${colors.fg.subtle}4D` }]}>
-            <SquaresSubtract size={15} color={colors.fg.muted} strokeWidth={2} />
+          <View
+            style={[
+              styles.commandGroupIconFrame,
+              { borderColor: `${colors.fg.subtle}4D` },
+            ]}
+          >
+            <SquaresSubtract
+              size={15}
+              color={colors.fg.muted}
+              strokeWidth={2}
+            />
           </View>
-          <Text style={{ color: colors.fg.muted, fontSize: typography.subHeading, fontFamily: fonts.sans.medium, flex: 1 }}>
+          <Text
+            style={{
+              color: colors.fg.muted,
+              fontSize: typography.subHeading,
+              fontFamily: fonts.sans.medium,
+              flex: 1,
+            }}
+          >
             {label}
           </Text>
         </View>
@@ -1759,7 +2447,10 @@ function CommandRunGroup({
       {expanded ? (
         <View style={styles.commandGroupBody}>
           {commandParts.map((part, index) => (
-            <View key={String((part as any).id || `command-run-part-${index}`)} style={styles.groupListRowWrap}>
+            <View
+              key={String((part as any).id || `command-run-part-${index}`)}
+              style={styles.groupListRowWrap}
+            >
               <MessagePartView
                 part={part}
                 isUser={false}
@@ -1806,7 +2497,9 @@ function MessagePartView({
     case "text":
       return <TextPartView part={part} isUser={isUser} />;
     case "file":
-      return <FilePartView part={part} enforceBottomSpacing={isOnlyMessagePart} />;
+      return (
+        <FilePartView part={part} enforceBottomSpacing={isOnlyMessagePart} />
+      );
     case "tool":
     case "tool-call":
     case "tool-result":
@@ -1823,12 +2516,7 @@ function MessagePartView({
       );
     case "file-change":
       return (
-        <FileChange
-          part={part}
-          colors={colors}
-          fonts={fonts}
-          radius={radius}
-        />
+        <FileChange part={part} colors={colors} fonts={fonts} radius={radius} />
       );
     case "reasoning":
       return <ReasoningPartView part={part} />;
@@ -1896,7 +2584,7 @@ function PermissionSheet({
         },
         (finished) => {
           if (finished) runOnJS(hideModal)();
-        }
+        },
       );
     }
   }, [visible, backdropOpacity, sheetTranslateY, hideModal]);
@@ -1914,7 +2602,10 @@ function PermissionSheet({
     <Modal transparent animationType="none" visible onRequestClose={() => {}}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={{ flex: 1 }}>
-          <Animated.View style={[styles.sheetBackdrop, backdropAnimatedStyle]} pointerEvents="none" />
+          <Animated.View
+            style={[styles.sheetBackdrop, backdropAnimatedStyle]}
+            pointerEvents="none"
+          />
           <Animated.View
             style={[
               styles.sheetContainer,
@@ -1929,17 +2620,34 @@ function PermissionSheet({
             ]}
           >
             <View style={styles.sheetHeader}>
-              <Text style={{ color: colors.fg.default, fontSize: 20, fontFamily: fonts.sans.semibold, flex: 1 }}>
-                {t('aiPanel.permissionRequest')}
+              <Text
+                style={{
+                  color: colors.fg.default,
+                  fontSize: 20,
+                  fontFamily: fonts.sans.semibold,
+                  flex: 1,
+                }}
+              >
+                {t("aiPanel.permissionRequest")}
               </Text>
             </View>
 
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 12 }}
+              contentContainerStyle={{
+                paddingHorizontal: 16,
+                paddingBottom: 16,
+                gap: 12,
+              }}
               keyboardDismissMode="on-drag"
             >
-              <Text style={{ color: colors.fg.default, fontSize: 14, fontFamily: fonts.sans.semibold }}>
+              <Text
+                style={{
+                  color: colors.fg.default,
+                  fontSize: 14,
+                  fontFamily: fonts.sans.semibold,
+                }}
+              >
                 {permission.title || permission.type}
               </Text>
 
@@ -1947,16 +2655,24 @@ function PermissionSheet({
                 <View style={{ gap: 10 }}>
                   {fields.map((field) => (
                     <View key={field.label} style={{ gap: 4 }}>
-                      <Text style={{ color: colors.fg.subtle, fontSize: 14, fontFamily: fonts.sans.medium }}>
+                      <Text
+                        style={{
+                          color: colors.fg.subtle,
+                          fontSize: 14,
+                          fontFamily: fonts.sans.medium,
+                        }}
+                      >
                         {field.label}
                       </Text>
                       <Text
                         style={{
                           color: colors.fg.default,
                           fontSize: 14,
-                          fontFamily: field.label === "Command" || field.label === "Directory"
-                            ? fonts.mono.regular
-                            : fonts.sans.regular,
+                          fontFamily:
+                            field.label === "Command" ||
+                            field.label === "Directory"
+                              ? fonts.mono.regular
+                              : fonts.sans.regular,
                         }}
                       >
                         {field.value}
@@ -1969,25 +2685,69 @@ function PermissionSheet({
               <View style={{ gap: 8, paddingTop: 2 }}>
                 <TouchableOpacity
                   onPress={() => onReply("once")}
-                  style={[styles.permissionSheetPrimaryButton, { backgroundColor: colors.accent.default, borderRadius: radius.xl }]}
+                  style={[
+                    styles.permissionSheetPrimaryButton,
+                    {
+                      backgroundColor: colors.accent.default,
+                      borderRadius: radius.xl,
+                    },
+                  ]}
                   activeOpacity={0.75}
                 >
-                  <Text style={{ color: '#ffffff', fontSize: 14, fontFamily: fonts.sans.semibold }}>{t('aiPanel.allowOnce')}</Text>
+                  <Text
+                    style={{
+                      color: "#ffffff",
+                      fontSize: 14,
+                      fontFamily: fonts.sans.semibold,
+                    }}
+                  >
+                    {t("aiPanel.allowOnce")}
+                  </Text>
                 </TouchableOpacity>
                 <View style={{ gap: 8 }}>
                   <TouchableOpacity
                     onPress={() => onReply("always")}
-                    style={[styles.permissionSheetSecondaryButton, { backgroundColor: colors.bg.base, borderRadius: radius.xl, borderColor: colors.border.secondary }]}
+                    style={[
+                      styles.permissionSheetSecondaryButton,
+                      {
+                        backgroundColor: colors.bg.base,
+                        borderRadius: radius.xl,
+                        borderColor: colors.border.secondary,
+                      },
+                    ]}
                     activeOpacity={0.75}
                   >
-                    <Text style={{ color: colors.fg.default, fontSize: 14, fontFamily: fonts.sans.semibold }}>{t('aiPanel.alwaysAllow')}</Text>
+                    <Text
+                      style={{
+                        color: colors.fg.default,
+                        fontSize: 14,
+                        fontFamily: fonts.sans.semibold,
+                      }}
+                    >
+                      {t("aiPanel.alwaysAllow")}
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => onReply("reject")}
-                    style={[styles.permissionSheetSecondaryButton, { backgroundColor: colors.bg.base, borderRadius: radius.xl, borderColor: colors.border.secondary }]}
+                    style={[
+                      styles.permissionSheetSecondaryButton,
+                      {
+                        backgroundColor: colors.bg.base,
+                        borderRadius: radius.xl,
+                        borderColor: colors.border.secondary,
+                      },
+                    ]}
                     activeOpacity={0.75}
                   >
-                    <Text style={{ color: colors.fg.default, fontSize: 14, fontFamily: fonts.sans.semibold }}>{t('aiPanel.deny')}</Text>
+                    <Text
+                      style={{
+                        color: colors.fg.default,
+                        fontSize: 14,
+                        fontFamily: fonts.sans.semibold,
+                      }}
+                    >
+                      {t("aiPanel.deny")}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1999,7 +2759,14 @@ function PermissionSheet({
   );
 }
 
-function QuestionDialog({ questionRequest, colors, radius, fonts, onSubmit, onReject }: {
+function QuestionDialog({
+  questionRequest,
+  colors,
+  radius,
+  fonts,
+  onSubmit,
+  onReject,
+}: {
   questionRequest: AIQuestion;
   colors: any;
   radius: any;
@@ -2008,20 +2775,39 @@ function QuestionDialog({ questionRequest, colors, radius, fonts, onSubmit, onRe
   onReject: () => void;
 }) {
   const { t } = useTranslation();
-  const questions = Array.isArray(questionRequest.questions) ? questionRequest.questions : [];
-  const [selectedIndices, setSelectedIndices] = useState<Record<number, number | null>>(() =>
-    Object.fromEntries(questions.map((question, index) => [index, Array.isArray(question?.options) && question.options.length > 0 ? 0 : null]))
+  const questions = Array.isArray(questionRequest.questions)
+    ? questionRequest.questions
+    : [];
+  const [selectedIndices, setSelectedIndices] = useState<
+    Record<number, number | null>
+  >(() =>
+    Object.fromEntries(
+      questions.map((question, index) => [
+        index,
+        Array.isArray(question?.options) && question.options.length > 0
+          ? 0
+          : null,
+      ]),
+    ),
   );
-  const [freeformAnswers, setFreeformAnswers] = useState<Record<number, string>>({});
+  const [freeformAnswers, setFreeformAnswers] = useState<
+    Record<number, string>
+  >({});
 
   const handleSubmit = () => {
     const answers = questions.map((question, index) => {
-      const baseOptions = Array.isArray(question?.options) ? question.options : [];
+      const baseOptions = Array.isArray(question?.options)
+        ? question.options
+        : [];
       const options = question?.isOther
-        ? [...baseOptions, { label: "__other__", description: "Enter a custom answer." }]
+        ? [
+            ...baseOptions,
+            { label: "__other__", description: "Enter a custom answer." },
+          ]
         : baseOptions;
       const selectedIndex = selectedIndices[index];
-      const selectedLabel = selectedIndex != null ? options[selectedIndex]?.label : undefined;
+      const selectedLabel =
+        selectedIndex != null ? options[selectedIndex]?.label : undefined;
       const typedValue = (freeformAnswers[index] || "").trim();
 
       if (selectedLabel === "__other__") {
@@ -2040,125 +2826,260 @@ function QuestionDialog({ questionRequest, colors, radius, fonts, onSubmit, onRe
     }
   };
 
-  const canSubmit = questions.length > 0 && questions.every((question, index) => {
-    const baseOptions = Array.isArray(question?.options) ? question.options : [];
-    const options = question?.isOther
-      ? [...baseOptions, { label: "__other__", description: "Enter a custom answer." }]
-      : baseOptions;
-    const selectedIndex = selectedIndices[index];
-    const selectedLabel = selectedIndex != null ? options[selectedIndex]?.label : undefined;
-    const typedValue = (freeformAnswers[index] || "").trim();
+  const canSubmit =
+    questions.length > 0 &&
+    questions.every((question, index) => {
+      const baseOptions = Array.isArray(question?.options)
+        ? question.options
+        : [];
+      const options = question?.isOther
+        ? [
+            ...baseOptions,
+            { label: "__other__", description: "Enter a custom answer." },
+          ]
+        : baseOptions;
+      const selectedIndex = selectedIndices[index];
+      const selectedLabel =
+        selectedIndex != null ? options[selectedIndex]?.label : undefined;
+      const typedValue = (freeformAnswers[index] || "").trim();
 
-    if (selectedLabel === "__other__") {
+      if (selectedLabel === "__other__") {
+        return typedValue.length > 0;
+      }
+      if (selectedLabel) {
+        return true;
+      }
       return typedValue.length > 0;
-    }
-    if (selectedLabel) {
-      return true;
-    }
-    return typedValue.length > 0;
-  });
+    });
 
   return (
     <Modal transparent animationType="fade" visible onRequestClose={onReject}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.bg.raised, borderRadius: radius.md, borderColor: colors.bg.raised }]}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
-              <Sparkles size={20} color={colors.accent.default} strokeWidth={2} />
-              <Text style={{ color: colors.fg.default, fontSize: 15, fontFamily: fonts.sans.semibold }}>{t('aiPanel.inputNeeded')}</Text>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                backgroundColor: colors.bg.raised,
+                borderRadius: radius.md,
+                borderColor: colors.bg.raised,
+              },
+            ]}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 12,
+              }}
+            >
+              <Sparkles
+                size={20}
+                color={colors.accent.default}
+                strokeWidth={2}
+              />
+              <Text
+                style={{
+                  color: colors.fg.default,
+                  fontSize: 15,
+                  fontFamily: fonts.sans.semibold,
+                }}
+              >
+                {t("aiPanel.inputNeeded")}
+              </Text>
             </View>
             <ScrollView
               style={{ maxHeight: 420 }}
               contentContainerStyle={{ gap: 16, paddingBottom: 8 }}
               keyboardShouldPersistTaps="handled"
             >
-            {questions.map((question, questionIndex) => {
-              const baseOptions = Array.isArray(question?.options) ? question.options : [];
-              const options = question?.isOther
-                ? [...baseOptions, { label: "__other__", description: "Enter a custom answer." }]
-                : baseOptions;
-              const selectedIndex = selectedIndices[questionIndex];
-              const selectedLabel = selectedIndex != null ? options[selectedIndex]?.label : undefined;
-              const shouldShowFreeform = options.length === 0 || selectedLabel === "__other__";
+              {questions.map((question, questionIndex) => {
+                const baseOptions = Array.isArray(question?.options)
+                  ? question.options
+                  : [];
+                const options = question?.isOther
+                  ? [
+                      ...baseOptions,
+                      {
+                        label: "__other__",
+                        description: "Enter a custom answer.",
+                      },
+                    ]
+                  : baseOptions;
+                const selectedIndex = selectedIndices[questionIndex];
+                const selectedLabel =
+                  selectedIndex != null
+                    ? options[selectedIndex]?.label
+                    : undefined;
+                const shouldShowFreeform =
+                  options.length === 0 || selectedLabel === "__other__";
 
-              return (
-                <View key={question.id || `${question.header}:${questionIndex}`}>
-                  <Text style={{ color: colors.fg.default, fontSize: 14, fontFamily: fonts.sans.semibold, marginBottom: 6 }}>
-                    {question?.header || `Question ${questionIndex + 1}`}
-                  </Text>
-                  <Text style={{ color: colors.fg.muted, fontSize: 13, fontFamily: fonts.sans.regular, marginBottom: 14 }}>
-                    {question?.question || "The agent needs your input to continue."}
-                  </Text>
-                  {options.length > 0 ? (
-                    <View style={{ gap: 8, marginBottom: shouldShowFreeform ? 12 : 0 }}>
-                      {options.map((option, optionIndex) => {
-                        const active = selectedIndex === optionIndex;
-                        const label = option.label === "__other__" ? t('aiPanel.other') : option.label;
-                        return (
-                          <TouchableOpacity
-                            key={`${label}:${optionIndex}`}
-                            onPress={() => setSelectedIndices((prev) => ({ ...prev, [questionIndex]: optionIndex }))}
-                            style={{
-                              borderWidth: 1,
-                              borderColor: active ? colors.accent.default : colors.bg.raised,
-                              backgroundColor: colors.bg.raised,
-                              borderRadius: radius.md,
-                              paddingHorizontal: 12,
-                              paddingVertical: 10,
-                            }}
-                            activeOpacity={0.7}
-                          >
-                            <Text style={{ color: colors.fg.default, fontSize: 13, fontFamily: fonts.sans.semibold }}>
-                              {label}
-                            </Text>
-                            {!!option.description && (
-                              <Text style={{ color: colors.fg.muted, fontSize: 12, fontFamily: fonts.sans.regular, marginTop: 4 }}>
-                                {option.description}
-                              </Text>
-                            )}
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  ) : null}
-                  {shouldShowFreeform ? (
-                    <TextInput
-                      value={freeformAnswers[questionIndex] || ""}
-                      onChangeText={(value) => setFreeformAnswers((prev) => ({ ...prev, [questionIndex]: value }))}
-                      placeholder={t('aiPanel.answerPlaceholder')}
-                      placeholderTextColor={colors.fg.muted}
-                      multiline={!question?.isSecret}
-                      secureTextEntry={!!question?.isSecret}
+                return (
+                  <View
+                    key={question.id || `${question.header}:${questionIndex}`}
+                  >
+                    <Text
                       style={{
                         color: colors.fg.default,
-                        backgroundColor: colors.bg.raised,
-                        borderRadius: radius.md,
-                        paddingHorizontal: 12,
-                        paddingVertical: 10,
-                        minHeight: question?.isSecret ? undefined : 96,
-                        textAlignVertical: question?.isSecret ? "center" : "top",
+                        fontSize: 14,
+                        fontFamily: fonts.sans.semibold,
+                        marginBottom: 6,
                       }}
-                    />
-                  ) : null}
-                </View>
-              );
-            })}
+                    >
+                      {question?.header || `Question ${questionIndex + 1}`}
+                    </Text>
+                    <Text
+                      style={{
+                        color: colors.fg.muted,
+                        fontSize: 13,
+                        fontFamily: fonts.sans.regular,
+                        marginBottom: 14,
+                      }}
+                    >
+                      {question?.question ||
+                        "The agent needs your input to continue."}
+                    </Text>
+                    {options.length > 0 ? (
+                      <View
+                        style={{
+                          gap: 8,
+                          marginBottom: shouldShowFreeform ? 12 : 0,
+                        }}
+                      >
+                        {options.map((option, optionIndex) => {
+                          const active = selectedIndex === optionIndex;
+                          const label =
+                            option.label === "__other__"
+                              ? t("aiPanel.other")
+                              : option.label;
+                          return (
+                            <TouchableOpacity
+                              key={`${label}:${optionIndex}`}
+                              onPress={() =>
+                                setSelectedIndices((prev) => ({
+                                  ...prev,
+                                  [questionIndex]: optionIndex,
+                                }))
+                              }
+                              style={{
+                                borderWidth: 1,
+                                borderColor: active
+                                  ? colors.accent.default
+                                  : colors.bg.raised,
+                                backgroundColor: colors.bg.raised,
+                                borderRadius: radius.md,
+                                paddingHorizontal: 12,
+                                paddingVertical: 10,
+                              }}
+                              activeOpacity={0.7}
+                            >
+                              <Text
+                                style={{
+                                  color: colors.fg.default,
+                                  fontSize: 13,
+                                  fontFamily: fonts.sans.semibold,
+                                }}
+                              >
+                                {label}
+                              </Text>
+                              {!!option.description && (
+                                <Text
+                                  style={{
+                                    color: colors.fg.muted,
+                                    fontSize: 12,
+                                    fontFamily: fonts.sans.regular,
+                                    marginTop: 4,
+                                  }}
+                                >
+                                  {option.description}
+                                </Text>
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    ) : null}
+                    {shouldShowFreeform ? (
+                      <TextInput
+                        value={freeformAnswers[questionIndex] || ""}
+                        onChangeText={(value) =>
+                          setFreeformAnswers((prev) => ({
+                            ...prev,
+                            [questionIndex]: value,
+                          }))
+                        }
+                        placeholder={t("aiPanel.answerPlaceholder")}
+                        placeholderTextColor={colors.fg.muted}
+                        multiline={!question?.isSecret}
+                        secureTextEntry={!!question?.isSecret}
+                        style={{
+                          color: colors.fg.default,
+                          backgroundColor: colors.bg.raised,
+                          borderRadius: radius.md,
+                          paddingHorizontal: 12,
+                          paddingVertical: 10,
+                          minHeight: question?.isSecret ? undefined : 96,
+                          textAlignVertical: question?.isSecret
+                            ? "center"
+                            : "top",
+                        }}
+                      />
+                    ) : null}
+                  </View>
+                );
+              })}
             </ScrollView>
-            <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
+            <View
+              style={{
+                flexDirection: "row",
+                gap: 8,
+                justifyContent: "flex-end",
+              }}
+            >
               <TouchableOpacity
                 onPress={onReject}
-                style={[styles.permissionBtn, { backgroundColor: colors.bg.raised, borderRadius: radius.sm }]}
+                style={[
+                  styles.permissionBtn,
+                  {
+                    backgroundColor: colors.bg.raised,
+                    borderRadius: radius.sm,
+                  },
+                ]}
                 activeOpacity={0.7}
               >
-                <Text style={{ color: colors.fg.default, fontSize: 13, fontFamily: fonts.sans.semibold }}>{t('aiPanel.dismiss')}</Text>
+                <Text
+                  style={{
+                    color: colors.fg.default,
+                    fontSize: 13,
+                    fontFamily: fonts.sans.semibold,
+                  }}
+                >
+                  {t("aiPanel.dismiss")}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleSubmit}
-                style={[styles.permissionBtn, { backgroundColor: colors.accent.default, borderRadius: radius.sm, opacity: canSubmit ? 1 : 0.5 }]}
+                style={[
+                  styles.permissionBtn,
+                  {
+                    backgroundColor: colors.accent.default,
+                    borderRadius: radius.sm,
+                    opacity: canSubmit ? 1 : 0.5,
+                  },
+                ]}
                 activeOpacity={0.7}
                 disabled={!canSubmit}
               >
-                <Text style={{ color: '#ffffff', fontSize: 13, fontFamily: fonts.sans.semibold }}>{t('aiPanel.submit')}</Text>
+                <Text
+                  style={{
+                    color: "#ffffff",
+                    fontSize: 13,
+                    fontFamily: fonts.sans.semibold,
+                  }}
+                >
+                  {t("aiPanel.submit")}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2172,7 +3093,13 @@ function QuestionDialog({ questionRequest, colors, radius, fonts, onSubmit, onRe
 // API Key Setup
 // ============================================================================
 
-function ApiKeySetup({ providers, colors, radius, fonts, onSetKey }: {
+function ApiKeySetup({
+  providers,
+  colors,
+  radius,
+  fonts,
+  onSetKey,
+}: {
   providers: AIProvider[];
   colors: any;
   radius: any;
@@ -2180,16 +3107,41 @@ function ApiKeySetup({ providers, colors, radius, fonts, onSetKey }: {
   onSetKey: (providerId: string, key: string) => void;
 }) {
   const { t } = useTranslation();
-  const [selectedProvider, setSelectedProvider] = useState<string>(providers[0]?.id || "");
+  const [selectedProvider, setSelectedProvider] = useState<string>(
+    providers[0]?.id || "",
+  );
   const [keyInput, setKeyInput] = useState("");
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 24 }}>
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 24,
+      }}
+    >
       <Key size={40} color={colors.fg.muted} strokeWidth={1.5} />
-      <Text style={{ color: colors.fg.default, fontSize: 16, fontFamily: fonts.sans.semibold, marginTop: 16, marginBottom: 8 }}>
+      <Text
+        style={{
+          color: colors.fg.default,
+          fontSize: 16,
+          fontFamily: fonts.sans.semibold,
+          marginTop: 16,
+          marginBottom: 8,
+        }}
+      >
         API Key Required
       </Text>
-      <Text style={{ color: colors.fg.muted, fontSize: 13, fontFamily: fonts.sans.regular, textAlign: "center", marginBottom: 24 }}>
+      <Text
+        style={{
+          color: colors.fg.muted,
+          fontSize: 13,
+          fontFamily: fonts.sans.regular,
+          textAlign: "center",
+          marginBottom: 24,
+        }}
+      >
         Configure an API key for your AI provider to get started.
       </Text>
 
@@ -2198,29 +3150,60 @@ function ApiKeySetup({ providers, colors, radius, fonts, onSetKey }: {
           key={p.id}
           onPress={() => setSelectedProvider(p.id)}
           style={{
-            flexDirection: "row", alignItems: "center", gap: 8,
-            padding: 12, marginBottom: 8, width: "100%",
-            backgroundColor: selectedProvider === p.id ? colors.bg.raised : colors.bg.raised,
-            borderRadius: radius.sm, borderWidth: 1, borderColor: colors.bg.raised,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            padding: 12,
+            marginBottom: 8,
+            width: "100%",
+            backgroundColor:
+              selectedProvider === p.id ? colors.bg.raised : colors.bg.raised,
+            borderRadius: radius.sm,
+            borderWidth: 1,
+            borderColor: colors.bg.raised,
           }}
           activeOpacity={0.7}
         >
-          <View style={{
-            width: 16, height: 16, borderRadius: 8,
-            borderWidth: 2, borderColor: selectedProvider === p.id ? colors.accent.default : colors.fg.muted,
-            backgroundColor: selectedProvider === p.id ? colors.accent.default : "transparent",
-          }} />
-          <Text style={{ color: colors.fg.default, fontSize: 13, fontFamily: fonts.sans.regular }}>{p.name || p.id}</Text>
+          <View
+            style={{
+              width: 16,
+              height: 16,
+              borderRadius: 8,
+              borderWidth: 2,
+              borderColor:
+                selectedProvider === p.id
+                  ? colors.accent.default
+                  : colors.fg.muted,
+              backgroundColor:
+                selectedProvider === p.id
+                  ? colors.accent.default
+                  : "transparent",
+            }}
+          />
+          <Text
+            style={{
+              color: colors.fg.default,
+              fontSize: 13,
+              fontFamily: fonts.sans.regular,
+            }}
+          >
+            {p.name || p.id}
+          </Text>
         </TouchableOpacity>
       ))}
 
       <TextInput
         style={{
-          width: "100%", padding: 12, marginTop: 8,
-          backgroundColor: colors.bg.raised, borderRadius: radius.sm,
-          color: colors.fg.default, fontSize: 13, fontFamily: fonts.mono.regular,
+          width: "100%",
+          padding: 12,
+          marginTop: 8,
+          backgroundColor: colors.bg.raised,
+          borderRadius: radius.sm,
+          color: colors.fg.default,
+          fontSize: 13,
+          fontFamily: fonts.mono.regular,
         }}
-        placeholder={t('aiPanel.apiKeyPlaceholder')}
+        placeholder={t("aiPanel.apiKeyPlaceholder")}
         placeholderTextColor={colors.fg.subtle}
         value={keyInput}
         onChangeText={setKeyInput}
@@ -2236,14 +3219,24 @@ function ApiKeySetup({ providers, colors, radius, fonts, onSetKey }: {
           }
         }}
         style={{
-          marginTop: 16, paddingHorizontal: 24, paddingVertical: 12,
-          backgroundColor: keyInput.trim() ? colors.accent.default : colors.bg.raised,
+          marginTop: 16,
+          paddingHorizontal: 24,
+          paddingVertical: 12,
+          backgroundColor: keyInput.trim()
+            ? colors.accent.default
+            : colors.bg.raised,
           borderRadius: radius.md,
         }}
         disabled={!keyInput.trim()}
         activeOpacity={0.7}
       >
-        <Text style={{ color: keyInput.trim() ? '#ffffff' : colors.fg.subtle, fontSize: 14, fontFamily: fonts.sans.semibold }}>
+        <Text
+          style={{
+            color: keyInput.trim() ? "#ffffff" : colors.fg.subtle,
+            fontSize: 14,
+            fontFamily: fonts.sans.semibold,
+          }}
+        >
           Save Key
         </Text>
       </TouchableOpacity>
@@ -2271,7 +3264,12 @@ function ConfigureSheet({
 }: {
   visible: boolean;
   backend: AiBackend;
-  modelOptions: { id: string; name: string; badges?: string[]; detail?: string }[];
+  modelOptions: {
+    id: string;
+    name: string;
+    badges?: string[];
+    detail?: string;
+  }[];
   selectedModelId: string;
   onSelectModel: (id: string) => void;
   onClose: () => void;
@@ -2280,54 +3278,117 @@ function ConfigureSheet({
 }) {
   const { t } = useTranslation();
   return (
-    <InfoSheet visible={visible} onClose={onClose} title={t('aiPanel.modelTitle')} description={t('aiPanel.modelDesc')}>
+    <InfoSheet
+      visible={visible}
+      onClose={onClose}
+      title={t("aiPanel.modelTitle")}
+      description={t("aiPanel.modelDesc")}
+    >
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 0, paddingBottom: 48, gap: 12 }}
+        contentContainerStyle={{
+          paddingHorizontal: 0,
+          paddingBottom: 48,
+          gap: 12,
+        }}
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
         <View style={{ gap: 6 }}>
-          {modelOptions.length > 0 ? modelOptions.map((option) => {
-            const selected = option.id === selectedModelId;
-            return (
-              <Pressable
-                key={option.id}
-                style={({ pressed }) => [
-                  styles.sheetRow,
-                  {
-                    backgroundColor: selected ? colors.bg.raised : pressed ? colors.bg.raised : "transparent",
-                    borderRadius: 8,
-                  },
-                ]}
-                onPress={() => onSelectModel(option.id)}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text numberOfLines={1} style={{ color: colors.fg.default, fontSize: 14, fontFamily: fonts.sans.regular }}>
-                    {option.name}
-                  </Text>
-                  {!!option.detail && (
-                    <Text numberOfLines={1} style={{ color: colors.fg.muted, fontSize: 11, fontFamily: fonts.sans.regular, marginTop: 2 }}>
-                      {option.detail}
+          {modelOptions.length > 0 ? (
+            modelOptions.map((option) => {
+              const selected = option.id === selectedModelId;
+              return (
+                <Pressable
+                  key={option.id}
+                  style={({ pressed }) => [
+                    styles.sheetRow,
+                    {
+                      backgroundColor: selected
+                        ? colors.bg.raised
+                        : pressed
+                          ? colors.bg.raised
+                          : "transparent",
+                      borderRadius: 8,
+                    },
+                  ]}
+                  onPress={() => onSelectModel(option.id)}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        color: colors.fg.default,
+                        fontSize: 14,
+                        fontFamily: fonts.sans.regular,
+                      }}
+                    >
+                      {option.name}
                     </Text>
-                  )}
-                </View>
-                {!!option.badges?.length && (
-                  <View style={{ flexDirection: "row", gap: 6, flexShrink: 0 }}>
-                    {option.badges.slice(0, 3).map((badge) => (
-                      <View key={badge} style={{ paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: colors.bg.default }}>
-                        <Text style={{ color: colors.fg.muted, fontSize: 10, fontFamily: fonts.sans.medium }}>
-                          {badge}
-                        </Text>
-                      </View>
-                    ))}
+                    {!!option.detail && (
+                      <Text
+                        numberOfLines={1}
+                        style={{
+                          color: colors.fg.muted,
+                          fontSize: 11,
+                          fontFamily: fonts.sans.regular,
+                          marginTop: 2,
+                        }}
+                      >
+                        {option.detail}
+                      </Text>
+                    )}
                   </View>
-                )}
-              </Pressable>
-            );
-          }) : (
-            <View style={[styles.backendOption, { backgroundColor: colors.bg.raised, borderRadius: 10, opacity: 0.7 }]}>
-              <Text style={{ color: colors.fg.muted, fontSize: 12, fontFamily: fonts.sans.regular }}>
-                {backend === "codex" ? t('aiPanel.modelAuto') : t('aiPanel.modelNone')}
+                  {!!option.badges?.length && (
+                    <View
+                      style={{ flexDirection: "row", gap: 6, flexShrink: 0 }}
+                    >
+                      {option.badges.slice(0, 3).map((badge) => (
+                        <View
+                          key={badge}
+                          style={{
+                            paddingHorizontal: 6,
+                            paddingVertical: 2,
+                            borderRadius: 4,
+                            backgroundColor: colors.bg.default,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: colors.fg.muted,
+                              fontSize: 10,
+                              fontFamily: fonts.sans.medium,
+                            }}
+                          >
+                            {badge}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </Pressable>
+              );
+            })
+          ) : (
+            <View
+              style={[
+                styles.backendOption,
+                {
+                  backgroundColor: colors.bg.raised,
+                  borderRadius: 10,
+                  opacity: 0.7,
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color: colors.fg.muted,
+                  fontSize: 12,
+                  fontFamily: fonts.sans.regular,
+                }}
+              >
+                {backend === "codex"
+                  ? t("aiPanel.modelAuto")
+                  : t("aiPanel.modelNone")}
               </Text>
             </View>
           )}
@@ -2346,10 +3407,16 @@ function formatCount(value: unknown): string | undefined {
 
 function modelBadges(model: AIModel, isDefault: boolean): string[] {
   const badges: string[] = [];
-  if (isDefault) badges.push(i18n.t('aiPanel.badgeDefault'));
-  if (model.capabilities?.reasoning || model.supportedReasoningEfforts?.length || model.variants) badges.push(i18n.t('aiPanel.badgeReasoning'));
-  if (model.capabilities?.attachment) badges.push(i18n.t('aiPanel.badgeFiles'));
-  if (model.options?.serviceTier || model.id.toLowerCase().includes("fast")) badges.push(i18n.t('aiPanel.badgeFast'));
+  if (isDefault) badges.push(i18n.t("aiPanel.badgeDefault"));
+  if (
+    model.capabilities?.reasoning ||
+    model.supportedReasoningEfforts?.length ||
+    model.variants
+  )
+    badges.push(i18n.t("aiPanel.badgeReasoning"));
+  if (model.capabilities?.attachment) badges.push(i18n.t("aiPanel.badgeFiles"));
+  if (model.options?.serviceTier || model.id.toLowerCase().includes("fast"))
+    badges.push(i18n.t("aiPanel.badgeFast"));
   return badges;
 }
 
@@ -2357,15 +3424,18 @@ function modelDetail(model: AIModel): string | undefined {
   const parts: string[] = [];
   const context = formatCount(model.limit?.context);
   const output = formatCount(model.limit?.output);
-  const variants = model.supportedReasoningEfforts?.map((effort) => effort.reasoningEffort)
-    ?? (model.variants ? Object.keys(model.variants) : []);
+  const variants =
+    model.supportedReasoningEfforts?.map((effort) => effort.reasoningEffort) ??
+    (model.variants ? Object.keys(model.variants) : []);
   if (context) parts.push(`${context} ctx`);
   if (output) parts.push(`${output} out`);
   if (variants.length > 0) parts.push(variants.join(", "));
   return parts.length > 0 ? parts.join(" · ") : undefined;
 }
 
-function parseModelOptionId(optionId: string): { providerID: string; modelID: string } | undefined {
+function parseModelOptionId(
+  optionId: string,
+): { providerID: string; modelID: string } | undefined {
   const separator = optionId.indexOf(":");
   if (separator <= 0) return undefined;
   return {
@@ -2409,9 +3479,18 @@ function AttachmentSheet({
   };
 
   return (
-    <InfoSheet visible={visible} onClose={onClose} title={t('aiPanel.attachTitle')} description={t('aiPanel.attachDesc')}>
+    <InfoSheet
+      visible={visible}
+      onClose={onClose}
+      title={t("aiPanel.attachTitle")}
+      description={t("aiPanel.attachDesc")}
+    >
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: 0, paddingBottom: 48, gap: 12 }}
+        contentContainerStyle={{
+          paddingHorizontal: 0,
+          paddingBottom: 48,
+          gap: 12,
+        }}
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
       >
@@ -2424,7 +3503,7 @@ function AttachmentSheet({
             <View style={iconSlotStyle}>
               <Foundation name="photo" size={16} color={colors.fg.default} />
             </View>
-            <Text style={labelStyle}>{t('aiPanel.attachGallery')}</Text>
+            <Text style={labelStyle}>{t("aiPanel.attachGallery")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={onCamera}
@@ -2434,7 +3513,7 @@ function AttachmentSheet({
             <View style={iconSlotStyle}>
               <Feather name="camera" size={16} color={colors.fg.default} />
             </View>
-            <Text style={labelStyle}>{t('aiPanel.attachCamera')}</Text>
+            <Text style={labelStyle}>{t("aiPanel.attachCamera")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={onFile}
@@ -2444,7 +3523,7 @@ function AttachmentSheet({
             <View style={iconSlotStyle}>
               <Fontisto name="paperclip" size={13} color={colors.fg.default} />
             </View>
-            <Text style={labelStyle}>{t('aiPanel.attachFile')}</Text>
+            <Text style={labelStyle}>{t("aiPanel.attachFile")}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -2483,20 +3562,42 @@ function TuneSheet({
   onSpeedChange: (v: string) => void;
   speedOptions: Array<{ id: string; label: string; description?: string }>;
   permissionMode: NonNullable<CodexPromptOptions["permissionMode"]>;
-  onPermissionChange: (v: NonNullable<CodexPromptOptions["permissionMode"]>) => void;
+  onPermissionChange: (
+    v: NonNullable<CodexPromptOptions["permissionMode"]>,
+  ) => void;
   colors: any;
   fonts: any;
 }) {
   const { t } = useTranslation();
-  const permissionOptions: Array<{ id: NonNullable<CodexPromptOptions["permissionMode"]>; label: string }> = [
-    { id: "default", label: t('aiPanel.permissionDefault') },
-    { id: "full-access", label: t('aiPanel.permissionFullAccess') },
+  const permissionOptions: Array<{
+    id: NonNullable<CodexPromptOptions["permissionMode"]>;
+    label: string;
+  }> = [
+    { id: "default", label: t("aiPanel.permissionDefault") },
+    { id: "full-access", label: t("aiPanel.permissionFullAccess") },
   ];
 
-  const sectionStyle = { marginBottom: 20, width: "100%" as const, alignSelf: "stretch" as const };
-  const sectionLabelStyle = { color: colors.fg.subtle, fontSize: 11, fontFamily: fonts.sans.medium, marginBottom: 8 };
-  const chipRowStyle = { width: "100%" as const, flexDirection: "row" as const, alignSelf: "stretch" as const };
-  const chipBase = { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 };
+  const sectionStyle = {
+    marginBottom: 20,
+    width: "100%" as const,
+    alignSelf: "stretch" as const,
+  };
+  const sectionLabelStyle = {
+    color: colors.fg.subtle,
+    fontSize: 11,
+    fontFamily: fonts.sans.medium,
+    marginBottom: 8,
+  };
+  const chipRowStyle = {
+    width: "100%" as const,
+    flexDirection: "row" as const,
+    alignSelf: "stretch" as const,
+  };
+  const chipBase = {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  };
   const renderOptionGroup = (
     options: Array<{ id: string; label: string; description?: string }>,
     selectedValue: string,
@@ -2520,7 +3621,13 @@ function TuneSheet({
               },
             ]}
           >
-            <Text style={{ color: active ? colors.fg.default : colors.fg.muted, fontSize: 13, fontFamily: fonts.sans.regular }}>
+            <Text
+              style={{
+                color: active ? colors.fg.default : colors.fg.muted,
+                fontSize: 13,
+                fontFamily: fonts.sans.regular,
+              }}
+            >
               {opt.label}
             </Text>
           </TouchableOpacity>
@@ -2530,7 +3637,12 @@ function TuneSheet({
   );
 
   return (
-    <InfoSheet visible={visible} onClose={onClose} title={t('aiPanel.configureTitle')} description={t('aiPanel.configureDesc')}>
+    <InfoSheet
+      visible={visible}
+      onClose={onClose}
+      title={t("aiPanel.configureTitle")}
+      description={t("aiPanel.configureDesc")}
+    >
       <ScrollView
         style={{ width: "100%" }}
         contentContainerStyle={{ paddingBottom: 48 }}
@@ -2540,7 +3652,7 @@ function TuneSheet({
         <View style={{ width: "100%" }}>
           {/* Mode */}
           <View style={sectionStyle}>
-            <Text style={sectionLabelStyle}>{t('aiPanel.configureMode')}</Text>
+            <Text style={sectionLabelStyle}>{t("aiPanel.configureMode")}</Text>
             {renderOptionGroup(
               agents.map((agent) => ({ id: agent.id, label: agent.name })),
               selectedAgent,
@@ -2553,9 +3665,14 @@ function TuneSheet({
               {/* Reasoning */}
               {reasoningOptions.length > 0 && (
                 <View style={sectionStyle}>
-                  <Text style={sectionLabelStyle}>{t('aiPanel.configureReasoning')}</Text>
+                  <Text style={sectionLabelStyle}>
+                    {t("aiPanel.configureReasoning")}
+                  </Text>
                   {renderOptionGroup(
-                    reasoningOptions.map((opt) => ({ id: opt.id, label: opt.label })),
+                    reasoningOptions.map((opt) => ({
+                      id: opt.id,
+                      label: opt.label,
+                    })),
                     reasoningEffort,
                     onReasoningChange,
                   )}
@@ -2565,9 +3682,14 @@ function TuneSheet({
               {/* Speed */}
               {backend === "codex" && speedOptions.length > 1 && (
                 <View style={sectionStyle}>
-                  <Text style={sectionLabelStyle}>{t('aiPanel.configureSpeed')}</Text>
+                  <Text style={sectionLabelStyle}>
+                    {t("aiPanel.configureSpeed")}
+                  </Text>
                   {renderOptionGroup(
-                    speedOptions.map((opt) => ({ id: opt.id, label: opt.label })),
+                    speedOptions.map((opt) => ({
+                      id: opt.id,
+                      label: opt.label,
+                    })),
                     speed,
                     onSpeedChange,
                   )}
@@ -2577,15 +3699,19 @@ function TuneSheet({
               {/* Permissions */}
               {backend === "codex" && (
                 <View style={sectionStyle}>
-                  <Text style={sectionLabelStyle}>{t('aiPanel.configurePermission')}</Text>
+                  <Text style={sectionLabelStyle}>
+                    {t("aiPanel.configurePermission")}
+                  </Text>
                   {renderOptionGroup(
-                    permissionOptions.map((opt) => ({ id: opt.id, label: opt.label })),
+                    permissionOptions.map((opt) => ({
+                      id: opt.id,
+                      label: opt.label,
+                    })),
                     permissionMode,
                     onPermissionChange,
                   )}
                 </View>
               )}
-
             </>
           )}
         </View>
@@ -2625,8 +3751,15 @@ const AnimatedAITab = memo(
     const opacity = useSharedValue(isNew ? 0 : 1);
 
     useEffect(() => {
-      width.value = withSpring(targetWidth, { damping: 20, stiffness: 220, mass: 0.8 });
-      opacity.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.cubic) });
+      width.value = withSpring(targetWidth, {
+        damping: 20,
+        stiffness: 220,
+        mass: 0.8,
+      });
+      opacity.value = withTiming(1, {
+        duration: 150,
+        easing: Easing.out(Easing.cubic),
+      });
     }, [targetWidth, width, opacity]);
 
     const animatedStyle = useAnimatedStyle(() => ({
@@ -2635,7 +3768,9 @@ const AnimatedAITab = memo(
     }));
 
     return (
-      <Animated.View style={[animatedStyle, { overflow: "hidden", height: "100%" }]}>
+      <Animated.View
+        style={[animatedStyle, { overflow: "hidden", height: "100%" }]}
+      >
         <TouchableOpacity
           onPress={onPress}
           activeOpacity={0.8}
@@ -2652,7 +3787,14 @@ const AnimatedAITab = memo(
             gap: 8,
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", flex: 1, gap: 6 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              flex: 1,
+              gap: 6,
+            }}
+          >
             {showIcon ? (
               <Sparkles
                 size={14}
@@ -2664,7 +3806,9 @@ const AnimatedAITab = memo(
               numberOfLines={1}
               style={{
                 fontSize: 13,
-                fontFamily: isActiveTab ? fonts.sans.semibold : fonts.sans.regular,
+                fontFamily: isActiveTab
+                  ? fonts.sans.semibold
+                  : fonts.sans.regular,
                 color: isActiveTab ? colors.fg.default : colors.fg.muted,
                 flex: 1,
               }}
@@ -2676,19 +3820,27 @@ const AnimatedAITab = memo(
             onPress={onClose}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <X size={13} color={isActiveTab ? colors.fg.default : colors.fg.muted} strokeWidth={2} />
+            <X
+              size={13}
+              color={isActiveTab ? colors.fg.default : colors.fg.muted}
+              strokeWidth={2}
+            />
           </TouchableOpacity>
         </TouchableOpacity>
       </Animated.View>
     );
-  }
+  },
 );
 
 // ============================================================================
 // Main AI Panel
 // ============================================================================
 
-export default function AIPanel({ instanceId, isActive, bottomBarHeight }: PluginPanelProps) {
+export default function AIPanel({
+  instanceId,
+  isActive,
+  bottomBarHeight,
+}: PluginPanelProps) {
   const { t } = useTranslation();
   const { colors, radius, fonts } = useTheme();
   const { settings } = useAppSettings();
@@ -2706,29 +3858,49 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
   const [draftTabs, setDraftTabs] = useState<AITab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [pendingBackend, setPendingBackend] = useState<AiBackend | null>(null);
-  const [messagesMap, setMessagesMap] = useState<Record<string, AIMessage[]>>({});
+  const [messagesMap, setMessagesMap] = useState<Record<string, AIMessage[]>>(
+    {},
+  );
 
   // Config state
-  const [agentsByBackend, setAgentsByBackend] = useState<Record<AiBackend, { id: string; name: string; icon?: React.ComponentType<any> }[]>>({
+  const [agentsByBackend, setAgentsByBackend] = useState<
+    Record<
+      AiBackend,
+      { id: string; name: string; icon?: React.ComponentType<any> }[]
+    >
+  >({
     opencode: DEFAULT_OPENCODE_AGENTS,
     codex: DEFAULT_CODEX_AGENTS,
   });
-  const [modelOptionsByBackend, setModelOptionsByBackend] = useState<Record<AiBackend, { id: string; name: string; badges?: string[]; detail?: string }[]>>({
+  const [modelOptionsByBackend, setModelOptionsByBackend] = useState<
+    Record<
+      AiBackend,
+      { id: string; name: string; badges?: string[]; detail?: string }[]
+    >
+  >({
     opencode: [],
     codex: [],
   });
-  const [selectedAgentByBackend, setSelectedAgentByBackend] = useState<Record<AiBackend, string>>({
+  const [selectedAgentByBackend, setSelectedAgentByBackend] = useState<
+    Record<AiBackend, string>
+  >({
     opencode: "build",
     codex: "default",
   });
-  const [selectedModelByBackend, setSelectedModelByBackend] = useState<Record<AiBackend, string>>({
+  const [selectedModelByBackend, setSelectedModelByBackend] = useState<
+    Record<AiBackend, string>
+  >({
     opencode: "",
     codex: "",
   });
-  const [codexReasoningEffort, setCodexReasoningEffort] = useState<NonNullable<CodexPromptOptions["reasoningEffort"]>>("medium");
+  const [codexReasoningEffort, setCodexReasoningEffort] =
+    useState<NonNullable<CodexPromptOptions["reasoningEffort"]>>("medium");
   const [codexSpeed, setCodexSpeed] = useState<string>("default");
-  const [codexPermissionMode, setCodexPermissionMode] = useState<NonNullable<CodexPromptOptions["permissionMode"]>>("default");
-  const [providersByBackend, setProvidersByBackend] = useState<Record<AiBackend, AIProvider[]>>({
+  const [codexPermissionMode, setCodexPermissionMode] =
+    useState<NonNullable<CodexPromptOptions["permissionMode"]>>("default");
+  const [providersByBackend, setProvidersByBackend] = useState<
+    Record<AiBackend, AIProvider[]>
+  >({
     opencode: [],
     codex: [],
   });
@@ -2737,17 +3909,31 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
   const [inputText, setInputText] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
-  const [pendingImage, setPendingImage] = useState<AIFileAttachment | null>(null);
-  const [pendingImageViewerVisible, setPendingImageViewerVisible] = useState(false);
+  const [pendingImage, setPendingImage] = useState<AIFileAttachment | null>(
+    null,
+  );
+  const [pendingImageViewerVisible, setPendingImageViewerVisible] =
+    useState(false);
   const [atMentionActive, setAtMentionActive] = useState(false);
   const [atMentionQuery, setAtMentionQuery] = useState("");
-  const [workspaceFileMatches, setWorkspaceFileMatches] = useState<string[]>([]);
+  const [workspaceFileMatches, setWorkspaceFileMatches] = useState<string[]>(
+    [],
+  );
   const [workspaceFilesLoading, setWorkspaceFilesLoading] = useState(false);
-  const [taggedFiles, setTaggedFiles] = useState<{ path: string; name: string }[]>([]);
-  const [streamingBySession, setStreamingBySession] = useState<Record<string, true>>({});
-  const [stoppingBySession, setStoppingBySession] = useState<Record<string, true>>({});
-  const [pendingPermission, setPendingPermission] = useState<AIPermission | null>(null);
-  const [pendingQuestion, setPendingQuestion] = useState<AIQuestion | null>(null);
+  const [taggedFiles, setTaggedFiles] = useState<
+    { path: string; name: string }[]
+  >([]);
+  const [streamingBySession, setStreamingBySession] = useState<
+    Record<string, true>
+  >({});
+  const [stoppingBySession, setStoppingBySession] = useState<
+    Record<string, true>
+  >({});
+  const [pendingPermission, setPendingPermission] =
+    useState<AIPermission | null>(null);
+  const [pendingQuestion, setPendingQuestion] = useState<AIQuestion | null>(
+    null,
+  );
   const [activeSheet, setActiveSheet] = useState<ComposerSheet>(null);
   const [backendPickerVisible, setBackendPickerVisible] = useState(false);
   const [inputHeight, setInputHeight] = useState(52);
@@ -2771,31 +3957,41 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
     }
   }, [isVoiceBusy, voiceBusySpinSV]);
   const [voiceDurationMs, setVoiceDurationMs] = useState(0);
-  const [voiceWave, setVoiceWave] = useState<number[]>(
-    () => Array.from({ length: VOICE_WAVE_BAR_COUNT }, () => VOICE_WAVE_IDLE_LEVEL)
+  const [voiceWave, setVoiceWave] = useState<number[]>(() =>
+    Array.from({ length: VOICE_WAVE_BAR_COUNT }, () => VOICE_WAVE_IDLE_LEVEL),
   );
-  const [needsApiKeyByBackend, setNeedsApiKeyByBackend] = useState<Record<AiBackend, boolean>>({
+  const [needsApiKeyByBackend, setNeedsApiKeyByBackend] = useState<
+    Record<AiBackend, boolean>
+  >({
     opencode: false,
     codex: false,
   });
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isInitialSessionsLoading, setIsInitialSessionsLoading] = useState(false);
+  const [isInitialSessionsLoading, setIsInitialSessionsLoading] =
+    useState(false);
   const [loadingSessionId, setLoadingSessionId] = useState<string | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-  const [errorMessages, setErrorMessages] = useState<Record<string, string[]>>({});
+  const [errorMessages, setErrorMessages] = useState<Record<string, string[]>>(
+    {},
+  );
   const [showDetailedView, setShowDetailedView] = useState(false);
-  const [sessionActivityLabels, setSessionActivityLabels] = useState<Record<string, string>>({});
+  const [sessionActivityLabels, setSessionActivityLabels] = useState<
+    Record<string, string>
+  >({});
   const inputHeightSV = useSharedValue(52);
   const voiceLayerOpacitySV = useSharedValue(0);
   const { height: keyboardHeightSV } = useReanimatedKeyboardAnimation();
 
   // Refs
   const inputRef = useRef<TextInput>(null);
-  const audioRecorder = useAudioRecorder(
-    { ...RecordingPresets.HIGH_QUALITY, isMeteringEnabled: true }
-  );
+  const audioRecorder = useAudioRecorder({
+    ...RecordingPresets.HIGH_QUALITY,
+    isMeteringEnabled: true,
+  });
   const latestVoiceLevelRef = useRef(VOICE_WAVE_IDLE_LEVEL);
-  const voiceWaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const voiceWaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
   const messagesListRef = useRef<FlashListRef<any>>(null);
   const messagesMapRef = useRef<Record<string, AIMessage[]>>({});
   const streamingBySessionRef = useRef<Record<string, true>>({});
@@ -2810,9 +4006,9 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
   const lastContentHeightRef = useRef(0);
   const scrollFrameRef = useRef<number | null>(null);
   const scrollCorrectionFrameRef = useRef<number | null>(null);
-  const refreshSessionMessagesRef = useRef<(sessionId: string, backend: AiBackend, force?: boolean) => Promise<void>>(
-    async () => {}
-  );
+  const refreshSessionMessagesRef = useRef<
+    (sessionId: string, backend: AiBackend, force?: boolean) => Promise<void>
+  >(async () => {});
   const deletedSessionKeysRef = useRef<Set<string>>(new Set());
   const clearScheduledScroll = useCallback(() => {
     if (scrollFrameRef.current != null) {
@@ -2828,21 +4024,30 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
     const viewportHeight = listViewportHeightRef.current;
     return Math.max(0, contentHeightRef.current - viewportHeight);
   }, []);
-  const scrollToLatest = useCallback((animated: boolean, correctAfterScroll = false) => {
-    clearScheduledScroll();
-    scrollFrameRef.current = requestAnimationFrame(() => {
-      scrollFrameRef.current = null;
-      const offset = getBottomScrollOffset();
-      messagesListRef.current?.scrollToOffset({ offset, animated });
-      if (!correctAfterScroll) return;
-      // Correct any late list re-measure without kicking off a second animation.
-      scrollCorrectionFrameRef.current = requestAnimationFrame(() => {
-        scrollCorrectionFrameRef.current = null;
-        messagesListRef.current?.scrollToOffset({ offset: getBottomScrollOffset(), animated: false });
+  const scrollToLatest = useCallback(
+    (animated: boolean, correctAfterScroll = false) => {
+      clearScheduledScroll();
+      scrollFrameRef.current = requestAnimationFrame(() => {
+        scrollFrameRef.current = null;
+        const offset = getBottomScrollOffset();
+        messagesListRef.current?.scrollToOffset({ offset, animated });
+        if (!correctAfterScroll) return;
+        // Correct any late list re-measure without kicking off a second animation.
+        scrollCorrectionFrameRef.current = requestAnimationFrame(() => {
+          scrollCorrectionFrameRef.current = null;
+          messagesListRef.current?.scrollToOffset({
+            offset: getBottomScrollOffset(),
+            animated: false,
+          });
+        });
       });
-    });
-  }, [clearScheduledScroll, getBottomScrollOffset]);
-  const tabs = useMemo(() => sortTabsByUpdatedAt([...sessionTabs, ...draftTabs]), [sessionTabs, draftTabs]);
+    },
+    [clearScheduledScroll, getBottomScrollOffset],
+  );
+  const tabs = useMemo(
+    () => sortTabsByUpdatedAt([...sessionTabs, ...draftTabs]),
+    [sessionTabs, draftTabs],
+  );
   const activeSessionId = useMemo(() => {
     return tabs.find((t) => t.id === activeTabId)?.sessionId || null;
   }, [tabs, activeTabId]);
@@ -2850,10 +4055,16 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
     () => Object.keys(streamingBySession).length > 0,
     [streamingBySession],
   );
-  const isActiveSessionStreaming = !!activeSessionId && !!streamingBySession[activeSessionId];
-  const isActiveSessionStopping = !!activeSessionId && !!stoppingBySession[activeSessionId];
-  const activeTab = useMemo(() => tabs.find((t) => t.id === activeTabId) ?? null, [tabs, activeTabId]);
-  const activeBackend: AiBackend = activeTab?.backend ?? pendingBackend ?? "opencode";
+  const isActiveSessionStreaming =
+    !!activeSessionId && !!streamingBySession[activeSessionId];
+  const isActiveSessionStopping =
+    !!activeSessionId && !!stoppingBySession[activeSessionId];
+  const activeTab = useMemo(
+    () => tabs.find((t) => t.id === activeTabId) ?? null,
+    [tabs, activeTabId],
+  );
+  const activeBackend: AiBackend =
+    activeTab?.backend ?? pendingBackend ?? "opencode";
   const agents = agentsByBackend[activeBackend] || [];
   const modelOptions = modelOptionsByBackend[activeBackend] || [];
   const selectedAgent = selectedAgentByBackend[activeBackend] || "";
@@ -2874,14 +4085,22 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
     }
     const efforts = selectedModelInfo?.supportedReasoningEfforts ?? [];
     if (efforts.length === 0) {
-      const current = codexReasoningEffort || selectedModelInfo?.defaultReasoningEffort;
+      const current =
+        codexReasoningEffort || selectedModelInfo?.defaultReasoningEffort;
       return current
-        ? [{ id: current, label: current.charAt(0).toUpperCase() + current.slice(1) }]
+        ? [
+            {
+              id: current,
+              label: current.charAt(0).toUpperCase() + current.slice(1),
+            },
+          ]
         : [];
     }
     return efforts.map((effort) => ({
       id: effort.reasoningEffort,
-      label: effort.reasoningEffort.charAt(0).toUpperCase() + effort.reasoningEffort.slice(1),
+      label:
+        effort.reasoningEffort.charAt(0).toUpperCase() +
+        effort.reasoningEffort.slice(1),
       description: effort.description,
     }));
   }, [activeBackend, codexReasoningEffort, selectedModelInfo]);
@@ -2889,7 +4108,7 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
     if (activeBackend !== "codex") return [];
     const tiers = selectedModelInfo?.additionalSpeedTiers ?? [];
     return [
-      { id: "default", label: t('common.default') },
+      { id: "default", label: t("common.default") },
       ...tiers.map((tier) => ({
         id: tier,
         label: tier.charAt(0).toUpperCase() + tier.slice(1),
@@ -2897,16 +4116,32 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
     ];
   }, [activeBackend, selectedModelInfo]);
   const needsApiKey = needsApiKeyByBackend[activeBackend] || false;
-  const isActiveSessionLoading = !!activeSessionId && loadingSessionId === activeSessionId && !messagesMap[activeSessionId];
+  const isActiveSessionLoading =
+    !!activeSessionId &&
+    loadingSessionId === activeSessionId &&
+    !messagesMap[activeSessionId];
   const composerBottomOffset = composerHeight;
 
   useEffect(() => {
-    if ((activeBackend !== "codex" && activeBackend !== "opencode") || reasoningOptions.length === 0) return;
+    if (
+      (activeBackend !== "codex" && activeBackend !== "opencode") ||
+      reasoningOptions.length === 0
+    )
+      return;
     const supported = reasoningOptions.map((option) => option.id);
     if (supported.includes(codexReasoningEffort)) return;
     const defaultEffort = selectedModelInfo?.defaultReasoningEffort;
-    setCodexReasoningEffort(defaultEffort && supported.includes(defaultEffort) ? defaultEffort : supported[0]);
-  }, [activeBackend, codexReasoningEffort, reasoningOptions, selectedModelInfo]);
+    setCodexReasoningEffort(
+      defaultEffort && supported.includes(defaultEffort)
+        ? defaultEffort
+        : supported[0],
+    );
+  }, [
+    activeBackend,
+    codexReasoningEffort,
+    reasoningOptions,
+    selectedModelInfo,
+  ]);
 
   useEffect(() => {
     if (activeBackend !== "codex" || codexSpeedOptions.length === 0) return;
@@ -2932,18 +4167,26 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
         case "message.updated": {
           // OpenCode: properties = { info: { sessionID, id, role, time, error, ... } }
           const info = (props.info || props) as Record<string, unknown>;
-          const sessId = (info.sessionID as string) || (info.sessionId as string);
+          const sessId =
+            (info.sessionID as string) || (info.sessionId as string);
           const msgId = info.id as string;
           const role = (info.role as string) === "user" ? "user" : "assistant";
           const timeInfo = info.time as Record<string, unknown> | undefined;
-          const created = typeof timeInfo?.created === "number" ? timeInfo.created : undefined;
-          const updated = typeof timeInfo?.updated === "number" ? timeInfo.updated : undefined;
-          const messageTime = created != null || updated != null
-            ? {
-                created: created ?? (updated as number),
-                updated: updated ?? (created as number),
-              }
-            : undefined;
+          const created =
+            typeof timeInfo?.created === "number"
+              ? timeInfo.created
+              : undefined;
+          const updated =
+            typeof timeInfo?.updated === "number"
+              ? timeInfo.updated
+              : undefined;
+          const messageTime =
+            created != null || updated != null
+              ? {
+                  created: created ?? (updated as number),
+                  updated: updated ?? (created as number),
+                }
+              : undefined;
           if (sessId && msgId) {
             setMessagesMap((prev) => {
               let existing = prev[sessId] || [];
@@ -2965,7 +4208,15 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
               // New message shell — parts will arrive via message.part.updated
               return {
                 ...prev,
-                [sessId]: [...existing, { id: msgId, role: role as "user" | "assistant", parts: [], time: messageTime }],
+                [sessId]: [
+                  ...existing,
+                  {
+                    id: msgId,
+                    role: role as "user" | "assistant",
+                    parts: [],
+                    time: messageTime,
+                  },
+                ],
               };
             });
           }
@@ -2973,23 +4224,41 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
         }
         case "message.part.updated": {
           // OpenCode: properties = { part: { id, sessionID, messageID, type, text, ... }, message?: { sessionID, id, ... } }
-          const part = props.part as (AIPart & { id?: string; sessionID?: string; messageID?: string }) | undefined;
+          const part = props.part as
+            | (AIPart & { id?: string; sessionID?: string; messageID?: string })
+            | undefined;
           const msgInfo = props.message as Record<string, unknown> | undefined;
-          const sessId = (part?.sessionID as string) || (msgInfo?.sessionID as string) || (props.sessionID as string);
-          const msgId = (part?.messageID as string) || (msgInfo?.id as string) || (props.messageID as string);
+          const sessId =
+            (part?.sessionID as string) ||
+            (msgInfo?.sessionID as string) ||
+            (props.sessionID as string);
+          const msgId =
+            (part?.messageID as string) ||
+            (msgInfo?.id as string) ||
+            (props.messageID as string);
           const partId = part?.id as string | undefined;
-          const shouldReplaceStreamingText = event.backend === "codex" && !!partId;
+          const shouldReplaceStreamingText =
+            event.backend === "codex" && !!partId;
           if (sessId && msgId && part != null) {
             const nextActivityLabel = deriveActivityLabelFromPart(part);
-            if (nextActivityLabel && !stoppingSessionIdsRef.current.has(sessId)) {
-              setSessionActivityLabels((prev) => ({ ...prev, [sessId]: nextActivityLabel }));
+            if (
+              nextActivityLabel &&
+              !stoppingSessionIdsRef.current.has(sessId)
+            ) {
+              setSessionActivityLabels((prev) => ({
+                ...prev,
+                [sessId]: nextActivityLabel,
+              }));
             }
             setMessagesMap((prev) => {
               const existing = prev[sessId] || [];
               const msgIdx = existing.findIndex((m) => m.id === msgId);
               if (msgIdx >= 0) {
                 const updated = [...existing];
-                const msg = { ...updated[msgIdx], parts: [...(updated[msgIdx].parts || [])] };
+                const msg = {
+                  ...updated[msgIdx],
+                  parts: [...(updated[msgIdx].parts || [])],
+                };
                 // Match by part id when available. Some streaming backends send
                 // partial updates without stable ids; in that case merge by type
                 // so we don't render noisy chunk-by-chunk duplicates.
@@ -2997,9 +4266,13 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
                   ? msg.parts.findIndex((p) => (p as any).id === partId)
                   : findStreamingPartIndex(msg.parts, part);
                 if (existingPartIdx >= 0) {
-                  msg.parts[existingPartIdx] = mergePartUpdate(msg.parts[existingPartIdx], part, {
-                    replaceText: shouldReplaceStreamingText,
-                  });
+                  msg.parts[existingPartIdx] = mergePartUpdate(
+                    msg.parts[existingPartIdx],
+                    part,
+                    {
+                      replaceText: shouldReplaceStreamingText,
+                    },
+                  );
                 } else {
                   msg.parts.push(part);
                 }
@@ -3007,17 +4280,26 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
                 return { ...prev, [sessId]: updated };
               }
               // Message doesn't exist yet — create shell with this part
-              const role = (msgInfo?.role as string) === "user" ? "user" : "assistant";
+              const role =
+                (msgInfo?.role as string) === "user" ? "user" : "assistant";
               return {
                 ...prev,
-                [sessId]: [...existing, { id: msgId, role: role as "user" | "assistant", parts: [part] }],
+                [sessId]: [
+                  ...existing,
+                  {
+                    id: msgId,
+                    role: role as "user" | "assistant",
+                    parts: [part],
+                  },
+                ],
               };
             });
           }
           break;
         }
         case "message.part.removed": {
-          const sessId = (props.sessionID as string) || (props.sessionId as string);
+          const sessId =
+            (props.sessionID as string) || (props.sessionId as string);
           const msgId = props.messageID as string | undefined;
           const partId = (props.partID as string) || (props.partId as string);
           if (!sessId || !msgId || !partId) break;
@@ -3028,7 +4310,9 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
             const updated = [...existing];
             updated[msgIdx] = {
               ...updated[msgIdx],
-              parts: (updated[msgIdx].parts || []).filter((part) => (part as any).id !== partId),
+              parts: (updated[msgIdx].parts || []).filter(
+                (part) => (part as any).id !== partId,
+              ),
             };
             return { ...prev, [sessId]: updated };
           });
@@ -3043,10 +4327,13 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
             break;
           }
           const title = info.title as string;
-          const updatedAt = (info.time as Record<string, unknown> | undefined)?.updated as number | undefined;
+          const updatedAt = (info.time as Record<string, unknown> | undefined)
+            ?.updated as number | undefined;
           if (sessId) {
             setSessionTabs((prev) => {
-              const existingIndex = prev.findIndex((t) => t.sessionId === sessId && t.backend === backend);
+              const existingIndex = prev.findIndex(
+                (t) => t.sessionId === sessId && t.backend === backend,
+              );
               if (existingIndex >= 0) {
                 const updated = [...prev];
                 updated[existingIndex] = {
@@ -3057,15 +4344,18 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
                 return updated;
               }
 
-              return mergeSessionTabs(prev, [{
-                id: sessId,
-                title: title || t('aiPanel.defaultConversationTitle'),
-                backend,
-                time: {
-                  created: Date.now(),
-                  updated: typeof updatedAt === "number" ? updatedAt : Date.now(),
+              return mergeSessionTabs(prev, [
+                {
+                  id: sessId,
+                  title: title || t("aiPanel.defaultConversationTitle"),
+                  backend,
+                  time: {
+                    created: Date.now(),
+                    updated:
+                      typeof updatedAt === "number" ? updatedAt : Date.now(),
+                  },
                 },
-              }]);
+              ]);
             });
           }
           break;
@@ -3073,10 +4363,17 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
         case "session.deleted": {
           const info = (props.info || props) as Record<string, unknown>;
           const backend = (event.backend ?? "opencode") as AiBackend;
-          const sessId = (info.id as string) || (props.sessionID as string) || (props.sessionId as string);
+          const sessId =
+            (info.id as string) ||
+            (props.sessionID as string) ||
+            (props.sessionId as string);
           if (!sessId) break;
           deletedSessionKeysRef.current.add(`${backend}:${sessId}`);
-          setSessionTabs((prev) => prev.filter((t) => !(t.sessionId === sessId && t.backend === backend)));
+          setSessionTabs((prev) =>
+            prev.filter(
+              (t) => !(t.sessionId === sessId && t.backend === backend),
+            ),
+          );
           setMessagesMap((prev) => {
             const next = { ...prev };
             delete next[sessId];
@@ -3103,8 +4400,12 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
         }
         case "session.status": {
           // OpenCode: properties = { sessionID, status: { type: "idle" | "busy" | "retry" } }
-          const sessId = (props.sessionID as string) || (props.sessionId as string);
-          const statusObj = props.status as Record<string, unknown> | string | undefined;
+          const sessId =
+            (props.sessionID as string) || (props.sessionId as string);
+          const statusObj = props.status as
+            | Record<string, unknown>
+            | string
+            | undefined;
           const streaming = isAiStatusRunning(statusObj);
           if (sessId) {
             setStreamingBySession((prev) => {
@@ -3130,31 +4431,36 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
             setSessionActivityLabels((prev) => {
               const current = prev[sessId];
               if (
-                current === i18n.t('aiPanel.activitySearching')
-                || current === i18n.t('aiPanel.activityWaitingApproval')
-                || current === i18n.t('aiPanel.activityWaitingInput')
-                || current === i18n.t('aiPanel.activityStopping')
+                current === i18n.t("aiPanel.activitySearching") ||
+                current === i18n.t("aiPanel.activityWaitingApproval") ||
+                current === i18n.t("aiPanel.activityWaitingInput") ||
+                current === i18n.t("aiPanel.activityStopping")
               ) {
                 return prev;
               }
               return {
                 ...prev,
-                [sessId]: i18n.t('aiPanel.activityThinking'),
+                [sessId]: i18n.t("aiPanel.activityThinking"),
               };
             });
           }
           break;
         }
         case "session.idle": {
-          const sessId = (props.sessionID as string) || (props.sessionId as string);
+          const sessId =
+            (props.sessionID as string) || (props.sessionId as string);
           const backend = (event.backend ?? "opencode") as AiBackend;
           if (sessId) {
             logger.info("ai-panel", "session idle received", {
               sessionId: sessId,
               backend,
               hadStreaming: Boolean(streamingBySessionRef.current[sessId]),
-              currentMessageCount: (messagesMapRef.current[sessId] || []).length,
-              currentPartCount: (messagesMapRef.current[sessId] || []).reduce((sum, message) => sum + (message.parts?.length || 0), 0),
+              currentMessageCount: (messagesMapRef.current[sessId] || [])
+                .length,
+              currentPartCount: (messagesMapRef.current[sessId] || []).reduce(
+                (sum, message) => sum + (message.parts?.length || 0),
+                0,
+              ),
             });
             setStreamingBySession((prev) => {
               if (!prev[sessId]) return prev;
@@ -3170,67 +4476,97 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
                 return next;
               });
             }
-            setSessionActivityLabels((prev) => ({ ...prev, [sessId]: i18n.t('aiPanel.activityDone') }));
+            setSessionActivityLabels((prev) => ({
+              ...prev,
+              [sessId]: i18n.t("aiPanel.activityDone"),
+            }));
             // Codex streams partial deltas; after completion force a canonical
             // re-read so final rendering is clean and fully normalized.
-            if (backend === "codex" && !codexFinalSyncInFlightRef.current.has(sessId)) {
+            if (
+              backend === "codex" &&
+              !codexFinalSyncInFlightRef.current.has(sessId)
+            ) {
               logger.info("ai-panel", "starting codex final sync", {
                 sessionId: sessId,
-                beforeMessageCount: (messagesMapRef.current[sessId] || []).length,
-                beforePartCount: (messagesMapRef.current[sessId] || []).reduce((sum, message) => sum + (message.parts?.length || 0), 0),
+                beforeMessageCount: (messagesMapRef.current[sessId] || [])
+                  .length,
+                beforePartCount: (messagesMapRef.current[sessId] || []).reduce(
+                  (sum, message) => sum + (message.parts?.length || 0),
+                  0,
+                ),
               });
               codexFinalSyncInFlightRef.current.add(sessId);
-              void refreshSessionMessagesRef.current(sessId, "codex", true).finally(() => {
-                codexFinalSyncInFlightRef.current.delete(sessId);
-                logger.info("ai-panel", "finished codex final sync", {
-                  sessionId: sessId,
-                  afterMessageCount: (messagesMapRef.current[sessId] || []).length,
-                  afterPartCount: (messagesMapRef.current[sessId] || []).reduce((sum, message) => sum + (message.parts?.length || 0), 0),
+              void refreshSessionMessagesRef
+                .current(sessId, "codex", true)
+                .finally(() => {
+                  codexFinalSyncInFlightRef.current.delete(sessId);
+                  logger.info("ai-panel", "finished codex final sync", {
+                    sessionId: sessId,
+                    afterMessageCount: (messagesMapRef.current[sessId] || [])
+                      .length,
+                    afterPartCount: (
+                      messagesMapRef.current[sessId] || []
+                    ).reduce(
+                      (sum, message) => sum + (message.parts?.length || 0),
+                      0,
+                    ),
+                  });
                 });
-              });
             }
           }
           break;
         }
         case "permission.updated": {
-          const sessId = (props.sessionID as string) || (props.sessionId as string);
+          const sessId =
+            (props.sessionID as string) || (props.sessionId as string);
           if (sessId) {
-            setSessionActivityLabels((prev) => ({ ...prev, [sessId]: i18n.t('aiPanel.activityWaitingApproval') }));
+            setSessionActivityLabels((prev) => ({
+              ...prev,
+              [sessId]: i18n.t("aiPanel.activityWaitingApproval"),
+            }));
           }
           setPendingPermission(props as unknown as AIPermission);
           break;
         }
         case "permission.replied": {
-          const sessId = (props.sessionID as string) || (props.sessionId as string);
+          const sessId =
+            (props.sessionID as string) || (props.sessionId as string);
           if (sessId) {
-            setSessionActivityLabels((prev) => ({ ...prev, [sessId]: i18n.t('aiPanel.activityWorking') }));
+            setSessionActivityLabels((prev) => ({
+              ...prev,
+              [sessId]: i18n.t("aiPanel.activityWorking"),
+            }));
           }
           setPendingPermission(null);
           break;
         }
         case "question.asked": {
-          const sessId = (props.sessionID as string) || (props.sessionId as string);
+          const sessId =
+            (props.sessionID as string) || (props.sessionId as string);
           if (sessId) {
-            setStreamingBySession((prev) => (
-              prev[sessId]
-                ? prev
-                : { ...prev, [sessId]: true }
-            ));
-            setSessionActivityLabels((prev) => ({ ...prev, [sessId]: i18n.t('aiPanel.activityWaitingInput') }));
+            setStreamingBySession((prev) =>
+              prev[sessId] ? prev : { ...prev, [sessId]: true },
+            );
+            setSessionActivityLabels((prev) => ({
+              ...prev,
+              [sessId]: i18n.t("aiPanel.activityWaitingInput"),
+            }));
           }
           setPendingQuestion(props as unknown as AIQuestion);
           break;
         }
         case "question.replied":
         case "question.rejected": {
-          const sessId = (props.sessionID as string) || (props.sessionId as string);
+          const sessId =
+            (props.sessionID as string) || (props.sessionId as string);
           if (sessId) {
-            setStreamingBySession((prev) => (
-              prev[sessId]
-                ? prev
-                : { ...prev, [sessId]: true }
-            ));
-            setSessionActivityLabels((prev) => ({ ...prev, [sessId]: i18n.t('aiPanel.activityWorking') }));
+            setStreamingBySession((prev) =>
+              prev[sessId] ? prev : { ...prev, [sessId]: true },
+            );
+            setSessionActivityLabels((prev) => ({
+              ...prev,
+              [sessId]: i18n.t("aiPanel.activityWorking"),
+            }));
           }
           setPendingQuestion(null);
           break;
@@ -3238,11 +4574,25 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
         case "session.error":
         case "prompt_error": {
           const rawErr = props.error;
-          const errMsg = typeof rawErr === 'string' ? rawErr : (rawErr && typeof rawErr === 'object' ? ((rawErr as any).message || (rawErr as any).name || JSON.stringify(rawErr)) : null) || t('aiPanel.anErrorOccurred');
-          const sessId = (props.sessionID as string) || (props.sessionId as string);
+          const errMsg =
+            typeof rawErr === "string"
+              ? rawErr
+              : (rawErr && typeof rawErr === "object"
+                  ? (rawErr as any).message ||
+                    (rawErr as any).name ||
+                    JSON.stringify(rawErr)
+                  : null) || t("aiPanel.anErrorOccurred");
+          const sessId =
+            (props.sessionID as string) || (props.sessionId as string);
           if (sessId) {
-            if (stoppingSessionIdsRef.current.has(sessId) && isAbortLikeError(rawErr)) {
-              setSessionActivityLabels((prev) => ({ ...prev, [sessId]: "Interrupted" }));
+            if (
+              stoppingSessionIdsRef.current.has(sessId) &&
+              isAbortLikeError(rawErr)
+            ) {
+              setSessionActivityLabels((prev) => ({
+                ...prev,
+                [sessId]: "Interrupted",
+              }));
               break;
             }
             setStreamingBySession((prev) => {
@@ -3251,13 +4601,16 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
               delete next[sessId];
               return next;
             });
-            setSessionActivityLabels((prev) => ({ ...prev, [sessId]: i18n.t('aiPanel.activityError') }));
+            setSessionActivityLabels((prev) => ({
+              ...prev,
+              [sessId]: i18n.t("aiPanel.activityError"),
+            }));
             setErrorMessages((prev) => ({
               ...prev,
               [sessId]: [...(prev[sessId] || []), errMsg],
             }));
           } else {
-            Alert.alert(i18n.t('aiPanel.aiError'), errMsg);
+            Alert.alert(i18n.t("aiPanel.aiError"), errMsg);
           }
           break;
         }
@@ -3273,91 +4626,134 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
       setIsInitialized(true);
       setIsInitialSessionsLoading(true);
       try {
-        void Promise.allSettled((["opencode", "codex"] as AiBackend[]).map(async (backend) => {
-          try {
-            const agentsList = await ai.getAgents(backend);
-            if (Array.isArray(agentsList) && agentsList.length > 0) {
-              const filteredAgents = backend === "opencode"
-                ? (agentsList as AIAgent[]).filter((a) => {
-                    const normalized = (a.mode || a.name || "").trim().toLowerCase();
-                    return normalized === "build" || normalized === "plan";
-                  })
-                : (agentsList as AIAgent[]);
-              const mapped = filteredAgents.map((a) => {
-                const raw = a.name || a.mode;
-                const id = (a.mode || a.name || "").trim().toLowerCase();
-                return {
-                  id: id || raw,
-                  name: raw.charAt(0).toUpperCase() + raw.slice(1),
-                  icon: a.mode === "plan" ? MapIcon : Hammer,
-                };
-              });
-              const resolvedAgents = mapped.length === 0
-                ? (backend === "codex" ? DEFAULT_CODEX_AGENTS : DEFAULT_OPENCODE_AGENTS)
-                : mapped;
-              setAgentsByBackend((prev) => ({ ...prev, [backend]: resolvedAgents }));
-              setSelectedAgentByBackend((prev) => ({ ...prev, [backend]: resolvedAgents[0]?.id || "" }));
-            } else if (backend === "codex") {
-              setAgentsByBackend((prev) => ({ ...prev, codex: DEFAULT_CODEX_AGENTS }));
-              setSelectedAgentByBackend((prev) => ({ ...prev, codex: "default" }));
+        void Promise.allSettled(
+          (["opencode", "codex"] as AiBackend[]).map(async (backend) => {
+            try {
+              const agentsList = await ai.getAgents(backend);
+              if (Array.isArray(agentsList) && agentsList.length > 0) {
+                const filteredAgents =
+                  backend === "opencode"
+                    ? (agentsList as AIAgent[]).filter((a) => {
+                        const normalized = (a.mode || a.name || "")
+                          .trim()
+                          .toLowerCase();
+                        return normalized === "build" || normalized === "plan";
+                      })
+                    : (agentsList as AIAgent[]);
+                const mapped = filteredAgents.map((a) => {
+                  const raw = a.name || a.mode;
+                  const id = (a.mode || a.name || "").trim().toLowerCase();
+                  return {
+                    id: id || raw,
+                    name: raw.charAt(0).toUpperCase() + raw.slice(1),
+                    icon: a.mode === "plan" ? MapIcon : Hammer,
+                  };
+                });
+                const resolvedAgents =
+                  mapped.length === 0
+                    ? backend === "codex"
+                      ? DEFAULT_CODEX_AGENTS
+                      : DEFAULT_OPENCODE_AGENTS
+                    : mapped;
+                setAgentsByBackend((prev) => ({
+                  ...prev,
+                  [backend]: resolvedAgents,
+                }));
+                setSelectedAgentByBackend((prev) => ({
+                  ...prev,
+                  [backend]: resolvedAgents[0]?.id || "",
+                }));
+              } else if (backend === "codex") {
+                setAgentsByBackend((prev) => ({
+                  ...prev,
+                  codex: DEFAULT_CODEX_AGENTS,
+                }));
+                setSelectedAgentByBackend((prev) => ({
+                  ...prev,
+                  codex: "default",
+                }));
+              }
+            } catch {
+              if (backend === "codex") {
+                setAgentsByBackend((prev) => ({
+                  ...prev,
+                  codex: DEFAULT_CODEX_AGENTS,
+                }));
+                setSelectedAgentByBackend((prev) => ({
+                  ...prev,
+                  codex: "default",
+                }));
+              }
             }
-          } catch {
-            if (backend === "codex") {
-              setAgentsByBackend((prev) => ({ ...prev, codex: DEFAULT_CODEX_AGENTS }));
-              setSelectedAgentByBackend((prev) => ({ ...prev, codex: "default" }));
-            }
-          }
 
-          try {
-            const result = await ai.getProviders(backend);
-            const providersList = result.providers;
-            const defaults = result.defaults || {};
-            if (Array.isArray(providersList)) {
-              setProvidersByBackend((prev) => ({ ...prev, [backend]: providersList as AIProvider[] }));
-              const models: { id: string; name: string; badges?: string[]; detail?: string }[] = [];
-              let hasConfiguredKey = false;
-              let defaultModelId = "";
+            try {
+              const result = await ai.getProviders(backend);
+              const providersList = result.providers;
+              const defaults = result.defaults || {};
+              if (Array.isArray(providersList)) {
+                setProvidersByBackend((prev) => ({
+                  ...prev,
+                  [backend]: providersList as AIProvider[],
+                }));
+                const models: {
+                  id: string;
+                  name: string;
+                  badges?: string[];
+                  detail?: string;
+                }[] = [];
+                let hasConfiguredKey = false;
+                let defaultModelId = "";
 
-              for (const p of providersList as AIProvider[]) {
-                if ((p as any).key || (p as any).source === "env") {
-                  hasConfiguredKey = true;
-                }
-                if (p.models) {
-                  const defaultForProvider = defaults[p.id];
-                  for (const [modelId, model] of Object.entries(p.models)) {
-                    const typedModel = model as AIModel;
-                    const isDefault = Boolean(defaultForProvider && modelId === defaultForProvider);
-                    const optionId = `${p.id}:${modelId}`;
-                    models.push({
-                      id: optionId,
-                      name: typedModel.name || modelId,
-                      badges: modelBadges(typedModel, isDefault),
-                      detail: modelDetail(typedModel),
-                    });
-                    if (isDefault) {
-                      defaultModelId = optionId;
+                for (const p of providersList as AIProvider[]) {
+                  if ((p as any).key || (p as any).source === "env") {
+                    hasConfiguredKey = true;
+                  }
+                  if (p.models) {
+                    const defaultForProvider = defaults[p.id];
+                    for (const [modelId, model] of Object.entries(p.models)) {
+                      const typedModel = model as AIModel;
+                      const isDefault = Boolean(
+                        defaultForProvider && modelId === defaultForProvider,
+                      );
+                      const optionId = `${p.id}:${modelId}`;
+                      models.push({
+                        id: optionId,
+                        name: typedModel.name || modelId,
+                        badges: modelBadges(typedModel, isDefault),
+                        detail: modelDetail(typedModel),
+                      });
+                      if (isDefault) {
+                        defaultModelId = optionId;
+                      }
                     }
                   }
                 }
-              }
 
-              setModelOptionsByBackend((prev) => ({ ...prev, [backend]: models }));
-              setSelectedModelByBackend((prev) => ({
-                ...prev,
-                [backend]: models.length > 0 ? (defaultModelId || models[0].id) : "",
-              }));
+                setModelOptionsByBackend((prev) => ({
+                  ...prev,
+                  [backend]: models,
+                }));
+                setSelectedModelByBackend((prev) => ({
+                  ...prev,
+                  [backend]:
+                    models.length > 0 ? defaultModelId || models[0].id : "",
+                }));
+                setNeedsApiKeyByBackend((prev) => ({
+                  ...prev,
+                  [backend]: !hasConfiguredKey && models.length === 0,
+                }));
+              }
+            } catch {
+              setProvidersByBackend((prev) => ({ ...prev, [backend]: [] }));
+              setModelOptionsByBackend((prev) => ({ ...prev, [backend]: [] }));
+              setSelectedModelByBackend((prev) => ({ ...prev, [backend]: "" }));
               setNeedsApiKeyByBackend((prev) => ({
                 ...prev,
-                [backend]: !hasConfiguredKey && models.length === 0,
+                [backend]: false,
               }));
             }
-          } catch {
-            setProvidersByBackend((prev) => ({ ...prev, [backend]: [] }));
-            setModelOptionsByBackend((prev) => ({ ...prev, [backend]: [] }));
-            setSelectedModelByBackend((prev) => ({ ...prev, [backend]: "" }));
-            setNeedsApiKeyByBackend((prev) => ({ ...prev, [backend]: false }));
-          }
-        }));
+          }),
+        );
 
         // Fetch existing sessions from all backends
         try {
@@ -3370,15 +4766,28 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
 
             try {
               setLoadingSessionId(latestTab.sessionId!);
-              const msgs = await ai.getMessages(latestTab.sessionId!, latestTab.backend);
+              const msgs = await ai.getMessages(
+                latestTab.sessionId!,
+                latestTab.backend,
+              );
               if (Array.isArray(msgs)) {
-                logLoadedChatState("init-latest-session", latestTab.sessionId!, latestTab.backend, msgs as AIMessage[]);
-                setMessagesMap((prev) => ({ ...prev, [latestTab.sessionId!]: msgs as AIMessage[] }));
+                logLoadedChatState(
+                  "init-latest-session",
+                  latestTab.sessionId!,
+                  latestTab.backend,
+                  msgs as AIMessage[],
+                );
+                setMessagesMap((prev) => ({
+                  ...prev,
+                  [latestTab.sessionId!]: msgs as AIMessage[],
+                }));
               }
             } catch {
               // ok
             } finally {
-              setLoadingSessionId((prev) => (prev === latestTab.sessionId ? null : prev));
+              setLoadingSessionId((prev) =>
+                prev === latestTab.sessionId ? null : prev,
+              );
             }
           }
         } catch {
@@ -3397,106 +4806,145 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
 
   // Reset on disconnect
   useEffect(() => {
-    if (status === "disconnected" || sessionState === "ended" || sessionState === "expired") {
+    if (
+      status === "disconnected" ||
+      sessionState === "ended" ||
+      sessionState === "expired"
+    ) {
       setIsInitialized(false);
       setIsInitialSessionsLoading(false);
       setLoadingSessionId(null);
     }
   }, [status, sessionState]);
 
-  const refreshSessionMessages = useCallback(async (sessionId: string, backend: AiBackend, force = false) => {
-    try {
-      const beforeMessages = messagesMapRef.current[sessionId] || [];
-      logger.info("ai-panel", "refresh session messages requested", {
-        sessionId,
-        backend,
-        force,
-        beforeMessageCount: beforeMessages.length,
-        beforePartCount: beforeMessages.reduce((sum, message) => sum + (message.parts?.length || 0), 0),
-        beforeRoles: beforeMessages.map((message) => message.role),
-      });
-      setLoadingSessionId(sessionId);
-      const msgs = await ai.getMessages(sessionId, backend);
-      if (!Array.isArray(msgs)) return;
-      const incoming = msgs as AIMessage[];
-      logger.info("ai-panel", "refresh session messages fetched", {
-        sessionId,
-        backend,
-        force,
-        fetchedMessageCount: incoming.length,
-        fetchedPartCount: incoming.reduce((sum, message) => sum + (message.parts?.length || 0), 0),
-        fetchedRoles: incoming.map((message) => message.role),
-        fetchedPartTypes: incoming.flatMap((message) => (message.parts || []).map((part) => part.type)),
-      });
-      logLoadedChatState("refresh-fetch", sessionId, backend, incoming);
-      setMessagesMap((prev) => {
-        const next = backend === "codex"
-          ? incoming.map((msg) => {
-              const existingMsg = (prev[sessionId] || []).find((m) => m.id === msg.id);
-              if (!existingMsg) return msg;
-              return {
-                ...msg,
-                parts: mergeMessagePartsPreservingRichState(existingMsg.parts || [], msg.parts || []),
-              };
-            })
-          : incoming;
-        if (!force && sameMessagesShape(prev[sessionId], next)) {
-          logger.info("ai-panel", "refresh session messages skipped", {
-            sessionId,
-            backend,
-            force,
-            reason: "same_shape",
-          });
-          return prev;
-        }
-        logger.info("ai-panel", "refresh session messages applying", {
+  const refreshSessionMessages = useCallback(
+    async (sessionId: string, backend: AiBackend, force = false) => {
+      try {
+        const beforeMessages = messagesMapRef.current[sessionId] || [];
+        logger.info("ai-panel", "refresh session messages requested", {
           sessionId,
           backend,
           force,
-          appliedMessageCount: next.length,
-          appliedPartCount: next.reduce((sum, message) => sum + (message.parts?.length || 0), 0),
-          appliedRoles: next.map((message) => message.role),
-          appliedPartTypes: next.flatMap((message) => (message.parts || []).map((part) => part.type)),
-          previousMessageCount: (prev[sessionId] || []).length,
-          previousPartCount: (prev[sessionId] || []).reduce((sum, message) => sum + (message.parts?.length || 0), 0),
+          beforeMessageCount: beforeMessages.length,
+          beforePartCount: beforeMessages.reduce(
+            (sum, message) => sum + (message.parts?.length || 0),
+            0,
+          ),
+          beforeRoles: beforeMessages.map((message) => message.role),
         });
-        logLoadedChatState("refresh-apply", sessionId, backend, next);
-        return { ...prev, [sessionId]: next };
-      });
-      try {
-        const statuses = await ai.getStatuses(backend);
-        if (Object.prototype.hasOwnProperty.call(statuses, sessionId)) {
-          const running = isAiStatusRunning(statuses[sessionId]);
-          setStreamingBySession((prev) => {
-            if (running) return prev[sessionId] ? prev : { ...prev, [sessionId]: true };
-            if (!prev[sessionId]) return prev;
-            const next = { ...prev };
-            delete next[sessionId];
-            return next;
+        setLoadingSessionId(sessionId);
+        const msgs = await ai.getMessages(sessionId, backend);
+        if (!Array.isArray(msgs)) return;
+        const incoming = msgs as AIMessage[];
+        logger.info("ai-panel", "refresh session messages fetched", {
+          sessionId,
+          backend,
+          force,
+          fetchedMessageCount: incoming.length,
+          fetchedPartCount: incoming.reduce(
+            (sum, message) => sum + (message.parts?.length || 0),
+            0,
+          ),
+          fetchedRoles: incoming.map((message) => message.role),
+          fetchedPartTypes: incoming.flatMap((message) =>
+            (message.parts || []).map((part) => part.type),
+          ),
+        });
+        logLoadedChatState("refresh-fetch", sessionId, backend, incoming);
+        setMessagesMap((prev) => {
+          const next =
+            backend === "codex"
+              ? incoming.map((msg) => {
+                  const existingMsg = (prev[sessionId] || []).find(
+                    (m) => m.id === msg.id,
+                  );
+                  if (!existingMsg) return msg;
+                  return {
+                    ...msg,
+                    parts: mergeMessagePartsPreservingRichState(
+                      existingMsg.parts || [],
+                      msg.parts || [],
+                    ),
+                  };
+                })
+              : incoming;
+          if (!force && sameMessagesShape(prev[sessionId], next)) {
+            logger.info("ai-panel", "refresh session messages skipped", {
+              sessionId,
+              backend,
+              force,
+              reason: "same_shape",
+            });
+            return prev;
+          }
+          logger.info("ai-panel", "refresh session messages applying", {
+            sessionId,
+            backend,
+            force,
+            appliedMessageCount: next.length,
+            appliedPartCount: next.reduce(
+              (sum, message) => sum + (message.parts?.length || 0),
+              0,
+            ),
+            appliedRoles: next.map((message) => message.role),
+            appliedPartTypes: next.flatMap((message) =>
+              (message.parts || []).map((part) => part.type),
+            ),
+            previousMessageCount: (prev[sessionId] || []).length,
+            previousPartCount: (prev[sessionId] || []).reduce(
+              (sum, message) => sum + (message.parts?.length || 0),
+              0,
+            ),
           });
-          if (running) {
-            setSessionActivityLabels((prev) => ({ ...prev, [sessionId]: prev[sessionId] || "Thinking..." }));
-          } else if (!stoppingSessionIdsRef.current.has(sessionId)) {
-            setStoppingBySession((prev) => {
+          logLoadedChatState("refresh-apply", sessionId, backend, next);
+          return { ...prev, [sessionId]: next };
+        });
+        try {
+          const statuses = await ai.getStatuses(backend);
+          if (Object.prototype.hasOwnProperty.call(statuses, sessionId)) {
+            const running = isAiStatusRunning(statuses[sessionId]);
+            setStreamingBySession((prev) => {
+              if (running)
+                return prev[sessionId] ? prev : { ...prev, [sessionId]: true };
               if (!prev[sessionId]) return prev;
               const next = { ...prev };
               delete next[sessionId];
               return next;
             });
+            if (running) {
+              setSessionActivityLabels((prev) => ({
+                ...prev,
+                [sessionId]: prev[sessionId] || "Thinking...",
+              }));
+            } else if (!stoppingSessionIdsRef.current.has(sessionId)) {
+              setStoppingBySession((prev) => {
+                if (!prev[sessionId]) return prev;
+                const next = { ...prev };
+                delete next[sessionId];
+                return next;
+              });
+            }
           }
+        } catch {
+          // Older CLIs may not expose status snapshots yet.
         }
       } catch {
-        // Older CLIs may not expose status snapshots yet.
+        // best effort refresh
+      } finally {
+        setLoadingSessionId((prev) => (prev === sessionId ? null : prev));
       }
-    } catch {
-      // best effort refresh
-    } finally {
-      setLoadingSessionId((prev) => (prev === sessionId ? null : prev));
-    }
-  }, [ai]);
+    },
+    [ai],
+  );
 
   useEffect(() => {
-    if (status !== "connected" || !isInitialized || !isActive || drawerStatus !== "open") return;
+    if (
+      status !== "connected" ||
+      !isInitialized ||
+      !isActive ||
+      drawerStatus !== "open"
+    )
+      return;
 
     let cancelled = false;
     const refreshSessions = async () => {
@@ -3507,7 +4955,8 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
           const nextTabs = reconcileSessionTabs(prev, sessions as AISession[]);
           setActiveTabId((prevActive) => {
             if (!prevActive) return prevActive;
-            return nextTabs.some((t) => t.id === prevActive) || draftTabs.some((t) => t.id === prevActive)
+            return nextTabs.some((t) => t.id === prevActive) ||
+              draftTabs.some((t) => t.id === prevActive)
               ? prevActive
               : (nextTabs[nextTabs.length - 1]?.id ?? null);
           });
@@ -3531,16 +4980,35 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
   }, [isDrawerOpen]);
 
   useEffect(() => {
-    if (status !== "connected" || !isInitialized || !isActive || activeBackend !== "opencode" || !activeSessionId) return;
+    if (
+      status !== "connected" ||
+      !isInitialized ||
+      !isActive ||
+      activeBackend !== "opencode" ||
+      !activeSessionId
+    )
+      return;
     void refreshSessionMessages(activeSessionId, activeBackend, false);
-  }, [status, isInitialized, isActive, activeBackend, activeSessionId, refreshSessionMessages]);
+  }, [
+    status,
+    isInitialized,
+    isActive,
+    activeBackend,
+    activeSessionId,
+    refreshSessionMessages,
+  ]);
 
   useEffect(() => {
     if (status !== "connected" || !isInitialized || !isActive) return;
 
     let cancelled = false;
     const refreshOpenCodeActiveSession = async () => {
-      if (cancelled || isActiveSessionStreaming || activeBackend !== "opencode" || !activeSessionId) {
+      if (
+        cancelled ||
+        isActiveSessionStreaming ||
+        activeBackend !== "opencode" ||
+        !activeSessionId
+      ) {
         return;
       }
       await refreshSessionMessages(activeSessionId, activeBackend, false);
@@ -3551,7 +5019,15 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
       cancelled = true;
       clearInterval(interval);
     };
-  }, [status, isInitialized, isActive, isActiveSessionStreaming, activeBackend, activeSessionId, refreshSessionMessages]);
+  }, [
+    status,
+    isInitialized,
+    isActive,
+    isActiveSessionStreaming,
+    activeBackend,
+    activeSessionId,
+    refreshSessionMessages,
+  ]);
 
   useEffect(() => {
     const loadDetailedViewPreference = async () => {
@@ -3568,7 +5044,10 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
   }, []);
 
   useEffect(() => {
-    AsyncStorage.setItem(AI_DETAILED_VIEW_STORAGE_KEY, showDetailedView ? "true" : "false").catch(() => {
+    AsyncStorage.setItem(
+      AI_DETAILED_VIEW_STORAGE_KEY,
+      showDetailedView ? "true" : "false",
+    ).catch(() => {
       // Ignore persistence failures.
     });
   }, [showDetailedView]);
@@ -3580,19 +5059,23 @@ export default function AIPanel({ instanceId, isActive, bottomBarHeight }: Plugi
     if (tab && !tab.sessionId) return tab.id;
     return null;
   }, [activeSessionId, tabs, activeTabId]);
-  const currentMessages = activeMessageBucketId ? messagesMap[activeMessageBucketId] || [] : [];
-  const renderedMessages = useMemo(
-    () => {
-      if (activeBackend !== "opencode") return currentMessages;
-      const merged = mergeAssistantActivityMessages(currentMessages);
-      logMergedChatState("render-list", activeBackend, currentMessages, merged);
-      return merged;
-    },
-    [activeBackend, currentMessages],
-  );
-  const currentErrors = activeMessageBucketId ? errorMessages[activeMessageBucketId] || [] : [];
-const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.name
-    || (activeBackend === "codex" ? t('aiPanel.modelAuto') : t('aiPanel.modelSelect'));
+  const currentMessages = activeMessageBucketId
+    ? messagesMap[activeMessageBucketId] || []
+    : [];
+  const renderedMessages = useMemo(() => {
+    if (activeBackend !== "opencode") return currentMessages;
+    const merged = mergeAssistantActivityMessages(currentMessages);
+    logMergedChatState("render-list", activeBackend, currentMessages, merged);
+    return merged;
+  }, [activeBackend, currentMessages]);
+  const currentErrors = activeMessageBucketId
+    ? errorMessages[activeMessageBucketId] || []
+    : [];
+  const selectedModelNameFull =
+    modelOptions.find((m) => m.id === selectedModel)?.name ||
+    (activeBackend === "codex"
+      ? t("aiPanel.modelAuto")
+      : t("aiPanel.modelSelect"));
   const selectedModelName = truncateButtonLabel(selectedModelNameFull);
   const combinedConfigLabel = selectedModelName;
   useEffect(() => {
@@ -3625,7 +5108,9 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     opacity: voiceLayerOpacitySV.value,
   }));
   const rootAnimatedStyle = useAnimatedStyle(() => ({
-    marginBottom: isDrawerOpen ? 0 : Math.max(0, -keyboardHeightSV.value - bottomBarHeight),
+    marginBottom: isDrawerOpen
+      ? 0
+      : Math.max(0, -keyboardHeightSV.value - bottomBarHeight),
   }));
 
   const dismissKeyboard = useCallback(() => Keyboard.dismiss(), []);
@@ -3640,14 +5125,19 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
 
   // Tab management
   const getTabWidth = useCallback(() => 120, []);
-  const markSessionAsUserActive = useCallback((sessionId: string, backend: AiBackend) => {
-    const now = Date.now();
-    setSessionTabs((prev) => prev.map((tab) => (
-      tab.sessionId === sessionId && tab.backend === backend
-        ? { ...tab, updatedAt: now }
-        : tab
-    )));
-  }, []);
+  const markSessionAsUserActive = useCallback(
+    (sessionId: string, backend: AiBackend) => {
+      const now = Date.now();
+      setSessionTabs((prev) =>
+        prev.map((tab) =>
+          tab.sessionId === sessionId && tab.backend === backend
+            ? { ...tab, updatedAt: now }
+            : tab,
+        ),
+      );
+    },
+    [],
+  );
 
   const createNewTab = useCallback(() => {
     setBackendPickerVisible(true);
@@ -3666,7 +5156,10 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     setBackendPickerVisible(false);
     setPendingBackend(null);
     setDraftTabs((prev) => [...prev, draftTab]);
-    setMessagesMap((prev) => ({ ...prev, [draftTabId]: prev[draftTabId] || [] }));
+    setMessagesMap((prev) => ({
+      ...prev,
+      [draftTabId]: prev[draftTabId] || [],
+    }));
     setActiveTabId(draftTabId);
     setInputText("");
     setPendingImage(null);
@@ -3680,7 +5173,9 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
           delete next[draftTabId];
           return next;
         });
-        setActiveTabId((prev) => (prev === draftTabId ? previousActiveTabId : prev));
+        setActiveTabId((prev) =>
+          prev === draftTabId ? previousActiveTabId : prev,
+        );
         showBackendMissingInstallAlert(backend);
         return;
       }
@@ -3689,181 +5184,233 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     }
   };
 
-  const deleteTab = useCallback((tabId: string) => {
-    const tab = tabs.find((t) => t.id === tabId);
+  const deleteTab = useCallback(
+    (tabId: string) => {
+      const tab = tabs.find((t) => t.id === tabId);
 
-    // Optimistic update — remove immediately
-    setSessionTabs((prev) => prev.filter((t) => t.id !== tabId));
-    setDraftTabs((prev) => prev.filter((t) => t.id !== tabId));
-    if (tab?.sessionId) {
-      setMessagesMap((prev) => {
-        const next = { ...prev };
-              delete next[tab.sessionId!];
-        return next;
-      });
-      setErrorMessages((prev) => {
-        const next = { ...prev };
-        delete next[tab.sessionId!];
-        return next;
-      });
-    }
-    const newTabs = tabs.filter((t) => t.id !== tabId);
-    if (activeTabId === tabId && newTabs.length > 0) {
-      const index = tabs.findIndex((t) => t.id === tabId);
-      const newActiveTab = newTabs[Math.max(0, index - 1)];
-      setActiveTabId(newActiveTab.id);
-    } else if (newTabs.length === 0) {
-      setActiveTabId(null);
-    }
+      // Optimistic update — remove immediately
+      setSessionTabs((prev) => prev.filter((t) => t.id !== tabId));
+      setDraftTabs((prev) => prev.filter((t) => t.id !== tabId));
+      if (tab?.sessionId) {
+        setMessagesMap((prev) => {
+          const next = { ...prev };
+          delete next[tab.sessionId!];
+          return next;
+        });
+        setErrorMessages((prev) => {
+          const next = { ...prev };
+          delete next[tab.sessionId!];
+          return next;
+        });
+      }
+      const newTabs = tabs.filter((t) => t.id !== tabId);
+      if (activeTabId === tabId && newTabs.length > 0) {
+        const index = tabs.findIndex((t) => t.id === tabId);
+        const newActiveTab = newTabs[Math.max(0, index - 1)];
+        setActiveTabId(newActiveTab.id);
+      } else if (newTabs.length === 0) {
+        setActiveTabId(null);
+      }
 
-    // Fire-and-forget delete — rollback on failure
-    if (tab?.sessionId) {
+      // Fire-and-forget delete — rollback on failure
+      if (tab?.sessionId) {
+        void (async () => {
+          try {
+            const deleted = await ai.deleteSession(tab.sessionId!, tab.backend);
+            if (!deleted) {
+              setSessionTabs((prev) => [...prev, tab]);
+              Alert.alert(
+                t("aiPanel.unableDelete"),
+                "The session could not be deleted.",
+              );
+            }
+          } catch (err) {
+            setSessionTabs((prev) => [...prev, tab]);
+            const message =
+              err instanceof Error
+                ? err.message
+                : "The session could not be deleted.";
+            Alert.alert(t("aiPanel.unableDelete"), message);
+          }
+        })();
+      }
+    },
+    [tabs, activeTabId, ai],
+  );
+
+  const closeTab = useCallback(
+    (tabId: string) => {
+      Alert.alert(
+        t("aiPanel.deleteSessionTitle"),
+        t("aiPanel.deleteSessionDesc"),
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("common.delete"),
+            style: "destructive",
+            onPress: () => deleteTab(tabId),
+          },
+        ],
+      );
+    },
+    [deleteTab],
+  );
+
+  const renameTab = useCallback(
+    (tabId: string, nextTitle: string) => {
+      const tab = tabs.find((t) => t.id === tabId);
+      if (!tab?.sessionId) return;
+      const trimmed = nextTitle.trim();
+      if (!trimmed) return;
+
+      const previousTitle = tab.title;
+      setSessionTabs((prev) =>
+        prev.map((t) => (t.id === tabId ? { ...t, title: trimmed } : t)),
+      );
+
       void (async () => {
         try {
-          const deleted = await ai.deleteSession(tab.sessionId!, tab.backend);
-          if (!deleted) {
-            setSessionTabs((prev) => [...prev, tab]);
-            Alert.alert(t('aiPanel.unableDelete'), "The session could not be deleted.");
-          }
+          const renamed = await ai.renameSession(
+            tab.sessionId!,
+            trimmed,
+            tab.backend,
+          );
+          const finalTitle = (renamed.title || "").trim() || trimmed;
+          setSessionTabs((prev) =>
+            prev.map((t) => (t.id === tabId ? { ...t, title: finalTitle } : t)),
+          );
         } catch (err) {
-          setSessionTabs((prev) => [...prev, tab]);
-          const message = err instanceof Error ? err.message : "The session could not be deleted.";
-          Alert.alert(t('aiPanel.unableDelete'), message);
+          setSessionTabs((prev) =>
+            prev.map((t) =>
+              t.id === tabId ? { ...t, title: previousTitle } : t,
+            ),
+          );
+          const message =
+            err instanceof Error
+              ? err.message
+              : t("aiPanel.failedRenameSession");
+          Alert.alert(t("aiPanel.renameFailed"), message);
         }
       })();
-    }
-  }, [tabs, activeTabId, ai]);
+    },
+    [ai, tabs, t],
+  );
 
-  const closeTab = useCallback((tabId: string) => {
-    Alert.alert(
-      t('aiPanel.deleteSessionTitle'),
-      t('aiPanel.deleteSessionDesc'),
-      [
-        { text: t('common.cancel'), style: "cancel" },
-        {
-          text: t('common.delete'),
-          style: "destructive",
-          onPress: () => deleteTab(tabId),
-        },
-      ],
-    );
-  }, [deleteTab]);
-
-  const renameTab = useCallback((tabId: string, nextTitle: string) => {
-    const tab = tabs.find((t) => t.id === tabId);
-    if (!tab?.sessionId) return;
-    const trimmed = nextTitle.trim();
-    if (!trimmed) return;
-
-    const previousTitle = tab.title;
-    setSessionTabs((prev) => prev.map((t) => (
-      t.id === tabId ? { ...t, title: trimmed } : t
-    )));
-
-    void (async () => {
-      try {
-        const renamed = await ai.renameSession(tab.sessionId!, trimmed, tab.backend);
-        const finalTitle = (renamed.title || "").trim() || trimmed;
-        setSessionTabs((prev) => prev.map((t) => (
-          t.id === tabId ? { ...t, title: finalTitle } : t
-        )));
-      } catch (err) {
-        setSessionTabs((prev) => prev.map((t) => (
-          t.id === tabId ? { ...t, title: previousTitle } : t
-        )));
-        const message = err instanceof Error ? err.message : t('aiPanel.failedRenameSession');
-        Alert.alert(t('aiPanel.renameFailed'), message);
+  const handleTabPress = useCallback(
+    async (tabId: string) => {
+      setPendingBackend(null);
+      setActiveTabId(tabId);
+      const tab = tabs.find((t) => t.id === tabId);
+      if (tab?.sessionId && !messagesMap[tab.sessionId]) {
+        try {
+          setLoadingSessionId(tab.sessionId);
+          const msgs = await ai.getMessages(tab.sessionId, tab.backend);
+          if (Array.isArray(msgs)) {
+            logLoadedChatState(
+              "tab-open",
+              tab.sessionId,
+              tab.backend,
+              msgs as AIMessage[],
+            );
+            setMessagesMap((prev) => ({
+              ...prev,
+              [tab.sessionId!]: msgs as AIMessage[],
+            }));
+          }
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : String(err ?? "");
+          if (
+            /session not found/i.test(message) ||
+            /NotFoundError/i.test(message)
+          ) {
+            setSessionTabs((prev) =>
+              prev.filter(
+                (t) =>
+                  !(t.sessionId === tab.sessionId && t.backend === tab.backend),
+              ),
+            );
+            setMessagesMap((prev) => {
+              const next = { ...prev };
+              delete next[tab.sessionId!];
+              return next;
+            });
+            setErrorMessages((prev) => {
+              const next = { ...prev };
+              delete next[tab.sessionId!];
+              return next;
+            });
+          }
+        } finally {
+          setLoadingSessionId((prev) => (prev === tab.sessionId ? null : prev));
+        }
       }
-    })();
-  }, [ai, tabs, t]);
+    },
+    [tabs, messagesMap, ai],
+  );
 
-  const handleTabPress = useCallback(async (tabId: string) => {
-    setPendingBackend(null);
-    setActiveTabId(tabId);
-    const tab = tabs.find((t) => t.id === tabId);
-    if (tab?.sessionId && !messagesMap[tab.sessionId]) {
+  const clearReconnectTransientAiState = useCallback(
+    (sessionId?: string, preserveStatusState = false) => {
+      setWorkspaceFilesLoading(false);
+      setIsVoiceBusy(false);
+      setPendingPermission(null);
+      setPendingQuestion(null);
+      if (preserveStatusState) return;
+      if (!sessionId) {
+        streamingBySessionRef.current = {};
+        setStreamingBySession({});
+        setStoppingBySession({});
+        setSessionActivityLabels({});
+        return;
+      }
+      if (streamingBySessionRef.current[sessionId]) {
+        const nextStreamingRef = { ...streamingBySessionRef.current };
+        delete nextStreamingRef[sessionId];
+        streamingBySessionRef.current = nextStreamingRef;
+      }
+      setStreamingBySession((prev) => {
+        if (!prev[sessionId]) return prev;
+        const next = { ...prev };
+        delete next[sessionId];
+        return next;
+      });
+      setStoppingBySession((prev) => {
+        if (!prev[sessionId]) return prev;
+        const next = { ...prev };
+        delete next[sessionId];
+        return next;
+      });
+      setSessionActivityLabels((prev) => {
+        if (!prev[sessionId]) return prev;
+        const next = { ...prev };
+        delete next[sessionId];
+        return next;
+      });
+    },
+    [],
+  );
+
+  const reconnectRefreshSession = useCallback(
+    async (tabId: string) => {
+      setIsInitialSessionsLoading(false);
+      const tab = tabs.find((candidate) => candidate.id === tabId);
+      if (!tab?.sessionId) {
+        clearReconnectTransientAiState();
+        setLoadingSessionId(null);
+        return;
+      }
+      clearReconnectTransientAiState(tab.sessionId);
       try {
-        setLoadingSessionId(tab.sessionId);
-        const msgs = await ai.getMessages(tab.sessionId, tab.backend);
-        if (Array.isArray(msgs)) {
-          logLoadedChatState("tab-open", tab.sessionId, tab.backend, msgs as AIMessage[]);
-          setMessagesMap((prev) => ({ ...prev, [tab.sessionId!]: msgs as AIMessage[] }));
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err ?? "");
-        if (/session not found/i.test(message) || /NotFoundError/i.test(message)) {
-          setSessionTabs((prev) => prev.filter((t) => !(t.sessionId === tab.sessionId && t.backend === tab.backend)));
-          setMessagesMap((prev) => {
-            const next = { ...prev };
-            delete next[tab.sessionId!];
-            return next;
-          });
-          setErrorMessages((prev) => {
-            const next = { ...prev };
-            delete next[tab.sessionId!];
-            return next;
-          });
-        }
+        await refreshSessionMessages(tab.sessionId, tab.backend, true);
       } finally {
-        setLoadingSessionId((prev) => (prev === tab.sessionId ? null : prev));
+        clearReconnectTransientAiState(tab.sessionId, true);
+        setLoadingSessionId((current) =>
+          current === tab.sessionId ? null : current,
+        );
       }
-    }
-  }, [tabs, messagesMap, ai]);
-
-  const clearReconnectTransientAiState = useCallback((sessionId?: string, preserveStatusState = false) => {
-    setWorkspaceFilesLoading(false);
-    setIsVoiceBusy(false);
-    setPendingPermission(null);
-    setPendingQuestion(null);
-    if (preserveStatusState) return;
-    if (!sessionId) {
-      streamingBySessionRef.current = {};
-      setStreamingBySession({});
-      setStoppingBySession({});
-      setSessionActivityLabels({});
-      return;
-    }
-    if (streamingBySessionRef.current[sessionId]) {
-      const nextStreamingRef = { ...streamingBySessionRef.current };
-      delete nextStreamingRef[sessionId];
-      streamingBySessionRef.current = nextStreamingRef;
-    }
-    setStreamingBySession((prev) => {
-      if (!prev[sessionId]) return prev;
-      const next = { ...prev };
-      delete next[sessionId];
-      return next;
-    });
-    setStoppingBySession((prev) => {
-      if (!prev[sessionId]) return prev;
-      const next = { ...prev };
-      delete next[sessionId];
-      return next;
-    });
-    setSessionActivityLabels((prev) => {
-      if (!prev[sessionId]) return prev;
-      const next = { ...prev };
-      delete next[sessionId];
-      return next;
-    });
-  }, []);
-
-  const reconnectRefreshSession = useCallback(async (tabId: string) => {
-    setIsInitialSessionsLoading(false);
-    const tab = tabs.find((candidate) => candidate.id === tabId);
-    if (!tab?.sessionId) {
-      clearReconnectTransientAiState();
-      setLoadingSessionId(null);
-      return;
-    }
-    clearReconnectTransientAiState(tab.sessionId);
-    try {
-      await refreshSessionMessages(tab.sessionId, tab.backend, true);
-    } finally {
-      clearReconnectTransientAiState(tab.sessionId, true);
-      setLoadingSessionId((current) => (current === tab.sessionId ? null : current));
-    }
-  }, [clearReconnectTransientAiState, refreshSessionMessages, tabs]);
+    },
+    [clearReconnectTransientAiState, refreshSessionMessages, tabs],
+  );
 
   const reconnectRefreshAll = useCallback(async () => {
     setIsInitialSessionsLoading(false);
@@ -3875,7 +5422,8 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
           const nextTabs = reconcileSessionTabs(prev, sessions as AISession[]);
           setActiveTabId((prevActive) => {
             if (!prevActive) return prevActive;
-            return nextTabs.some((tab) => tab.id === prevActive) || draftTabs.some((tab) => tab.id === prevActive)
+            return nextTabs.some((tab) => tab.id === prevActive) ||
+              draftTabs.some((tab) => tab.id === prevActive)
               ? prevActive
               : (nextTabs[nextTabs.length - 1]?.id ?? null);
           });
@@ -3898,7 +5446,9 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     return parseModelOptionId(selectedModel);
   }, [selectedModel]);
 
-  const getCodexPromptOptions = useCallback((): CodexPromptOptions | undefined => {
+  const getCodexPromptOptions = useCallback(():
+    | CodexPromptOptions
+    | undefined => {
     if (activeBackend === "opencode") {
       const supported = reasoningOptions.map((option) => option.id);
       return supported.includes(codexReasoningEffort)
@@ -3911,14 +5461,25 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
       speed: codexSpeed,
       permissionMode: codexPermissionMode,
     };
-  }, [activeBackend, codexPermissionMode, codexReasoningEffort, codexSpeed, reasoningOptions]);
+  }, [
+    activeBackend,
+    codexPermissionMode,
+    codexReasoningEffort,
+    codexSpeed,
+    reasoningOptions,
+  ]);
 
   // Permission reply
   const handlePermissionReply = async (response: PermissionResponse) => {
     if (!pendingPermission || !activeSessionId) return;
     const activeTab = tabs.find((t) => t.id === activeTabId);
     try {
-      await ai.replyPermission(activeSessionId, pendingPermission.id, response, activeTab?.backend ?? "opencode");
+      await ai.replyPermission(
+        activeSessionId,
+        pendingPermission.id,
+        response,
+        activeTab?.backend ?? "opencode",
+      );
     } catch (err) {
       console.error("Permission reply error:", err);
     }
@@ -3929,7 +5490,12 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     if (!pendingQuestion || !activeSessionId) return;
     const activeTab = tabs.find((t) => t.id === activeTabId);
     try {
-      await ai.replyQuestion(activeSessionId, pendingQuestion.id, answers, activeTab?.backend ?? "opencode");
+      await ai.replyQuestion(
+        activeSessionId,
+        pendingQuestion.id,
+        answers,
+        activeTab?.backend ?? "opencode",
+      );
     } catch (err) {
       console.error("Question reply error:", err);
     }
@@ -3940,7 +5506,11 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     if (!pendingQuestion || !activeSessionId) return;
     const activeTab = tabs.find((t) => t.id === activeTabId);
     try {
-      await ai.rejectQuestion(activeSessionId, pendingQuestion.id, activeTab?.backend ?? "opencode");
+      await ai.rejectQuestion(
+        activeSessionId,
+        pendingQuestion.id,
+        activeTab?.backend ?? "opencode",
+      );
     } catch (err) {
       console.error("Question reject error:", err);
     }
@@ -3949,7 +5519,9 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
 
   const resetEqualizer = useCallback(() => {
     latestVoiceLevelRef.current = VOICE_WAVE_IDLE_LEVEL;
-    setVoiceWave(Array.from({ length: VOICE_WAVE_BAR_COUNT }, () => VOICE_WAVE_IDLE_LEVEL));
+    setVoiceWave(
+      Array.from({ length: VOICE_WAVE_BAR_COUNT }, () => VOICE_WAVE_IDLE_LEVEL),
+    );
   }, []);
 
   const stopRecording = useCallback(async (): Promise<string | null> => {
@@ -3965,7 +5537,10 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     }
     const uri = audioRecorder.uri;
     try {
-      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+      await setAudioModeAsync({
+        allowsRecording: false,
+        playsInSilentMode: true,
+      });
     } catch {
       // noop
     }
@@ -3982,9 +5557,10 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
   const handleAttachGallery = useCallback(async () => {
     setShowAttachMenu(false);
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert(t('aiPanel.photosPermTitle'), t('aiPanel.photosPermDesc'));
+        Alert.alert(t("aiPanel.photosPermTitle"), t("aiPanel.photosPermDesc"));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -3992,21 +5568,33 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
         quality: 0.9,
         base64: false,
         allowsMultipleSelection: false,
-        presentationStyle: Platform.OS === "ios" ? ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN : undefined,
-        preferredAssetRepresentationMode: Platform.OS === "ios"
-          ? ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible
-          : undefined,
+        presentationStyle:
+          Platform.OS === "ios"
+            ? ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN
+            : undefined,
+        preferredAssetRepresentationMode:
+          Platform.OS === "ios"
+            ? ImagePicker.UIImagePickerPreferredAssetRepresentationMode
+                .Compatible
+            : undefined,
         shouldDownloadFromNetwork: Platform.OS === "ios",
       });
       if (result.canceled || !result.assets?.[0]) return;
       const asset = result.assets[0];
       const mime = inferImageMime(asset.uri, asset.mimeType);
       const filename = asset.fileName || asset.uri.split("/").pop() || "image";
-      const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.Base64 });
-      setPendingImage({ type: "file", mime, filename, url: `data:${mime};base64,${base64}` });
+      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      setPendingImage({
+        type: "file",
+        mime,
+        filename,
+        url: `data:${mime};base64,${base64}`,
+      });
     } catch (err) {
       console.error("Gallery pick error:", err);
-      Alert.alert(t('common.error'), t('aiPanel.failedPickImage'));
+      Alert.alert(t("common.error"), t("aiPanel.failedPickImage"));
     }
   }, []);
 
@@ -4015,48 +5603,68 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert(t('aiPanel.cameraPermTitle'), t('aiPanel.cameraPermDesc'));
+        Alert.alert(t("aiPanel.cameraPermTitle"), t("aiPanel.cameraPermDesc"));
         return;
       }
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ["images"],
         quality: 0.9,
         base64: false,
-        presentationStyle: Platform.OS === "ios" ? ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN : undefined,
+        presentationStyle:
+          Platform.OS === "ios"
+            ? ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN
+            : undefined,
       });
       if (result.canceled || !result.assets?.[0]) return;
       const asset = result.assets[0];
       const mime = inferImageMime(asset.uri, asset.mimeType);
       const filename = asset.fileName || asset.uri.split("/").pop() || "photo";
-      const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.Base64 });
-      setPendingImage({ type: "file", mime, filename, url: `data:${mime};base64,${base64}` });
+      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      setPendingImage({
+        type: "file",
+        mime,
+        filename,
+        url: `data:${mime};base64,${base64}`,
+      });
     } catch (err) {
       console.error("Camera error:", err);
-      Alert.alert(t('common.error'), t('aiPanel.failedTakePhoto'));
+      Alert.alert(t("common.error"), t("aiPanel.failedTakePhoto"));
     }
   }, []);
 
   const handleAttachFile = useCallback(async () => {
     setShowAttachMenu(false);
     try {
-      const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
+      const result = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+      });
       if (result.canceled || !result.assets?.[0]) return;
       const asset = result.assets[0];
       const mime = asset.mimeType || "application/octet-stream";
       const filename = asset.name;
-      const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.Base64 });
-      setPendingImage({ type: "file", mime, filename, url: `data:${mime};base64,${base64}` });
+      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      setPendingImage({
+        type: "file",
+        mime,
+        filename,
+        url: `data:${mime};base64,${base64}`,
+      });
     } catch (err) {
       console.error("Document pick error:", err);
-      Alert.alert(t('common.error'), t('aiPanel.failedPickFile'));
+      Alert.alert(t("common.error"), t("aiPanel.failedPickFile"));
     }
   }, []);
 
   const handlePickImage = useCallback(async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert(t('aiPanel.photosPermTitle'), t('aiPanel.photosPermDesc'));
+        Alert.alert(t("aiPanel.photosPermTitle"), t("aiPanel.photosPermDesc"));
         return;
       }
 
@@ -4065,10 +5673,15 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
         quality: 0.9,
         base64: false,
         allowsMultipleSelection: false,
-        presentationStyle: Platform.OS === "ios" ? ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN : undefined,
-        preferredAssetRepresentationMode: Platform.OS === "ios"
-          ? ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible
-          : undefined,
+        presentationStyle:
+          Platform.OS === "ios"
+            ? ImagePicker.UIImagePickerPresentationStyle.FULL_SCREEN
+            : undefined,
+        preferredAssetRepresentationMode:
+          Platform.OS === "ios"
+            ? ImagePicker.UIImagePickerPreferredAssetRepresentationMode
+                .Compatible
+            : undefined,
         shouldDownloadFromNetwork: Platform.OS === "ios",
       });
 
@@ -4079,7 +5692,9 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
       const asset = result.assets[0];
       const mime = inferImageMime(asset.uri, asset.mimeType);
       const filename = asset.fileName || asset.uri.split("/").pop() || "image";
-      const base64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.Base64 });
+      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
       setPendingImage({
         type: "file",
@@ -4089,45 +5704,55 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
       });
     } catch (err) {
       console.error("Image pick error:", err);
-      Alert.alert(t('common.error'), t('aiPanel.failedPickImage'));
+      Alert.alert(t("common.error"), t("aiPanel.failedPickImage"));
     }
   }, []);
 
-  const abortSessionGracefully = useCallback(async (sessionId: string, backend: AiBackend) => {
-    if (stoppingSessionIdsRef.current.has(sessionId)) {
-      return;
-    }
-
-    stoppingSessionIdsRef.current.add(sessionId);
-    setStoppingBySession((prev) => ({ ...prev, [sessionId]: true }));
-    setStreamingBySession((prev) => ({ ...prev, [sessionId]: true }));
-    setSessionActivityLabels((prev) => ({ ...prev, [sessionId]: "Stopping..." }));
-
-    try {
-      await ai.abort(sessionId, backend);
-      if (backend === "opencode") {
-        await refreshSessionMessagesRef.current(sessionId, backend, true);
+  const abortSessionGracefully = useCallback(
+    async (sessionId: string, backend: AiBackend) => {
+      if (stoppingSessionIdsRef.current.has(sessionId)) {
+        return;
       }
-      setSessionActivityLabels((prev) => ({ ...prev, [sessionId]: "Interrupted" }));
-      setStreamingBySession((prev) => {
-        if (!prev[sessionId]) return prev;
-        const next = { ...prev };
-        delete next[sessionId];
-        return next;
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to abort session";
-      Alert.alert("Abort Failed", message);
-    } finally {
-      stoppingSessionIdsRef.current.delete(sessionId);
-      setStoppingBySession((prev) => {
-        if (!prev[sessionId]) return prev;
-        const next = { ...prev };
-        delete next[sessionId];
-        return next;
-      });
-    }
-  }, [ai]);
+
+      stoppingSessionIdsRef.current.add(sessionId);
+      setStoppingBySession((prev) => ({ ...prev, [sessionId]: true }));
+      setStreamingBySession((prev) => ({ ...prev, [sessionId]: true }));
+      setSessionActivityLabels((prev) => ({
+        ...prev,
+        [sessionId]: "Stopping...",
+      }));
+
+      try {
+        await ai.abort(sessionId, backend);
+        if (backend === "opencode") {
+          await refreshSessionMessagesRef.current(sessionId, backend, true);
+        }
+        setSessionActivityLabels((prev) => ({
+          ...prev,
+          [sessionId]: "Interrupted",
+        }));
+        setStreamingBySession((prev) => {
+          if (!prev[sessionId]) return prev;
+          const next = { ...prev };
+          delete next[sessionId];
+          return next;
+        });
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Failed to abort session";
+        Alert.alert("Abort Failed", message);
+      } finally {
+        stoppingSessionIdsRef.current.delete(sessionId);
+        setStoppingBySession((prev) => {
+          if (!prev[sessionId]) return prev;
+          const next = { ...prev };
+          delete next[sessionId];
+          return next;
+        });
+      }
+    },
+    [ai],
+  );
 
   // Send message / handle slash commands
   const sendMessage = async (rawText?: string) => {
@@ -4141,17 +5766,27 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
       const fileSections: string[] = [];
       for (const match of mentionMatches) {
         const mentionedName = match[1];
-        const taggedFile = taggedFiles.find((file) => file.name === mentionedName);
+        const taggedFile = taggedFiles.find(
+          (file) => file.name === mentionedName,
+        );
         let filePath = taggedFile?.path;
         if (!filePath) {
-          const matches = await searchWorkspaceFiles(mentionedName, FILE_MENTION_RESULT_LIMIT);
-          filePath = matches.find((file) => (file.path.split("/").pop() ?? file.path) === mentionedName)?.path;
+          const matches = await searchWorkspaceFiles(
+            mentionedName,
+            FILE_MENTION_RESULT_LIMIT,
+          );
+          filePath = matches.find(
+            (file) =>
+              (file.path.split("/").pop() ?? file.path) === mentionedName,
+          )?.path;
         }
         if (!filePath) continue;
         try {
           const fileContent = await readWorkspaceFile(filePath);
           if (fileContent.encoding === "utf8") {
-            fileSections.push(`<file path="${filePath}">\n${fileContent.content}\n</file>`);
+            fileSections.push(
+              `<file path="${filePath}">\n${fileContent.content}\n</file>`,
+            );
           }
         } catch {}
       }
@@ -4169,10 +5804,12 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
 
     // Resolve backend + transient draft context
     const activeTab = tabs.find((t) => t.id === activeTabId);
-    const messageBackend: "opencode" | "codex" = activeTab?.backend ?? pendingBackend ?? "opencode";
+    const messageBackend: "opencode" | "codex" =
+      activeTab?.backend ?? pendingBackend ?? "opencode";
     const selectedAgentForBackend = selectedAgent || undefined;
     let sessId = activeSessionId;
-    let localDraftTabId: string | null = activeTab && !activeTab.sessionId ? activeTab.id : null;
+    let localDraftTabId: string | null =
+      activeTab && !activeTab.sessionId ? activeTab.id : null;
     if (!sessId && !localDraftTabId) {
       localDraftTabId = `draft-send-${Date.now().toString(36)}`;
       const draftTab: AITab = {
@@ -4182,7 +5819,10 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
         updatedAt: Date.now(),
       };
       setDraftTabs((prev) => [...prev, draftTab]);
-      setMessagesMap((prev) => ({ ...prev, [localDraftTabId!]: prev[localDraftTabId!] || [] }));
+      setMessagesMap((prev) => ({
+        ...prev,
+        [localDraftTabId!]: prev[localDraftTabId!] || [],
+      }));
       setActiveTabId(localDraftTabId);
     }
 
@@ -4191,14 +5831,26 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
       try {
         const session = await ai.createSession(undefined, messageBackend);
         sessId = session.id;
-        const derivedTitle = displayText.replace(/@[\w.\-]+\s*/g, "").trim().slice(0, 40) || displayText.trim().slice(0, 40);
-        const sessionTitle = (session.title || "").trim() || derivedTitle || (messageBackend === "codex" ? "Codex" : "OpenCode");
-        setSessionTabs((prev) => mergeSessionTabs(prev, [{ ...session, backend: messageBackend } as AISession]));
+        const derivedTitle =
+          displayText
+            .replace(/@[\w.\-]+\s*/g, "")
+            .trim()
+            .slice(0, 40) || displayText.trim().slice(0, 40);
+        const sessionTitle =
+          (session.title || "").trim() ||
+          derivedTitle ||
+          (messageBackend === "codex" ? "Codex" : "OpenCode");
+        setSessionTabs((prev) =>
+          mergeSessionTabs(prev, [
+            { ...session, backend: messageBackend } as AISession,
+          ]),
+        );
         setPendingBackend(null);
         const currentActiveTabId = localDraftTabId ?? activeTabId;
         setDraftTabs((prev) => prev.filter((t) => t.id !== currentActiveTabId));
         setMessagesMap((prev) => {
-          if (!currentActiveTabId || currentActiveTabId === session.id) return prev;
+          if (!currentActiveTabId || currentActiveTabId === session.id)
+            return prev;
           const draftMessages = prev[currentActiveTabId];
           if (!draftMessages) return prev;
           const next = { ...prev };
@@ -4207,13 +5859,15 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
           return next;
         });
         setSessionTabs((prev) => {
-          const existing = prev.find((t) => t.sessionId === session.id && t.backend === messageBackend);
+          const existing = prev.find(
+            (t) => t.sessionId === session.id && t.backend === messageBackend,
+          );
           if (!existing) return prev;
-          return prev.map((t) => (
+          return prev.map((t) =>
             t.sessionId === session.id && t.backend === messageBackend
               ? { ...t, title: sessionTitle }
-              : t
-          ));
+              : t,
+          );
         });
         setActiveTabId(session.id);
         return sessId;
@@ -4222,7 +5876,7 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
         if (isBackendUnavailableError(message)) {
           showBackendMissingInstallAlert(messageBackend);
         } else {
-          Alert.alert(t('common.error'), t('aiPanel.failedCreateSession'));
+          Alert.alert(t("common.error"), t("aiPanel.failedCreateSession"));
         }
         return null;
       }
@@ -4238,16 +5892,19 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
         switch (cmd) {
           case "undo": {
             if (messageBackend === "codex") {
-              throw new Error(t('aiPanel.codexUndoNotSupported'));
+              throw new Error(t("aiPanel.codexUndoNotSupported"));
             }
             const msgs = messagesMap[ensured] || [];
-            const lastUserMsg = [...msgs].reverse().find((m) => m.role === "user");
-            if (lastUserMsg) await ai.revert(ensured, lastUserMsg.id, messageBackend);
+            const lastUserMsg = [...msgs]
+              .reverse()
+              .find((m) => m.role === "user");
+            if (lastUserMsg)
+              await ai.revert(ensured, lastUserMsg.id, messageBackend);
             break;
           }
           case "redo":
             if (messageBackend === "codex") {
-              throw new Error(t('aiPanel.codexRedoNotSupported'));
+              throw new Error(t("aiPanel.codexRedoNotSupported"));
             }
             await ai.unrevert(ensured, messageBackend);
             break;
@@ -4256,7 +5913,7 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
             break;
           case "init":
             if (messageBackend === "codex") {
-              throw new Error(t('aiPanel.codexInitNotSupported'));
+              throw new Error(t("aiPanel.codexInitNotSupported"));
             }
             await ai.runCommand(ensured, "init", messageBackend);
             break;
@@ -4270,11 +5927,14 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
               undefined,
               getCodexPromptOptions(),
             );
-            setSessionActivityLabels((prev) => ({ ...prev, [ensured]: i18n.t('aiPanel.activityThinking') }));
+            setSessionActivityLabels((prev) => ({
+              ...prev,
+              [ensured]: i18n.t("aiPanel.activityThinking"),
+            }));
             setStreamingBySession((prev) => ({ ...prev, [ensured]: true }));
         }
       } catch (err) {
-        Alert.alert(t('common.error'), (err as Error).message);
+        Alert.alert(t("common.error"), (err as Error).message);
       }
       return;
     }
@@ -4313,12 +5973,15 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
       setShowScrollToBottom(false);
       const optimisticBucketId = sessId ?? localDraftTabId;
       if (!optimisticBucketId) {
-        Alert.alert(t('common.error'), t('aiPanel.failedPrepareSession'));
+        Alert.alert(t("common.error"), t("aiPanel.failedPrepareSession"));
         return;
       }
       setMessagesMap((prev) => ({
         ...prev,
-        [optimisticBucketId]: [...(prev[optimisticBucketId] || []), optimisticMsg],
+        [optimisticBucketId]: [
+          ...(prev[optimisticBucketId] || []),
+          optimisticMsg,
+        ],
       }));
       scrollToLatest(true, true);
 
@@ -4326,7 +5989,9 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
       if (!ensured) {
         setMessagesMap((prev) => ({
           ...prev,
-          [optimisticBucketId]: (prev[optimisticBucketId] || []).filter((msg) => msg.id !== optimisticMessageId),
+          [optimisticBucketId]: (prev[optimisticBucketId] || []).filter(
+            (msg) => msg.id !== optimisticMessageId,
+          ),
         }));
         return;
       }
@@ -4344,12 +6009,17 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
       setMessagesMap((prev) => {
         const committedBucketId = ensured;
         const sessionMessages = prev[committedBucketId] || [];
-        const idx = sessionMessages.findIndex((m) => m.id === optimisticMessageId);
+        const idx = sessionMessages.findIndex(
+          (m) => m.id === optimisticMessageId,
+        );
         if (idx < 0) return prev;
         const updated = [...sessionMessages];
         const existing = updated[idx];
         if (!existing) return prev;
-        const committedAt = existing.time?.created ?? existing.time?.updated ?? optimisticCreatedAt;
+        const committedAt =
+          existing.time?.created ??
+          existing.time?.updated ??
+          optimisticCreatedAt;
         updated[idx] = {
           ...existing,
           metadata: {
@@ -4361,7 +6031,10 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
         };
         return { ...prev, [committedBucketId]: updated };
       });
-      setSessionActivityLabels((prev) => ({ ...prev, [ensured]: i18n.t('aiPanel.activityThinking') }));
+      setSessionActivityLabels((prev) => ({
+        ...prev,
+        [ensured]: i18n.t("aiPanel.activityThinking"),
+      }));
       setStreamingBySession((prev) => ({ ...prev, [ensured]: true }));
       setPendingImage(null);
     } catch (err) {
@@ -4369,20 +6042,25 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
       if (fallbackBucketId) {
         setMessagesMap((prev) => ({
           ...prev,
-          [fallbackBucketId]: (prev[fallbackBucketId] || []).filter((msg) => !msg.id.startsWith("opt-")),
+          [fallbackBucketId]: (prev[fallbackBucketId] || []).filter(
+            (msg) => !msg.id.startsWith("opt-"),
+          ),
         }));
       }
-      Alert.alert(t('common.error'), (err as Error).message);
+      Alert.alert(t("common.error"), (err as Error).message);
     }
   };
 
-  const animateInputHeight = useCallback((nextHeight: number) => {
-    if (Math.abs(nextHeight - inputHeight) <= 1) return;
-    setInputHeight(nextHeight);
-    inputHeightSV.value = withTiming(nextHeight, {
-      easing: Easing.out(Easing.cubic),
-    });
-  }, [inputHeight, inputHeightSV]);
+  const animateInputHeight = useCallback(
+    (nextHeight: number) => {
+      if (Math.abs(nextHeight - inputHeight) <= 1) return;
+      setInputHeight(nextHeight);
+      inputHeightSV.value = withTiming(nextHeight, {
+        easing: Easing.out(Easing.cubic),
+      });
+    },
+    [inputHeight, inputHeightSV],
+  );
 
   useEffect(() => {
     if (!atMentionActive || status !== "connected") {
@@ -4412,31 +6090,36 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     };
   }, [atMentionActive, atMentionQuery, searchWorkspaceFiles, status]);
 
-  const handleInputChange = useCallback((text: string) => {
-    setInputText(text);
-    if (text.length === 0) {
-      animateInputHeight(52);
-      setAtMentionActive(false);
-      setAtMentionQuery("");
-      return;
-    }
-    const atIdx = text.lastIndexOf("@");
-    if (atIdx !== -1) {
-      const afterAt = text.slice(atIdx + 1);
-      if (!afterAt.includes(" ") && !afterAt.includes("\n")) {
-        setAtMentionQuery(afterAt);
-        setAtMentionActive(true);
+  const handleInputChange = useCallback(
+    (text: string) => {
+      setInputText(text);
+      if (text.length === 0) {
+        animateInputHeight(52);
+        setAtMentionActive(false);
+        setAtMentionQuery("");
         return;
       }
-    }
-    setAtMentionActive(false);
-    setAtMentionQuery("");
-  }, [animateInputHeight]);
+      const atIdx = text.lastIndexOf("@");
+      if (atIdx !== -1) {
+        const afterAt = text.slice(atIdx + 1);
+        if (!afterAt.includes(" ") && !afterAt.includes("\n")) {
+          setAtMentionQuery(afterAt);
+          setAtMentionActive(true);
+          return;
+        }
+      }
+      setAtMentionActive(false);
+      setAtMentionQuery("");
+    },
+    [animateInputHeight],
+  );
 
   const selectFileMention = useCallback((filePath: string) => {
     const fileName = filePath.split("/").pop() ?? filePath;
     setTaggedFiles((prev) => {
-      const next = prev.filter((file) => file.path !== filePath && file.name !== fileName);
+      const next = prev.filter(
+        (file) => file.path !== filePath && file.name !== fileName,
+      );
       return [...next, { path: filePath, name: fileName }];
     });
     setInputText((prev) => {
@@ -4469,7 +6152,7 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
       const permission = await requestRecordingPermissionsAsync();
       if (!permission.granted) {
         setIsVoiceMode(false);
-        Alert.alert(t('aiPanel.micPermTitle'), t('aiPanel.micPermDesc'));
+        Alert.alert(t("aiPanel.micPermTitle"), t("aiPanel.micPermDesc"));
         return;
       }
       await setAudioModeAsync({
@@ -4482,14 +6165,13 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     } catch (err) {
       console.error("Voice recording start error:", err);
       setIsVoiceMode(false);
-      Alert.alert(t('aiPanel.voiceInputTitle'), t('aiPanel.failedStartRecording'));
+      Alert.alert(
+        t("aiPanel.voiceInputTitle"),
+        t("aiPanel.failedStartRecording"),
+      );
       resetEqualizer();
     }
-  }, [
-    animateInputHeight,
-    isVoiceBusy,
-    resetEqualizer,
-  ]);
+  }, [animateInputHeight, isVoiceBusy, resetEqualizer]);
 
   const cancelVoiceMode = useCallback(async () => {
     setIsVoiceMode(false);
@@ -4502,7 +6184,10 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     try {
       const uri = await stopRecording();
       if (!uri) {
-        Alert.alert(t('aiPanel.voiceInputTitle'), t('aiPanel.noAudioRecording'));
+        Alert.alert(
+          t("aiPanel.voiceInputTitle"),
+          t("aiPanel.noAudioRecording"),
+        );
         return;
       }
       const audioBase64 = await FileSystem.readAsStringAsync(uri, {
@@ -4519,13 +6204,19 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
       const data = (await res.json()) as { text?: string };
       const transcribed = (data.text || "").trim();
       if (!transcribed) {
-        Alert.alert(t('aiPanel.voiceInputTitle'), t('aiPanel.noSpeechDetected'));
+        Alert.alert(
+          t("aiPanel.voiceInputTitle"),
+          t("aiPanel.noSpeechDetected"),
+        );
         return;
       }
       setInputText(transcribed);
     } catch (err) {
       console.error("Voice transcription error:", err);
-      Alert.alert(t('aiPanel.voiceInputTitle'), (err as Error).message || t('aiPanel.failedTranscribe'));
+      Alert.alert(
+        t("aiPanel.voiceInputTitle"),
+        (err as Error).message || t("aiPanel.failedTranscribe"),
+      );
     } finally {
       setIsVoiceMode(false);
       setIsVoiceBusy(false);
@@ -4549,7 +6240,7 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
             const gated = normalized < 0.25 ? 0 : normalized;
             nextLevel = Math.max(
               VOICE_WAVE_IDLE_LEVEL,
-              Math.min(1, gated * (0.9 + Math.random() * 0.2))
+              Math.min(1, gated * (0.9 + Math.random() * 0.2)),
             );
           }
         }
@@ -4596,7 +6287,10 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
   const handleStop = async () => {
     if (activeSessionId) {
       const activeTab = tabs.find((t) => t.id === activeTabId);
-      await abortSessionGracefully(activeSessionId, activeTab?.backend ?? "opencode");
+      await abortSessionGracefully(
+        activeSessionId,
+        activeTab?.backend ?? "opencode",
+      );
     }
   };
 
@@ -4607,14 +6301,14 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
       setNeedsApiKeyByBackend((prev) => ({ ...prev, [activeBackend]: false }));
       setIsInitialized(false);
     } catch (err) {
-      Alert.alert(t('common.error'), (err as Error).message);
+      Alert.alert(t("common.error"), (err as Error).message);
     }
   };
 
   // Build flat list data: messages + errors
   const activeSessionActivityLabel = activeSessionId
-    ? (sessionActivityLabels[activeSessionId] || t('aiPanel.activityThinking'))
-    : t('aiPanel.activityThinking');
+    ? sessionActivityLabels[activeSessionId] || t("aiPanel.activityThinking")
+    : t("aiPanel.activityThinking");
 
   const listData = useMemo(() => {
     const items: Array<
@@ -4627,13 +6321,23 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     }
     const shouldShowThinking = isActiveSessionStreaming;
     if (shouldShowThinking) {
-      items.push({ type: "thinking", id: "thinking-indicator", label: activeSessionActivityLabel });
+      items.push({
+        type: "thinking",
+        id: "thinking-indicator",
+        label: activeSessionActivityLabel,
+      });
     }
     for (let i = 0; i < currentErrors.length; i++) {
       items.push({ type: "error", data: currentErrors[i], id: `err-${i}` });
     }
     return items;
-  }, [renderedMessages, currentErrors, isActiveSessionStreaming, activeSessionId, activeSessionActivityLabel]);
+  }, [
+    renderedMessages,
+    currentErrors,
+    isActiveSessionStreaming,
+    activeSessionId,
+    activeSessionActivityLabel,
+  ]);
 
   // Tab renderer
   const renderAITab = useCallback(
@@ -4645,7 +6349,7 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
       targetWidth: number,
       onPress: () => void,
       onClose: () => void,
-      isNew: boolean
+      isNew: boolean,
     ) => (
       <AnimatedAITab
         tab={tab}
@@ -4661,29 +6365,39 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
         radius={radius}
       />
     ),
-    [colors, radius]
+    [colors, radius],
   );
 
   // Render list item
-  const renderListItem = useCallback(({ item }: { item: any }) => {
-    if (item.type === "error") {
-      return <ErrorMessageView text={item.data} />;
-    }
-    if (item.type === "thinking") {
-      return <ThinkingIndicatorView label={item.label} />;
-    }
-    return (
-      <MessageBubble
-        message={item.data}
-        colors={colors}
-        fonts={fonts}
-        radius={radius}
-        showDetailedView={showDetailedView}
-        pendingPermission={pendingPermission}
-        onPermissionReply={handlePermissionReply}
-      />
-    );
-  }, [colors, fonts, radius, showDetailedView, pendingPermission, handlePermissionReply]);
+  const renderListItem = useCallback(
+    ({ item }: { item: any }) => {
+      if (item.type === "error") {
+        return <ErrorMessageView text={item.data} />;
+      }
+      if (item.type === "thinking") {
+        return <ThinkingIndicatorView label={item.label} />;
+      }
+      return (
+        <MessageBubble
+          message={item.data}
+          colors={colors}
+          fonts={fonts}
+          radius={radius}
+          showDetailedView={showDetailedView}
+          pendingPermission={pendingPermission}
+          onPermissionReply={handlePermissionReply}
+        />
+      );
+    },
+    [
+      colors,
+      fonts,
+      radius,
+      showDetailedView,
+      pendingPermission,
+      handlePermissionReply,
+    ],
+  );
 
   const handleDetailedViewAction = useCallback(() => {
     setShowDetailedView((prev) => !prev);
@@ -4709,10 +6423,13 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
     const sessionItems = tabs
       .filter((t) => !!t.sessionId)
       .map((t) => ({ id: t.id, title: t.title, backend: t.backend }));
-    register('ai', {
+    register("ai", {
       sessions: sessionItems,
-      activeSessionId: tabs.some((t) => t.id === activeTabId && !!t.sessionId) ? activeTabId : null,
-      loading: status === 'connected' && (!isInitialized || isInitialSessionsLoading),
+      activeSessionId: tabs.some((t) => t.id === activeTabId && !!t.sessionId)
+        ? activeTabId
+        : null,
+      loading:
+        status === "connected" && (!isInitialized || isInitialSessionsLoading),
       onSessionPress: handleTabPress,
       onSessionClose: deleteTab,
       onSessionRename: renameTab,
@@ -4720,9 +6437,22 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
       onReconnectRefreshSession: reconnectRefreshSession,
       onReconnectRefreshAll: reconnectRefreshAll,
     });
-  }, [tabs, activeTabId, status, isInitialized, isInitialSessionsLoading, register, handleTabPress, deleteTab, renameTab, createNewTab, reconnectRefreshSession, reconnectRefreshAll]);
+  }, [
+    tabs,
+    activeTabId,
+    status,
+    isInitialized,
+    isInitialSessionsLoading,
+    register,
+    handleTabPress,
+    deleteTab,
+    renameTab,
+    createNewTab,
+    reconnectRefreshSession,
+    reconnectRefreshAll,
+  ]);
 
-  useEffect(() => () => unregister('ai'), [unregister]);
+  useEffect(() => () => unregister("ai"), [unregister]);
 
   return (
     <Animated.View
@@ -4761,16 +6491,41 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
       <InfoSheet
         visible={backendPickerVisible}
         onClose={() => setBackendPickerVisible(false)}
-        title={t('aiPanel.newSessionTitle')}
-        description={t('aiPanel.newSessionDesc')}
+        title={t("aiPanel.newSessionTitle")}
+        description={t("aiPanel.newSessionDesc")}
       >
         <View style={{ gap: 6, paddingBottom: 16 }}>
           {[
-            { backend: "codex" as const, label: "Codex", description: t('aiPanel.codexDesc'), Icon: Codex },
-            { backend: "opencode" as const, label: "OpenCode", description: t('aiPanel.opencodeDesc'), Icon: OpenCode },
-            { label: "Claude Code", description: t('aiPanel.comingSoon'), disabled: true, Icon: ClaudeCode },
-            { label: "Gemini", description: t('aiPanel.comingSoon'), disabled: true, Icon: Gemini },
-            { label: "Cursor", description: t('aiPanel.comingSoon'), disabled: true, Icon: Cursor },
+            {
+              backend: "codex" as const,
+              label: "Codex",
+              description: t("aiPanel.codexDesc"),
+              Icon: Codex,
+            },
+            {
+              backend: "opencode" as const,
+              label: "OpenCode",
+              description: t("aiPanel.opencodeDesc"),
+              Icon: OpenCode,
+            },
+            {
+              label: "Claude Code",
+              description: t("aiPanel.comingSoon"),
+              disabled: true,
+              Icon: ClaudeCode,
+            },
+            {
+              label: "Gemini",
+              description: t("aiPanel.comingSoon"),
+              disabled: true,
+              Icon: Gemini,
+            },
+            {
+              label: "Cursor",
+              description: t("aiPanel.comingSoon"),
+              disabled: true,
+              Icon: Cursor,
+            },
           ].map(({ backend, label, description, disabled, Icon }) => (
             <TouchableOpacity
               key={backend ?? label}
@@ -4778,22 +6533,42 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
                 if (!disabled && backend) void createNewTabWithBackend(backend);
               }}
               activeOpacity={disabled ? 1 : 0.75}
-              style={[styles.backendOption, {
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 12,
-                paddingHorizontal: 0,
-                backgroundColor: disabled ? colors.bg.base : "transparent",
-                borderRadius: 10,
-                opacity: disabled ? 0.55 : 1,
-              }]}
+              style={[
+                styles.backendOption,
+                {
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 12,
+                  paddingHorizontal: 0,
+                  backgroundColor: disabled ? colors.bg.base : "transparent",
+                  borderRadius: 10,
+                  opacity: disabled ? 0.55 : 1,
+                },
+              ]}
             >
-              {renderColorfulBrandIcon(Icon as React.ComponentType<any>, 28, colors.fg.default)}
+              {renderColorfulBrandIcon(
+                Icon as React.ComponentType<any>,
+                28,
+                colors.fg.default,
+              )}
               <View>
-                <Text style={{ color: colors.fg.default, fontSize: typography.body, fontFamily: fonts.sans.medium }}>
+                <Text
+                  style={{
+                    color: colors.fg.default,
+                    fontSize: typography.body,
+                    fontFamily: fonts.sans.medium,
+                  }}
+                >
                   {label}
                 </Text>
-                <Text style={{ color: colors.fg.muted, fontSize: typography.caption, fontFamily: fonts.sans.regular, marginTop: 1 }}>
+                <Text
+                  style={{
+                    color: colors.fg.muted,
+                    fontSize: typography.caption,
+                    fontFamily: fonts.sans.regular,
+                    marginTop: 1,
+                  }}
+                >
                   {description}
                 </Text>
               </View>
@@ -4813,7 +6588,7 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
         }
         colors={colors}
         showBottomBorder={tabs.length > 0}
-        rightAccessory={(
+        rightAccessory={
           <View style={styles.headerMenuWrapper}>
             <MenuView
               shouldOpenOnLongPress={false}
@@ -4829,24 +6604,35 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
               actions={[
                 {
                   id: "toggle-detailed-view",
-                  title: t('aiPanel.menuToggleView'),
+                  title: t("aiPanel.menuToggleView"),
                   state: showDetailedView ? "on" : "off",
                 },
-                ...(activeTab ? [{
-                  id: "delete-session",
-                  title: t('aiPanel.menuDeleteSession'),
-                  attributes: {
-                    destructive: true,
-                  } as const,
-                }] : []),
+                ...(activeTab
+                  ? [
+                      {
+                        id: "delete-session",
+                        title: t("aiPanel.menuDeleteSession"),
+                        attributes: {
+                          destructive: true,
+                        } as const,
+                      },
+                    ]
+                  : []),
               ]}
             >
-              <TouchableOpacity style={styles.headerMenuButton} activeOpacity={0.7}>
-                <EllipsisVertical size={22} color={colors.fg.muted} strokeWidth={2} />
+              <TouchableOpacity
+                style={styles.headerMenuButton}
+                activeOpacity={0.7}
+              >
+                <EllipsisVertical
+                  size={22}
+                  color={colors.fg.muted}
+                  strokeWidth={2}
+                />
               </TouchableOpacity>
             </MenuView>
           </View>
-        )}
+        }
       />
 
       {/* Content */}
@@ -4875,8 +6661,14 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
           >
             <View style={{ alignItems: "center", gap: 8 }}>
               <Sparkle size={48} color={colors.fg.muted} strokeWidth={1.5} />
-              <Text style={{ color: colors.fg.muted, fontSize: 16, fontFamily: fonts.sans.regular }}>
-                {t('aiPanel.emptyNoSessions')}
+              <Text
+                style={{
+                  color: colors.fg.muted,
+                  fontSize: 16,
+                  fontFamily: fonts.sans.regular,
+                }}
+              >
+                {t("aiPanel.emptyNoSessions")}
               </Text>
             </View>
             <TouchableOpacity
@@ -4896,7 +6688,7 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
                   fontFamily: fonts.sans.medium,
                 }}
               >
-                {t('aiPanel.newSessionTitle')}
+                {t("aiPanel.newSessionTitle")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -4904,340 +6696,525 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
           <View style={{ flex: 1 }}>
             {/* Messages or Welcome Screen */}
             <View style={{ flex: 1 }}>
-            {isActiveSessionLoading ? (
-              <AISkeleton colors={colors} paddingTop={0} />
-            ) : hasContent ? (
-              <FlashList
-                ref={messagesListRef}
-                data={listData}
-                keyExtractor={(item) => item.type === "message" ? item.data.id : item.id}
-                renderItem={renderListItem}
-
-                style={{ flex: 1 }}
-                indicatorStyle="default"
-                onLayout={(e) => {
-                  listViewportHeightRef.current = e.nativeEvent.layout.height;
-                }}
-                contentContainerStyle={{
-                  paddingHorizontal: 16,
-                  paddingTop: 18,
-                  paddingBottom: messagesBottomInset,
-                }}
-                onContentSizeChange={(_, contentHeight) => {
-                  contentHeightRef.current = contentHeight;
-                  const grew = contentHeight > lastContentHeightRef.current;
-                  if (grew && isActiveSessionStreaming && isNearBottomRef.current) {
-                    scrollToLatest(false);
+              {isActiveSessionLoading ? (
+                <AISkeleton colors={colors} paddingTop={0} />
+              ) : hasContent ? (
+                <FlashList
+                  ref={messagesListRef}
+                  data={listData}
+                  keyExtractor={(item) =>
+                    item.type === "message" ? item.data.id : item.id
                   }
-                  lastContentHeightRef.current = contentHeight;
-                }}
-                onScrollBeginDrag={() => {
-                  userDraggingMessagesRef.current = true;
-                }}
-                onScrollEndDrag={() => {
-                  userDraggingMessagesRef.current = false;
-                }}
-                onMomentumScrollEnd={() => {
-                  userDraggingMessagesRef.current = false;
-                }}
-                onScroll={(e) => {
-                  const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-                  const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
-                  const nearBottom = distanceFromBottom <= 24;
-                  if (!nearBottom && isActiveSessionStreaming && userDraggingMessagesRef.current) {
-                    autoFollowRef.current = false;
-                  }
-                  if (nearBottom) {
-                    autoFollowRef.current = true;
-                  }
-                  isNearBottomRef.current = nearBottom;
-                  setShowScrollToBottom(!nearBottom);
-                }}
-                scrollEventThrottle={100}
-                keyboardDismissMode="on-drag"
-                ListFooterComponent={null}
-              />
-            ) : (
-              <Pressable style={{ flex: 1 }} onPress={() => { inputRef.current?.blur(); Keyboard.dismiss(); }}>
-                <View style={styles.logoContainer}>
-                  <View style={[styles.logoWrapper, { marginBottom: activeBackend === "codex" ? 8 : 0 }]}>
-                    {activeBackend === "codex"
-                      ? <Codex size={64} color={colors.fg.default} />
-                      : <OpenCode size={68} color={colors.fg.default} />}
+                  renderItem={renderListItem}
+                  style={{ flex: 1 }}
+                  indicatorStyle="default"
+                  onLayout={(e) => {
+                    listViewportHeightRef.current = e.nativeEvent.layout.height;
+                  }}
+                  contentContainerStyle={{
+                    paddingHorizontal: 16,
+                    paddingTop: 18,
+                    paddingBottom: messagesBottomInset,
+                  }}
+                  onContentSizeChange={(_, contentHeight) => {
+                    contentHeightRef.current = contentHeight;
+                    const grew = contentHeight > lastContentHeightRef.current;
+                    if (
+                      grew &&
+                      isActiveSessionStreaming &&
+                      isNearBottomRef.current
+                    ) {
+                      scrollToLatest(false);
+                    }
+                    lastContentHeightRef.current = contentHeight;
+                  }}
+                  onScrollBeginDrag={() => {
+                    userDraggingMessagesRef.current = true;
+                  }}
+                  onScrollEndDrag={() => {
+                    userDraggingMessagesRef.current = false;
+                  }}
+                  onMomentumScrollEnd={() => {
+                    userDraggingMessagesRef.current = false;
+                  }}
+                  onScroll={(e) => {
+                    const { contentOffset, contentSize, layoutMeasurement } =
+                      e.nativeEvent;
+                    const distanceFromBottom =
+                      contentSize.height -
+                      layoutMeasurement.height -
+                      contentOffset.y;
+                    const nearBottom = distanceFromBottom <= 24;
+                    if (
+                      !nearBottom &&
+                      isActiveSessionStreaming &&
+                      userDraggingMessagesRef.current
+                    ) {
+                      autoFollowRef.current = false;
+                    }
+                    if (nearBottom) {
+                      autoFollowRef.current = true;
+                    }
+                    isNearBottomRef.current = nearBottom;
+                    setShowScrollToBottom(!nearBottom);
+                  }}
+                  scrollEventThrottle={100}
+                  keyboardDismissMode="on-drag"
+                  ListFooterComponent={null}
+                />
+              ) : (
+                <Pressable
+                  style={{ flex: 1 }}
+                  onPress={() => {
+                    inputRef.current?.blur();
+                    Keyboard.dismiss();
+                  }}
+                >
+                  <View style={styles.logoContainer}>
+                    <View
+                      style={[
+                        styles.logoWrapper,
+                        { marginBottom: activeBackend === "codex" ? 8 : 0 },
+                      ]}
+                    >
+                      {activeBackend === "codex" ? (
+                        <Codex size={64} color={colors.fg.default} />
+                      ) : (
+                        <OpenCode size={68} color={colors.fg.default} />
+                      )}
+                    </View>
+                    <Text
+                      style={{
+                        color: colors.fg.muted,
+                        fontSize: 17,
+                        fontFamily: "PublicSans_500Medium",
+                        textAlign: "center",
+                        marginTop: 14,
+                        paddingHorizontal: 24,
+                      }}
+                    >
+                      {t("aiPanel.welcomeMessage")}
+                    </Text>
                   </View>
-                  <Text style={{ color: colors.fg.muted, fontSize: 17, fontFamily: "PublicSans_500Medium", textAlign: "center", marginTop: 14, paddingHorizontal: 24 }}>
-                    {t('aiPanel.welcomeMessage')}
-                  </Text>
-                </View>
-              </Pressable>
-            )}
+                </Pressable>
+              )}
             </View>
-
 
             {/* Composer */}
             <LinearGradient
               colors={[colors.bg.base + "1a", colors.bg.base + "ff"]}
-              style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: composerBottomOffset + 24 }}
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: composerBottomOffset + 24,
+              }}
               pointerEvents="none"
             />
             {/* @ file mention dropdown */}
-            {atMentionActive && (() => {
-              if (!workspaceFilesLoading && workspaceFileMatches.length === 0) return null;
-              return (
-                <View style={{
-                  position: "absolute",
-                  bottom: composerBottomOffset + 18,
-                  left: 8,
-                  right: 8,
-                  backgroundColor: colors.bg.raised,
-                  borderRadius: 10,
-                  borderWidth: 0.5,
-                  borderColor: colors.border.secondary,
-                  zIndex: 1000,
-                  maxHeight: 260,
-                  paddingVertical: 6,
-                  shadowColor: "#000",
-                  shadowOpacity: 0.15,
-                  shadowRadius: 8,
-                  shadowOffset: { width: 0, height: -2 },
-                }}>
-                  {workspaceFilesLoading && workspaceFileMatches.length === 0 ? (
-                    <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 12, gap: 10 }}>
-                      <ActivityIndicator size="small" color={colors.fg.subtle} />
-                      <Text style={{ color: colors.fg.subtle, fontFamily: fonts.sans.regular, fontSize: 13 }}>{t('aiPanel.loadingFiles')}</Text>
-                    </View>
-                  ) : (
-                    <ScrollView
-                      keyboardShouldPersistTaps="handled"
-                      showsVerticalScrollIndicator={true}
-                      style={{ borderRadius: 10 }}
-                    >
-                      {workspaceFileMatches.map((filePath) => {
-                        const parts = filePath.split("/");
-                        const fileName = parts.pop() ?? filePath;
-                        const dir = parts.join("/");
-                        return (
-                          <TouchableOpacity
-                            key={filePath}
-                            onPress={() => selectFileMention(filePath)}
-                            activeOpacity={0.7}
-                            style={{
-                              flexDirection: "row",
-                              alignItems: "center",
-                              marginHorizontal: 6,
-                              marginVertical: 2,
-                              paddingHorizontal: 10,
-                              paddingVertical: 9,
-                              gap: 10,
-                              borderRadius: 8,
-                              backgroundColor: colors.bg.elevated + "60",
-                            }}
-                          >
-                            <MentionFileIcon fileName={fileName} colors={colors} />
-                            <Text style={{ flex: 1, fontFamily: fonts.sans.regular, fontSize: 13 }} numberOfLines={1}>
-                              <Text style={{ color: colors.fg.default }}>{fileName}</Text>
-                              {dir ? <Text style={{ color: colors.fg.subtle, fontSize: typography.caption }}>{`  •  ${dir}`}</Text> : null}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </ScrollView>
-                  )}
-                </View>
-              );
-            })()}
-            <View style={{ position: "relative" }}>
-            {!isVoiceMode ? (
-            <GestureDetector gesture={swipeDownGesture}>
-            <Animated.View
-              pointerEvents="auto"
-              style={[
-                styles.inputContainer,
-                {
-                  backgroundColor: colors.bg.raised,
-                  borderColor: colors.border.main,
-                  borderRadius: 12,
-                  borderCurve: 'continuous',
-                  zIndex: showAttachMenu ? 200 : 10,
-                },
-              ]}
-              onLayout={(e) => {
-                const { height } = e.nativeEvent.layout;
-                setComposerHeight(height);
-              }}
-            >
-              <TextInput
-                ref={inputRef}
-                style={[
-                  styles.input,
-                  {
-                    color: colors.fg.default,
-                    fontFamily: fonts.sans.regular,
-                  },
-                ]}
-                placeholder={t('aiPanel.inputPlaceholder')}
-                placeholderTextColor={colors.fg.subtle}
-                value={inputText}
-                editable={!isVoiceMode}
-                pointerEvents={isVoiceMode ? "none" : "auto"}
-                onChangeText={handleInputChange}
-                multiline
-                scrollEnabled={inputHeight >= 160}
-                onContentSizeChange={(e) => animateInputHeight(e.nativeEvent.contentSize.height)}
-                onFocus={() => setInputFocused(true)}
-                onBlur={() => setInputFocused(false)}
-                onSubmitEditing={() => {
-                  sendMessage().catch((err) => {
-                    console.error("Send message error:", err);
-                  });
-                }}
-                blurOnSubmit={false}
-              />
-
-              {pendingImage ? (
-                <View
-                  style={{
-                    marginTop: 8,
-                    marginBottom: 4,
-                    alignSelf: "flex-start",
-                    borderRadius: radius.lg,
-                    overflow: "hidden",
-                  }}
-                >
-                  <View style={{ position: "relative" }}>
-                    <TouchableOpacity
-                      onPress={() => setPendingImageViewerVisible(true)}
-                      activeOpacity={0.82}
-                    >
-                      <Image
-                        source={{ uri: pendingImage.url }}
-                        style={{ width: 88, height: 88, borderRadius: 4, backgroundColor: colors.bg.raised }}
-                        resizeMode="cover"
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setPendingImageViewerVisible(false);
-                        setPendingImage(null);
-                      }}
-                      activeOpacity={0.7}
-                      style={{
-                        position: "absolute",
-                        right: 6,
-                        bottom: 6,
-                        width: 24,
-                        height: 24,
-                        borderRadius: 12,
-                        backgroundColor: colors.bg.base,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <X size={14} color={colors.fg.default} strokeWidth={2.2} />
-                    </TouchableOpacity>
-                  </View>
-                  <MediaViewer
-                    visible={pendingImageViewerVisible}
-                    imageUri={pendingImage.url}
-                    onClose={() => setPendingImageViewerVisible(false)}
-                  />
-                </View>
-              ) : null}
-
-              <View style={styles.composerBottomBar}>
-                <View pointerEvents={isVoiceMode ? "none" : "auto"} style={styles.composerRow}>
-                  {/* Left group: attachment + model + codex prefs */}
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, overflow: "hidden" }}>
-                    <TouchableOpacity
-                      style={[styles.actionButton, { borderRadius: 8, overflow: "visible", flexShrink: 0, flexGrow: 0, backgroundColor: showAttachMenu ? colors.bg.elevated : "transparent" }]}
-                      onPress={handleAttachment}
-                      activeOpacity={0.7}
-                      disabled={isVoiceBusy}
-                    >
-                      <Plus size={18} color={colors.fg.default} strokeWidth={2.4} style={{ opacity: 0.9 }} />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={{ padding: 6, alignItems: "center", justifyContent: "center" }}
-                      onPress={() => {
-                        setShowAttachMenu(false);
-                        setActiveSheet(activeSheet === "tune" ? null : "tune");
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <SlidersHorizontal size={16} color={colors.fg.default} style={{ opacity: 0.9 }} />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.modelButton, { borderColor: colors.border.secondary, flexShrink: 1, flexGrow: 0, minWidth: 40, maxWidth: 90 }]}
-                      onPress={() => {
-                        setShowAttachMenu(false);
-                        setActiveSheet("configure");
-                      }}
-                      activeOpacity={0.7}
-                      disabled={activeBackend !== "codex" && agents.length === 0 && modelOptions.length === 0}
-                    >
-                      <Text
-                        numberOfLines={1}
-                        style={[styles.modelText, { color: colors.fg.default, fontFamily: fonts.sans.regular }]}
+            {atMentionActive &&
+              (() => {
+                if (!workspaceFilesLoading && workspaceFileMatches.length === 0)
+                  return null;
+                return (
+                  <View
+                    style={{
+                      position: "absolute",
+                      bottom: composerBottomOffset + 18,
+                      left: 8,
+                      right: 8,
+                      backgroundColor: colors.bg.raised,
+                      borderRadius: 10,
+                      borderWidth: 0.5,
+                      borderColor: colors.border.secondary,
+                      zIndex: 1000,
+                      maxHeight: 260,
+                      paddingVertical: 6,
+                      shadowColor: "#000",
+                      shadowOpacity: 0.15,
+                      shadowRadius: 8,
+                      shadowOffset: { width: 0, height: -2 },
+                    }}
+                  >
+                    {workspaceFilesLoading &&
+                    workspaceFileMatches.length === 0 ? (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          paddingHorizontal: 14,
+                          paddingVertical: 12,
+                          gap: 10,
+                        }}
                       >
-                        {selectedModelName}
-                      </Text>
-                      <ChevronDown size={13} color={colors.fg.subtle} />
-                    </TouchableOpacity>
-
+                        <ActivityIndicator
+                          size="small"
+                          color={colors.fg.subtle}
+                        />
+                        <Text
+                          style={{
+                            color: colors.fg.subtle,
+                            fontFamily: fonts.sans.regular,
+                            fontSize: 13,
+                          }}
+                        >
+                          {t("aiPanel.loadingFiles")}
+                        </Text>
+                      </View>
+                    ) : (
+                      <ScrollView
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={true}
+                        style={{ borderRadius: 10 }}
+                      >
+                        {workspaceFileMatches.map((filePath) => {
+                          const parts = filePath.split("/");
+                          const fileName = parts.pop() ?? filePath;
+                          const dir = parts.join("/");
+                          return (
+                            <TouchableOpacity
+                              key={filePath}
+                              onPress={() => selectFileMention(filePath)}
+                              activeOpacity={0.7}
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                marginHorizontal: 6,
+                                marginVertical: 2,
+                                paddingHorizontal: 10,
+                                paddingVertical: 9,
+                                gap: 10,
+                                borderRadius: 8,
+                                backgroundColor: colors.bg.elevated + "60",
+                              }}
+                            >
+                              <MentionFileIcon
+                                fileName={fileName}
+                                colors={colors}
+                              />
+                              <Text
+                                style={{
+                                  flex: 1,
+                                  fontFamily: fonts.sans.regular,
+                                  fontSize: 13,
+                                }}
+                                numberOfLines={1}
+                              >
+                                <Text style={{ color: colors.fg.default }}>
+                                  {fileName}
+                                </Text>
+                                {dir ? (
+                                  <Text
+                                    style={{
+                                      color: colors.fg.subtle,
+                                      fontSize: typography.caption,
+                                    }}
+                                  >{`  •  ${dir}`}</Text>
+                                ) : null}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </ScrollView>
+                    )}
                   </View>
-
-                  {/* Right group: mic + send — never pushed out */}
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexShrink: 0, flexGrow: 0 }}>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => {
-                        setAtMentionActive(false);
-                        setAtMentionQuery("");
-                        enterVoiceMode();
-                      }}
-                      disabled={isVoiceBusy}
-                      activeOpacity={0.7}
-                    >
-                      <Mic size={18} color={colors.fg.default} style={{ opacity: 0.9 }} />
-                    </TouchableOpacity>
-
-                  {isActiveSessionStreaming ? (
-                    <TouchableOpacity
-                      style={[styles.sendButton, { backgroundColor: "transparent", borderColor: colors.border.main }]}
-                      onPress={handleStop}
-                      disabled={isActiveSessionStopping}
-                      activeOpacity={0.7}
-                    >
-                      <Square size={18} color={'#ef4444'} strokeWidth={2.5} fill={'#ef4444'} />
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      style={[styles.sendButton, {
-                        backgroundColor: (inputText.trim() || pendingImage) ? colors.accent.default : colors.bg.base,
-                        borderColor: "transparent",
-                      }]}
-                      onPress={() => {
+                );
+              })()}
+            <View style={{ position: "relative" }}>
+              {!isVoiceMode ? (
+                <GestureDetector gesture={swipeDownGesture}>
+                  <Animated.View
+                    pointerEvents="auto"
+                    style={[
+                      styles.inputContainer,
+                      {
+                        backgroundColor: colors.bg.raised,
+                        borderColor: colors.border.main,
+                        borderRadius: 12,
+                        borderCurve: "continuous",
+                        zIndex: showAttachMenu ? 200 : 10,
+                      },
+                    ]}
+                    onLayout={(e) => {
+                      const { height } = e.nativeEvent.layout;
+                      setComposerHeight(height);
+                    }}
+                  >
+                    <TextInput
+                      ref={inputRef}
+                      style={[
+                        styles.input,
+                        {
+                          color: colors.fg.default,
+                          fontFamily: fonts.sans.regular,
+                        },
+                      ]}
+                      placeholder={t("aiPanel.inputPlaceholder")}
+                      placeholderTextColor={colors.fg.subtle}
+                      value={inputText}
+                      editable={!isVoiceMode}
+                      pointerEvents={isVoiceMode ? "none" : "auto"}
+                      onChangeText={handleInputChange}
+                      multiline
+                      scrollEnabled={inputHeight >= 160}
+                      onContentSizeChange={(e) =>
+                        animateInputHeight(e.nativeEvent.contentSize.height)
+                      }
+                      onFocus={() => setInputFocused(true)}
+                      onBlur={() => setInputFocused(false)}
+                      onSubmitEditing={() => {
                         sendMessage().catch((err) => {
                           console.error("Send message error:", err);
                         });
                       }}
-                      disabled={!inputText.trim() && !pendingImage}
-                      activeOpacity={0.7}
-                    >
-                      <SendIcon size={18} color={(inputText.trim() || pendingImage) ? '#ffffff' : colors.fg.subtle} />
-                    </TouchableOpacity>
-                  )}
-                  </View>
-                </View>
-              </View>
+                      blurOnSubmit={false}
+                    />
 
-            </Animated.View>
-            </GestureDetector>
-            ) : null}
+                    {pendingImage ? (
+                      <View
+                        style={{
+                          marginTop: 8,
+                          marginBottom: 4,
+                          alignSelf: "flex-start",
+                          borderRadius: radius.lg,
+                          overflow: "hidden",
+                        }}
+                      >
+                        <View style={{ position: "relative" }}>
+                          <TouchableOpacity
+                            onPress={() => setPendingImageViewerVisible(true)}
+                            activeOpacity={0.82}
+                          >
+                            <Image
+                              source={{ uri: pendingImage.url }}
+                              style={{
+                                width: 88,
+                                height: 88,
+                                borderRadius: 4,
+                                backgroundColor: colors.bg.raised,
+                              }}
+                              resizeMode="cover"
+                            />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setPendingImageViewerVisible(false);
+                              setPendingImage(null);
+                            }}
+                            activeOpacity={0.7}
+                            style={{
+                              position: "absolute",
+                              right: 6,
+                              bottom: 6,
+                              width: 24,
+                              height: 24,
+                              borderRadius: 12,
+                              backgroundColor: colors.bg.base,
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <X
+                              size={14}
+                              color={colors.fg.default}
+                              strokeWidth={2.2}
+                            />
+                          </TouchableOpacity>
+                        </View>
+                        <MediaViewer
+                          visible={pendingImageViewerVisible}
+                          imageUri={pendingImage.url}
+                          onClose={() => setPendingImageViewerVisible(false)}
+                        />
+                      </View>
+                    ) : null}
 
+                    <View style={styles.composerBottomBar}>
+                      <View
+                        pointerEvents={isVoiceMode ? "none" : "auto"}
+                        style={styles.composerRow}
+                      >
+                        {/* Left group: attachment + model + codex prefs */}
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 6,
+                            flexGrow: 1,
+                            flexShrink: 1,
+                            flexBasis: 0,
+                            minWidth: 0,
+                            overflow: "hidden",
+                          }}
+                        >
+                          <TouchableOpacity
+                            style={[
+                              styles.actionButton,
+                              {
+                                borderRadius: 8,
+                                overflow: "visible",
+                                flexShrink: 0,
+                                flexGrow: 0,
+                                backgroundColor: showAttachMenu
+                                  ? colors.bg.elevated
+                                  : "transparent",
+                              },
+                            ]}
+                            onPress={handleAttachment}
+                            activeOpacity={0.7}
+                            disabled={isVoiceBusy}
+                          >
+                            <Plus
+                              size={18}
+                              color={colors.fg.default}
+                              strokeWidth={2.4}
+                              style={{ opacity: 0.9 }}
+                            />
+                          </TouchableOpacity>
 
+                          <TouchableOpacity
+                            style={{
+                              padding: 6,
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                            onPress={() => {
+                              setShowAttachMenu(false);
+                              setActiveSheet(
+                                activeSheet === "tune" ? null : "tune",
+                              );
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <SlidersHorizontal
+                              size={16}
+                              color={colors.fg.default}
+                              style={{ opacity: 0.9 }}
+                            />
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[
+                              styles.modelButton,
+                              {
+                                borderColor: colors.border.secondary,
+                                flexShrink: 1,
+                                flexGrow: 0,
+                                minWidth: 40,
+                                maxWidth: 90,
+                              },
+                            ]}
+                            onPress={() => {
+                              setShowAttachMenu(false);
+                              setActiveSheet("configure");
+                            }}
+                            activeOpacity={0.7}
+                            disabled={
+                              activeBackend !== "codex" &&
+                              agents.length === 0 &&
+                              modelOptions.length === 0
+                            }
+                          >
+                            <Text
+                              numberOfLines={1}
+                              style={[
+                                styles.modelText,
+                                {
+                                  color: colors.fg.default,
+                                  fontFamily: fonts.sans.regular,
+                                },
+                              ]}
+                            >
+                              {selectedModelName}
+                            </Text>
+                            <ChevronDown size={13} color={colors.fg.subtle} />
+                          </TouchableOpacity>
+                        </View>
+
+                        {/* Right group: mic + send — never pushed out */}
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 8,
+                            flexShrink: 0,
+                            flexGrow: 0,
+                          }}
+                        >
+                          <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={() => {
+                              setAtMentionActive(false);
+                              setAtMentionQuery("");
+                              enterVoiceMode();
+                            }}
+                            disabled={isVoiceBusy}
+                            activeOpacity={0.7}
+                          >
+                            <Mic
+                              size={18}
+                              color={colors.fg.default}
+                              style={{ opacity: 0.9 }}
+                            />
+                          </TouchableOpacity>
+
+                          {isActiveSessionStreaming ? (
+                            <TouchableOpacity
+                              style={[
+                                styles.sendButton,
+                                {
+                                  backgroundColor: "transparent",
+                                  borderColor: colors.border.main,
+                                },
+                              ]}
+                              onPress={handleStop}
+                              disabled={isActiveSessionStopping}
+                              activeOpacity={0.7}
+                            >
+                              <Square
+                                size={18}
+                                color={"#ef4444"}
+                                strokeWidth={2.5}
+                                fill={"#ef4444"}
+                              />
+                            </TouchableOpacity>
+                          ) : (
+                            <TouchableOpacity
+                              style={[
+                                styles.sendButton,
+                                {
+                                  backgroundColor:
+                                    inputText.trim() || pendingImage
+                                      ? colors.accent.default
+                                      : colors.bg.base,
+                                  borderColor: "transparent",
+                                },
+                              ]}
+                              onPress={() => {
+                                sendMessage().catch((err) => {
+                                  console.error("Send message error:", err);
+                                });
+                              }}
+                              disabled={!inputText.trim() && !pendingImage}
+                              activeOpacity={0.7}
+                            >
+                              <SendIcon
+                                size={18}
+                                color={
+                                  inputText.trim() || pendingImage
+                                    ? "#ffffff"
+                                    : colors.fg.subtle
+                                }
+                              />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  </Animated.View>
+                </GestureDetector>
+              ) : null}
             </View>
 
             {showScrollToBottom && hasContent ? (
@@ -5274,7 +7251,15 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
                   }}
                 >
                   <ArrowDownIcon size={16} color={colors.fg.muted} />
-                  <Text style={{ color: colors.fg.muted, fontSize: 12, fontFamily: fonts.sans.regular }}>{t('aiPanel.scrollToBottom')}</Text>
+                  <Text
+                    style={{
+                      color: colors.fg.muted,
+                      fontSize: 12,
+                      fontFamily: fonts.sans.regular,
+                    }}
+                  >
+                    {t("aiPanel.scrollToBottom")}
+                  </Text>
                 </Pressable>
               </Animated.View>
             ) : null}
@@ -5326,8 +7311,14 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
                   }}
                 >
                   {voiceWave.map((level, idx) => {
-                    const activeLevel = Math.max(0, (level - VOICE_WAVE_IDLE_LEVEL) / (1 - VOICE_WAVE_IDLE_LEVEL));
-                    const barHeight = VOICE_WAVE_DOT_SIZE + activeLevel * VOICE_WAVE_MAX_EXTRA_HEIGHT;
+                    const activeLevel = Math.max(
+                      0,
+                      (level - VOICE_WAVE_IDLE_LEVEL) /
+                        (1 - VOICE_WAVE_IDLE_LEVEL),
+                    );
+                    const barHeight =
+                      VOICE_WAVE_DOT_SIZE +
+                      activeLevel * VOICE_WAVE_MAX_EXTRA_HEIGHT;
                     return (
                       <View
                         key={`voice-wave-${idx}`}
@@ -5343,7 +7334,15 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
                 </View>
 
                 {/* Timer */}
-                <Text style={{ color: colors.fg.muted, fontFamily: fonts.mono.medium, fontSize: 13, marginRight: 10, marginLeft: 2 }}>
+                <Text
+                  style={{
+                    color: colors.fg.muted,
+                    fontFamily: fonts.mono.medium,
+                    fontSize: 13,
+                    marginRight: 10,
+                    marginLeft: 2,
+                  }}
+                >
                   {formatVoiceDuration(voiceDurationMs)}
                 </Text>
 
@@ -5365,10 +7364,14 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
                 >
                   {isVoiceBusy ? (
                     <Animated.View style={voiceBusySpinStyle}>
-                      <LoaderCircle size={18} color={'#ffffff'} strokeWidth={2} />
+                      <LoaderCircle
+                        size={18}
+                        color={"#ffffff"}
+                        strokeWidth={2}
+                      />
                     </Animated.View>
                   ) : (
-                    <Check size={18} color={'#ffffff'} strokeWidth={2.5} />
+                    <Check size={18} color={"#ffffff"} strokeWidth={2.5} />
                   )}
                 </TouchableOpacity>
               </View>
@@ -5390,7 +7393,10 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
               modelOptions={modelOptions}
               selectedModelId={selectedModel}
               onSelectModel={(id) => {
-                setSelectedModelByBackend((prev) => ({ ...prev, [activeBackend]: id }));
+                setSelectedModelByBackend((prev) => ({
+                  ...prev,
+                  [activeBackend]: id,
+                }));
               }}
               onClose={() => setActiveSheet(null)}
               colors={colors}
@@ -5403,7 +7409,12 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
               backend={activeBackend}
               agents={agents}
               selectedAgent={selectedAgent}
-              onAgentChange={(id) => setSelectedAgentByBackend((prev) => ({ ...prev, [activeBackend]: id }))}
+              onAgentChange={(id) =>
+                setSelectedAgentByBackend((prev) => ({
+                  ...prev,
+                  [activeBackend]: id,
+                }))
+              }
               reasoningEffort={codexReasoningEffort}
               onReasoningChange={setCodexReasoningEffort}
               reasoningOptions={reasoningOptions}
@@ -5415,7 +7426,6 @@ const selectedModelNameFull = modelOptions.find((m) => m.id === selectedModel)?.
               colors={colors}
               fonts={fonts}
             />
-
           </View>
         )}
       </View>
@@ -5540,8 +7550,7 @@ const styles = StyleSheet.create({
   messagePartSpacingGroups: {
     marginTop: 0,
   },
-  commandGroupContainer: {
-  },
+  commandGroupContainer: {},
   commandGroupHeader: {
     marginHorizontal: -4,
     paddingHorizontal: 4,
@@ -5573,8 +7582,7 @@ const styles = StyleSheet.create({
   explorationGroupBody: {
     marginTop: 4,
   },
-  groupListRowWrap: {
-  },
+  groupListRowWrap: {},
   groupListRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -5586,10 +7594,8 @@ const styles = StyleSheet.create({
   reasoningContainer: {
     marginVertical: 0,
   },
-  reasoningHeader: {
-  },
-  reasoningHeaderLeft: {
-  },
+  reasoningHeader: {},
+  reasoningHeaderLeft: {},
   reasoningBody: {
     padding: 10,
     borderWidth: 1,

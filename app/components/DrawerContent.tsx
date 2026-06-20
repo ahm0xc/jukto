@@ -11,7 +11,7 @@ import InputModal from "@/components/InputModal";
 import {
   DrawerContentComponentProps,
   useDrawerStatus,
-} from "@react-navigation/drawer";
+} from "expo-router/drawer";
 import * as Haptics from "expo-haptics";
 import { useTranslation } from "react-i18next";
 import Ionicons from "@expo/vector-icons/Ionicons";

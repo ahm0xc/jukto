@@ -7,23 +7,24 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { logger } from "@/lib/logger";
 import { usePlugins } from "@/plugins";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useDrawerStatus } from "@react-navigation/drawer";
+import { useDrawerStatus } from "expo-router/drawer";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Alert,
-  BackHandler,
-  Platform,
-  Text,
-  View,
-} from "react-native";
-
+import { Alert, BackHandler, Platform, Text, View } from "react-native";
 
 export default function WorkspaceScreen() {
   const { colors } = useTheme();
-  const { isLoading, openTab, openTabs, activeTabId, setActiveTab } = usePlugins();
+  const { isLoading, openTab, openTabs, activeTabId, setActiveTab } =
+    usePlugins();
   const { registry } = useSessionRegistry();
-  const { status, sessionState, error, isReconnecting, interactionBlockReason, disconnect } = useConnection();
+  const {
+    status,
+    sessionState,
+    error,
+    isReconnecting,
+    interactionBlockReason,
+    disconnect,
+  } = useConnection();
   const router = useRouter();
   const drawerStatus = useDrawerStatus();
   const { t } = useTranslation();
@@ -35,7 +36,10 @@ export default function WorkspaceScreen() {
   const reconnectRefreshRunningRef = useRef(false);
   const shouldRefreshAfterReconnectRef = useRef(false);
   const hasConnectedOnceRef = useRef(false);
-  const showConnectionNotice = status === "connecting" || isReconnecting || interactionBlockReason !== null;
+  const showConnectionNotice =
+    status === "connecting" ||
+    isReconnecting ||
+    interactionBlockReason !== null;
 
   const handleGoHome = useCallback(() => {
     logger.info("workspace", "navigating back to auth after disconnect");
@@ -56,12 +60,23 @@ export default function WorkspaceScreen() {
       drawerStatus,
     });
 
-    if (prev !== sessionState && (sessionState === "ended" || sessionState === "expired" || sessionState === "cli_offline_grace")) {
+    if (
+      prev !== sessionState &&
+      (sessionState === "ended" ||
+        sessionState === "expired" ||
+        sessionState === "cli_offline_grace")
+    ) {
       Alert.alert(
-        t('workspace.connectionLostTitle'),
-        t('workspace.connectionLostDesc'),
-        [{ text: t('workspace.goHome'), style: 'destructive', onPress: handleGoHome }],
-        { cancelable: false }
+        t("workspace.connectionLostTitle"),
+        t("workspace.connectionLostDesc"),
+        [
+          {
+            text: t("workspace.goHome"),
+            style: "destructive",
+            onPress: handleGoHome,
+          },
+        ],
+        { cancelable: false },
       );
     }
   }, [drawerStatus, error, handleGoHome, isLoading, sessionState, status]);
@@ -76,7 +91,10 @@ export default function WorkspaceScreen() {
   }, [isLoading, status, error]);
 
   useEffect(() => {
-    const isReconnectingNow = status === "connecting" || isReconnecting || interactionBlockReason !== null;
+    const isReconnectingNow =
+      status === "connecting" ||
+      isReconnecting ||
+      interactionBlockReason !== null;
     if (isReconnectingNow) {
       if (hasConnectedOnceRef.current) {
         shouldRefreshAfterReconnectRef.current = true;
@@ -90,15 +108,24 @@ export default function WorkspaceScreen() {
       hasConnectedOnceRef.current = true;
     }
 
-    if (reconnectAttemptVisibleRef.current && status !== "connected" && error && !reconnectFailureAlertVisibleRef.current) {
+    if (
+      reconnectAttemptVisibleRef.current &&
+      status !== "connected" &&
+      error &&
+      !reconnectFailureAlertVisibleRef.current
+    ) {
       reconnectFailureAlertVisibleRef.current = true;
       Alert.alert(
-        t('workspace.sessionDisconnectedTitle'),
-        t('workspace.sessionDisconnectedDesc'),
+        t("workspace.sessionDisconnectedTitle"),
+        t("workspace.sessionDisconnectedDesc"),
         [
-          { text: t('workspace.goHome'), style: "destructive", onPress: handleGoHome },
+          {
+            text: t("workspace.goHome"),
+            style: "destructive",
+            onPress: handleGoHome,
+          },
         ],
-        { cancelable: false }
+        { cancelable: false },
       );
     }
 
@@ -108,11 +135,16 @@ export default function WorkspaceScreen() {
   }, [error, handleGoHome, interactionBlockReason, isReconnecting, status]);
 
   useEffect(() => {
-    if (status !== "connected" || !shouldRefreshAfterReconnectRef.current || reconnectRefreshRunningRef.current) {
+    if (
+      status !== "connected" ||
+      !shouldRefreshAfterReconnectRef.current ||
+      reconnectRefreshRunningRef.current
+    ) {
       return;
     }
 
-    const activePluginId = openTabs.find((tab) => tab.id === activeTabId)?.pluginId ?? null;
+    const activePluginId =
+      openTabs.find((tab) => tab.id === activeTabId)?.pluginId ?? null;
     shouldRefreshAfterReconnectRef.current = false;
     reconnectRefreshRunningRef.current = true;
 
@@ -126,7 +158,10 @@ export default function WorkspaceScreen() {
           logger.warn("workspace", "reconnect session refresh failed", {
             pluginId,
             sessionId,
-            error: refreshError instanceof Error ? refreshError.message : String(refreshError),
+            error:
+              refreshError instanceof Error
+                ? refreshError.message
+                : String(refreshError),
           });
         }
       };
@@ -139,12 +174,18 @@ export default function WorkspaceScreen() {
         } catch (refreshError) {
           logger.warn("workspace", "reconnect plugin refresh failed", {
             pluginId,
-            error: refreshError instanceof Error ? refreshError.message : String(refreshError),
+            error:
+              refreshError instanceof Error
+                ? refreshError.message
+                : String(refreshError),
           });
         }
       };
 
-      const refreshPluginSessions = async (pluginId: string, skipSessionId?: string | null) => {
+      const refreshPluginSessions = async (
+        pluginId: string,
+        skipSessionId?: string | null,
+      ) => {
         const registration = registry[pluginId];
         if (!registration) return;
         for (const session of registration.sessions) {
@@ -153,7 +194,9 @@ export default function WorkspaceScreen() {
         }
       };
 
-      logger.info("workspace", "running reconnect refresh queue", { activePluginId });
+      logger.info("workspace", "running reconnect refresh queue", {
+        activePluginId,
+      });
 
       if (activePluginId) {
         const activeRegistration = registry[activePluginId];
@@ -188,7 +231,7 @@ export default function WorkspaceScreen() {
       });
 
       return () => sub.remove();
-    }, [drawerStatus])
+    }, [drawerStatus]),
   );
 
   if (isLoading) {
@@ -203,10 +246,7 @@ export default function WorkspaceScreen() {
     <View style={{ flex: 1, backgroundColor: colors.bg.base }}>
       <PluginRenderer paddingBottom={0} bottomBarHeight={bottomBarHeight} />
       <View onLayout={(e) => setBottomBarHeight(e.nativeEvent.layout.height)}>
-        <PluginBottomBar
-          openTab={openTab}
-          setActiveTab={setActiveTab}
-        />
+        <PluginBottomBar openTab={openTab} setActiveTab={setActiveTab} />
       </View>
       {showConnectionNotice ? (
         <View
@@ -229,29 +269,31 @@ export default function WorkspaceScreen() {
           }}
         >
           <View style={{ width: 20, height: 20 }}>
-              <Loading color={colors.fg.default} />
-            </View>
-            <Text
-              style={{
-                color: colors.fg.default,
-                fontSize: 16,
-                fontWeight: "600",
-                textAlign: "center",
-              }}
-            >
-              {interactionBlockReason === "offline" ? t('workspace.offline') : t('workspace.reconnecting')}
-            </Text>
-            <Text
-              style={{
-                color: colors.fg.muted,
-                fontSize: 13,
-                textAlign: "center",
-              }}
-            >
-              {interactionBlockReason === "offline"
-                ? t('workspace.waitingConnection')
-                : t('workspace.restoringSession')}
-            </Text>
+            <Loading color={colors.fg.default} />
+          </View>
+          <Text
+            style={{
+              color: colors.fg.default,
+              fontSize: 16,
+              fontWeight: "600",
+              textAlign: "center",
+            }}
+          >
+            {interactionBlockReason === "offline"
+              ? t("workspace.offline")
+              : t("workspace.reconnecting")}
+          </Text>
+          <Text
+            style={{
+              color: colors.fg.muted,
+              fontSize: 13,
+              textAlign: "center",
+            }}
+          >
+            {interactionBlockReason === "offline"
+              ? t("workspace.waitingConnection")
+              : t("workspace.restoringSession")}
+          </Text>
         </View>
       ) : null}
     </View>
