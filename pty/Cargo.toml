@@ -1,10 +1,10 @@
 [package]
-name = "lunel-pty"
+name = "jukto-pty"
 version = "0.2.0"
 edition = "2021"
 
 [[bin]]
-name = "lunel-pty"
+name = "jukto-pty"
 path = "src/main.rs"
 
 [dependencies]

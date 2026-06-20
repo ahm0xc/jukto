@@ -1,8 +1,9 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "lunel-proxy",
+      "name": "jukto-proxy",
       "devDependencies": {
         "@types/bun": "latest",
         "typescript": "^5.0.0",

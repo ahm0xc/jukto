@@ -19,8 +19,8 @@ import { spawn, spawnSync, ChildProcess, execSync } from "child_process";
 import { createServer, createConnection, Socket } from "net";
 import { createInterface } from "readline";
 
-const DEFAULT_PROXY_URL = normalizeGatewayUrl(process.env.LUNEL_PROXY_URL || "https://gateway.lunel.dev");
-const MANAGER_URL = normalizeGatewayUrl(process.env.LUNEL_MANAGER_URL || "https://manager.lunel.dev");
+const DEFAULT_PROXY_URL = normalizeGatewayUrl(process.env.JUKTO_PROXY_URL || "https://gateway.jukto.dev");
+const MANAGER_URL = normalizeGatewayUrl(process.env.JUKTO_MANAGER_URL || "https://manager.jukto.dev");
 const CLI_ARGS = process.argv.slice(2);
 function hasAnyFlag(args: string[], ...flags: string[]): boolean {
   return flags.some((flag) => args.includes(flag));
@@ -28,30 +28,30 @@ function hasAnyFlag(args: string[], ...flags: string[]): boolean {
 const SHOW_HELP = hasAnyFlag(CLI_ARGS, "--help", "-h");
 const DEBUG_MODE = hasAnyFlag(CLI_ARGS, "--debug", "-d");
 if (DEBUG_MODE) {
-  process.env.LUNEL_DEBUG = "1";
-  process.env.LUNEL_DEBUG_AI = "1";
+  process.env.JUKTO_DEBUG = "1";
+  process.env.JUKTO_DEBUG_AI = "1";
 }
 import { createRequire } from "module";
 const __require = createRequire(import.meta.url);
 const VERSION = (__require("../package.json") as { version: string }).version;
-const VERBOSE_AI_LOGS = process.env.LUNEL_DEBUG_AI === "1";
-const PTY_RELEASE_BASE_URL = "https://github.com/lunel-dev/lunel/releases/download/v0";
+const VERBOSE_AI_LOGS = process.env.JUKTO_DEBUG_AI === "1";
+const PTY_RELEASE_BASE_URL = "https://github.com/jukto-dev/jukto/releases/download/v0";
 const AI_RUNTIME_INSTALL_CANDIDATES: Record<AiBackend, string[]> = {
   opencode: ["opencode-ai", "@opencode-ai/cli", "opencode"],
   codex: ["@openai/codex", "codex"],
 };
 const PTY_RELEASES: Record<string, { fileName: string; url: string }> = {
   "linux:x64": {
-    fileName: "lunel-pty-linux-x8664-0",
-    url: `${PTY_RELEASE_BASE_URL}/lunel-pty-linux-x8664-0`,
+    fileName: "jukto-pty-linux-x8664-0",
+    url: `${PTY_RELEASE_BASE_URL}/jukto-pty-linux-x8664-0`,
   },
   "darwin:arm64": {
-    fileName: "lunel-pty-macos-arm64-0",
-    url: `${PTY_RELEASE_BASE_URL}/lunel-pty-macos-arm64-0`,
+    fileName: "jukto-pty-macos-arm64-0",
+    url: `${PTY_RELEASE_BASE_URL}/jukto-pty-macos-arm64-0`,
   },
   "win32:x64": {
-    fileName: "lunel-pty-windows-x8664-1.exe",
-    url: `${PTY_RELEASE_BASE_URL}/lunel-pty-windows-x8664-1.exe`,
+    fileName: "jukto-pty-windows-x8664-1.exe",
+    url: `${PTY_RELEASE_BASE_URL}/jukto-pty-windows-x8664-1.exe`,
   },
 };
 
@@ -65,14 +65,14 @@ const ROOT_DIR = (() => {
 })();
 const CLI_CONFIG_PATH = (() => {
   if (process.platform === "darwin") {
-    return path.join(os.homedir(), "Library", "Application Support", "lunel", "config.json");
+    return path.join(os.homedir(), "Library", "Application Support", "jukto", "config.json");
   }
   if (process.platform === "win32") {
     const appData = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
-    return path.join(appData, "lunel", "config.json");
+    return path.join(appData, "jukto", "config.json");
   }
   const xdgConfig = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
-  return path.join(xdgConfig, "lunel", "config.json");
+  return path.join(xdgConfig, "jukto", "config.json");
 })();
 
 // Terminal sessions (managed by Rust PTY binary)
@@ -138,10 +138,10 @@ function debugWarn(message: string, ...args: unknown[]): void {
 }
 
 function printHelp(): void {
-  console.log(`Lunel CLI v${VERSION}
+  console.log(`Jukto CLI v${VERSION}
 
 Usage:
-  npx lunel-cli [options]
+  npx jukto-cli [options]
 
 Options:
   -h, --help         Show help
@@ -1522,17 +1522,17 @@ function normalizeJsonWithTrailingCommas(text: string): string {
   return text.replace(/,\s*([}\]])/g, "$1");
 }
 
-function getLunelConfigDir(): string {
+function getJuktoConfigDir(): string {
   const platform = os.platform();
   if (platform === "win32") {
     const appData = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
-    return path.join(appData, "lunel");
+    return path.join(appData, "jukto");
   }
   if (platform === "darwin") {
-    return path.join(os.homedir(), "Library", "Application Support", "lunel");
+    return path.join(os.homedir(), "Library", "Application Support", "jukto");
   }
   const xdg = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
-  return path.join(xdg, "lunel");
+  return path.join(xdg, "jukto");
 }
 
 function getPtyReleaseTarget(): { fileName: string; url: string } | null {
@@ -1542,7 +1542,7 @@ function getPtyReleaseTarget(): { fileName: string; url: string } | null {
 }
 
 function getPtyBinaryPath(fileName: string): string {
-  return path.join(getLunelConfigDir(), "pty-releases", fileName);
+  return path.join(getJuktoConfigDir(), "pty-releases", fileName);
 }
 
 async function downloadPtyBinary(url: string, destination: string): Promise<void> {
@@ -3383,7 +3383,7 @@ function displayQR(code: string): void {
     console.log(qr);
     console.log(`\n  Session code: ${code}\n`);
     console.log(`  Root directory: ${ROOT_DIR}\n`);
-    console.log("  Scan the QR code with the Lunel app to connect.");
+    console.log("  Scan the QR code with the Jukto app to connect.");
     console.log("  Press Ctrl+C to exit.\n");
   });
 }
@@ -3411,7 +3411,7 @@ function displaySavedSessionNotice(): void {
   const lines = [
     "NOTE: You're using an existing session.",
     "You can open it from the app via Past Sessions and select this session.",
-    "If you want a new QR code for pairing, run: npx lunel-cli -n",
+    "If you want a new QR code for pairing, run: npx jukto-cli -n",
   ];
   const width = Math.max(...lines.map((line) => line.length));
   const border = `+${"-".repeat(width + 2)}+`;
@@ -3602,7 +3602,7 @@ async function connectWebSocketV2(): Promise<void> {
           const reason = message.reason || "expired";
           console.log(`[session] closed by gateway: ${reason}`);
           if (reason === "session ended from app") {
-            console.log("[session] Run `npx lunel-cli` again and scan the new QR code to reconnect.");
+            console.log("[session] Run `npx jukto-cli` again and scan the new QR code to reconnect.");
           }
           gracefulShutdown();
         }
@@ -3671,7 +3671,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  console.log("Lunel CLI v" + VERSION);
+  console.log("Jukto CLI v" + VERSION);
   console.log("=".repeat(20) + "\n");
   if (EXTRA_PORTS.length > 0) {
     console.log(`Extra ports enabled: ${EXTRA_PORTS.join(", ")}`);

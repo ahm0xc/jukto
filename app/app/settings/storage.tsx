@@ -1,6 +1,6 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import Header, { useHeaderHeight } from "@/components/Header";
-import { lunelApi, StorageFileInfo } from "@/lib/storage";
+import { juktoApi, StorageFileInfo } from "@/lib/storage";
 import { ChevronRight, RefreshCw, AlertTriangle, FolderOpen, FileText, X, Trash } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -72,7 +72,7 @@ export default function StorageExplorerPage() {
   }, [selectedFile]);
 
   const loadFiles = useCallback(async () => {
-    const list = await lunelApi.storage.jsons.list();
+    const list = await juktoApi.storage.jsons.list();
     setFiles(list);
   }, []);
 
@@ -87,7 +87,7 @@ export default function StorageExplorerPage() {
   }, [loadFiles]);
 
   const openFile = async (name: string) => {
-    const data = await lunelApi.storage.jsons.read(name.replace('.json', ''));
+    const data = await juktoApi.storage.jsons.read(name.replace('.json', ''));
     setFileContent(JSON.stringify(data, null, 2));
     setSelectedFile(name);
   };
@@ -99,7 +99,7 @@ export default function StorageExplorerPage() {
 
   const deleteFile = async () => {
     if (!selectedFile) return;
-    await lunelApi.storage.jsons.delete(selectedFile.replace('.json', ''));
+    await juktoApi.storage.jsons.delete(selectedFile.replace('.json', ''));
     closeModal();
     loadFiles();
   };

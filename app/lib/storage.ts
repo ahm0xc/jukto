@@ -1,7 +1,7 @@
 import { File, Directory, Paths } from 'expo-file-system/next';
 
 // Base storage directory
-const STORAGE_DIR = new Directory(Paths.document, 'lunel-editor');
+const STORAGE_DIR = new Directory(Paths.document, 'jukto-editor');
 
 export interface StorageFileInfo {
   name: string;
@@ -84,14 +84,14 @@ class JsonStorage {
   }
 }
 
-class LunelStorage {
+class JuktoStorage {
   readonly jsons = new JsonStorage();
 }
 
 // Global singleton
-export const lunelStorage = new LunelStorage();
+export const juktoStorage = new JuktoStorage();
 
 // Also export as part of a larger API namespace for future expansion
-export const lunelApi = {
-  storage: lunelStorage,
+export const juktoApi = {
+  storage: juktoStorage,
 };

@@ -41,7 +41,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { typography } from '@/constants/themes';
 import { PluginPanelProps } from '../../types';
 import { gPI } from '../../gpi';
-import { lunelApi } from '@/lib/storage';
+import { juktoApi } from '@/lib/storage';
 
 const HISTORY_KEY = 'tool-history';
 
@@ -78,7 +78,7 @@ function ToolsPanel({ instanceId, isActive, bottomBarHeight }: PluginPanelProps)
 
   // Load recent tools on mount
   useEffect(() => {
-    lunelApi.storage.jsons.read<string[]>(HISTORY_KEY).then(data => {
+    juktoApi.storage.jsons.read<string[]>(HISTORY_KEY).then(data => {
       if (data) setRecentToolIds(data);
     });
   }, []);
@@ -88,7 +88,7 @@ function ToolsPanel({ instanceId, isActive, bottomBarHeight }: PluginPanelProps)
     setRecentToolIds(prev => {
       const filtered = prev.filter(id => id !== toolId);
       const updated = [toolId, ...filtered].slice(0, 5);
-      lunelApi.storage.jsons.write(HISTORY_KEY, updated);
+      juktoApi.storage.jsons.write(HISTORY_KEY, updated);
       return updated;
     });
   }, []);

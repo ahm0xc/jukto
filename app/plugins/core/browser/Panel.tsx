@@ -264,8 +264,8 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
 
   const devsoleConsoleBootstrapScript = `
     (function() {
-      if (window.__LUNEL_DEVSOLE_CONSOLE__) return;
-      window.__LUNEL_DEVSOLE_CONSOLE__ = true;
+      if (window.__JUKTO_DEVSOLE_CONSOLE__) return;
+      window.__JUKTO_DEVSOLE_CONSOLE__ = true;
 
       function post(payload) {
         try {
@@ -391,8 +391,8 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
 
   const devsoleNetworkBootstrapScript = `
     (function() {
-      if (window.__LUNEL_DEVSOLE_NETWORK__) return;
-      window.__LUNEL_DEVSOLE_NETWORK__ = true;
+      if (window.__JUKTO_DEVSOLE_NETWORK__) return;
+      window.__JUKTO_DEVSOLE_NETWORK__ = true;
 
       function post(payload) {
         try {
@@ -581,7 +581,7 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
 
   const devsoleElementsBootstrapScript = `
     (function() {
-      if (window.__LUNEL_DEVSOLE_ELEMENTS__) return;
+      if (window.__JUKTO_DEVSOLE_ELEMENTS__) return;
 
       function post(payload) {
         try {
@@ -872,7 +872,7 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
       function ensureInspectOverlay() {
         if (inspectOverlay && inspectOverlay.parentNode) return inspectOverlay;
         var overlay = document.createElement('div');
-        overlay.setAttribute('data-lunel-devsole-inspect', 'true');
+        overlay.setAttribute('data-jukto-devsole-inspect', 'true');
         overlay.style.position = 'fixed';
         overlay.style.pointerEvents = 'none';
         overlay.style.zIndex = '2147483647';
@@ -934,7 +934,7 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
         hideInspectOverlay();
       }
 
-      window.__LUNEL_DEVSOLE_ELEMENTS__ = {
+      window.__JUKTO_DEVSOLE_ELEMENTS__ = {
         requestSnapshot: function(path) {
           try {
             var node = getNodeByPath(path);
@@ -1186,7 +1186,7 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
 
   const devsoleResourcesBootstrapScript = `
     (function() {
-      if (window.__LUNEL_DEVSOLE_RESOURCES__) return;
+      if (window.__JUKTO_DEVSOLE_RESOURCES__) return;
 
       function post(payload) {
         try {
@@ -1251,7 +1251,7 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
         };
       }
 
-      window.__LUNEL_DEVSOLE_RESOURCES__ = {
+      window.__JUKTO_DEVSOLE_RESOURCES__ = {
         requestSnapshot: function() {
           try {
             post({
@@ -1345,7 +1345,7 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
 
   const devsoleInfoBootstrapScript = `
     (function() {
-      if (window.__LUNEL_DEVSOLE_INFO__) return;
+      if (window.__JUKTO_DEVSOLE_INFO__) return;
 
       function post(payload) {
         try {
@@ -1407,7 +1407,7 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
         };
       }
 
-      window.__LUNEL_DEVSOLE_INFO__ = {
+      window.__JUKTO_DEVSOLE_INFO__ = {
         requestSnapshot: function() {
           try {
             post({
@@ -1460,8 +1460,8 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
     webViewRefs.current[tabId]?.injectJavaScript(`
       (function() {
         try {
-          if (window.__LUNEL_DEVSOLE_ELEMENTS__) {
-            window.__LUNEL_DEVSOLE_ELEMENTS__.requestSnapshot(${JSON.stringify(path)});
+          if (window.__JUKTO_DEVSOLE_ELEMENTS__) {
+            window.__JUKTO_DEVSOLE_ELEMENTS__.requestSnapshot(${JSON.stringify(path)});
           }
         } catch (error) {}
       })();
@@ -1502,8 +1502,8 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
     webViewRefs.current[tabId]?.injectJavaScript(`
       (function() {
         try {
-          if (window.__LUNEL_DEVSOLE_ELEMENTS__) {
-            window.__LUNEL_DEVSOLE_ELEMENTS__.beginInspect();
+          if (window.__JUKTO_DEVSOLE_ELEMENTS__) {
+            window.__JUKTO_DEVSOLE_ELEMENTS__.beginInspect();
           }
         } catch (error) {}
       })();
@@ -1519,8 +1519,8 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
     webViewRefs.current[tabId]?.injectJavaScript(`
       (function() {
         try {
-          if (window.__LUNEL_DEVSOLE_ELEMENTS__) {
-            window.__LUNEL_DEVSOLE_ELEMENTS__.applyDeclaredStyles(
+          if (window.__JUKTO_DEVSOLE_ELEMENTS__) {
+            window.__JUKTO_DEVSOLE_ELEMENTS__.applyDeclaredStyles(
               ${JSON.stringify(path)},
               ${JSON.stringify(styles)}
             );
@@ -1535,8 +1535,8 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
     webViewRefs.current[tabId]?.injectJavaScript(`
       (function() {
         try {
-          if (window.__LUNEL_DEVSOLE_ELEMENTS__) {
-            window.__LUNEL_DEVSOLE_ELEMENTS__.setDirectTextContent(
+          if (window.__JUKTO_DEVSOLE_ELEMENTS__) {
+            window.__JUKTO_DEVSOLE_ELEMENTS__.setDirectTextContent(
               ${JSON.stringify(path)},
               ${JSON.stringify(value)}
             );
@@ -1555,8 +1555,8 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
     webViewRefs.current[tabId]?.injectJavaScript(`
       (function() {
         try {
-          if (window.__LUNEL_DEVSOLE_ELEMENTS__) {
-            window.__LUNEL_DEVSOLE_ELEMENTS__.applyAttributes(
+          if (window.__JUKTO_DEVSOLE_ELEMENTS__) {
+            window.__JUKTO_DEVSOLE_ELEMENTS__.applyAttributes(
               ${JSON.stringify(path)},
               ${JSON.stringify(attributes)}
             );
@@ -1571,8 +1571,8 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
     webViewRefs.current[tabId]?.injectJavaScript(`
       (function() {
         try {
-          if (window.__LUNEL_DEVSOLE_RESOURCES__) {
-            window.__LUNEL_DEVSOLE_RESOURCES__.requestSnapshot();
+          if (window.__JUKTO_DEVSOLE_RESOURCES__) {
+            window.__JUKTO_DEVSOLE_RESOURCES__.requestSnapshot();
           }
         } catch (error) {}
       })();
@@ -1589,8 +1589,8 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
     webViewRefs.current[tabId]?.injectJavaScript(`
       (function() {
         try {
-          if (window.__LUNEL_DEVSOLE_RESOURCES__) {
-            window.__LUNEL_DEVSOLE_RESOURCES__.setStorageItem(
+          if (window.__JUKTO_DEVSOLE_RESOURCES__) {
+            window.__JUKTO_DEVSOLE_RESOURCES__.setStorageItem(
               ${JSON.stringify(area)},
               ${JSON.stringify(key)},
               ${JSON.stringify(value)}
@@ -1610,8 +1610,8 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
     webViewRefs.current[tabId]?.injectJavaScript(`
       (function() {
         try {
-          if (window.__LUNEL_DEVSOLE_RESOURCES__) {
-            window.__LUNEL_DEVSOLE_RESOURCES__.removeStorageItem(
+          if (window.__JUKTO_DEVSOLE_RESOURCES__) {
+            window.__JUKTO_DEVSOLE_RESOURCES__.removeStorageItem(
               ${JSON.stringify(area)},
               ${JSON.stringify(key)}
             );
@@ -1629,8 +1629,8 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
     webViewRefs.current[tabId]?.injectJavaScript(`
       (function() {
         try {
-          if (window.__LUNEL_DEVSOLE_RESOURCES__) {
-            window.__LUNEL_DEVSOLE_RESOURCES__.clearStorageArea(
+          if (window.__JUKTO_DEVSOLE_RESOURCES__) {
+            window.__JUKTO_DEVSOLE_RESOURCES__.clearStorageArea(
               ${JSON.stringify(area)}
             );
           }
@@ -1644,8 +1644,8 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
     webViewRefs.current[tabId]?.injectJavaScript(`
       (function() {
         try {
-          if (window.__LUNEL_DEVSOLE_RESOURCES__) {
-            window.__LUNEL_DEVSOLE_RESOURCES__.setCookie(
+          if (window.__JUKTO_DEVSOLE_RESOURCES__) {
+            window.__JUKTO_DEVSOLE_RESOURCES__.setCookie(
               ${JSON.stringify(name)},
               ${JSON.stringify(value)}
             );
@@ -1660,8 +1660,8 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
     webViewRefs.current[tabId]?.injectJavaScript(`
       (function() {
         try {
-          if (window.__LUNEL_DEVSOLE_RESOURCES__) {
-            window.__LUNEL_DEVSOLE_RESOURCES__.removeCookie(
+          if (window.__JUKTO_DEVSOLE_RESOURCES__) {
+            window.__JUKTO_DEVSOLE_RESOURCES__.removeCookie(
               ${JSON.stringify(name)}
             );
           }
@@ -1675,8 +1675,8 @@ export default function BrowserPanel({ bottomBarHeight }: PluginPanelProps) {
     webViewRefs.current[tabId]?.injectJavaScript(`
       (function() {
         try {
-          if (window.__LUNEL_DEVSOLE_INFO__) {
-            window.__LUNEL_DEVSOLE_INFO__.requestSnapshot();
+          if (window.__JUKTO_DEVSOLE_INFO__) {
+            window.__JUKTO_DEVSOLE_INFO__.requestSnapshot();
           }
         } catch (error) {}
       })();

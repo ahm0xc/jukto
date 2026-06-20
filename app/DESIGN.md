@@ -1,6 +1,6 @@
-# Lunel Design System
+# Jukto Design System
 
-A minimal, borderless design system for the Lunel mobile code editor.
+A minimal, borderless design system for the Jukto mobile code editor.
 Inspired by [Uber's Base Design System](https://base.uber.com/).
 
 ---

@@ -1,30 +1,30 @@
-# Lunel CLI
+# Jukto CLI
 
-Node.js CLI that connects a local machine to the Lunel mobile app through the Lunel gateway. It runs from the project directory you want to expose and keeps filesystem, terminal, process, port, git, and AI actions scoped to that working tree.
+Node.js CLI that connects a local machine to the Jukto mobile app through the Jukto gateway. It runs from the project directory you want to expose and keeps filesystem, terminal, process, port, git, and AI actions scoped to that working tree.
 
 ## Requirements
 
 - Node.js 18 or newer
 - npm
-- Lunel mobile app for QR/session pairing
+- Jukto mobile app for QR/session pairing
 
 ## Usage
 
 Run the published package:
 
 ```bash
-npx lunel-cli
+npx jukto-cli
 ```
 
-The CLI prints a QR code and session details. Scan the QR code with the Lunel app to connect to the current working directory.
+The CLI prints a QR code and session details. Scan the QR code with the Jukto app to connect to the current working directory.
 
 Common options:
 
 ```bash
-npx lunel-cli --help
-npx lunel-cli --new
-npx lunel-cli --debug
-npx lunel-cli --extra-ports 3000,8080
+npx jukto-cli --help
+npx jukto-cli --new
+npx jukto-cli --debug
+npx jukto-cli --extra-ports 3000,8080
 ```
 
 Options:
@@ -34,39 +34,39 @@ Options:
 | `-h`, `--help` | Show CLI help |
 | `-n`, `--new` | Create a fresh session code instead of reusing the saved one |
 | `-d`, `--debug` | Enable verbose CLI and AI backend logs |
-| `--extra-ports` | Comma-separated local ports to expose through Lunel |
+| `--extra-ports` | Comma-separated local ports to expose through Jukto |
 
 ## Configuration
 
-By default, the CLI uses the public Lunel services:
+By default, the CLI uses the public Jukto services:
 
-- Gateway: `https://gateway.lunel.dev`
-- Manager: `https://manager.lunel.dev`
+- Gateway: `https://gateway.jukto.dev`
+- Manager: `https://manager.jukto.dev`
 
 Override them with environment variables when developing against local or custom infrastructure:
 
 ```bash
-LUNEL_PROXY_URL=http://localhost:3001 \
-LUNEL_MANAGER_URL=http://localhost:3002 \
-npx lunel-cli
+JUKTO_PROXY_URL=http://localhost:3001 \
+JUKTO_MANAGER_URL=http://localhost:3002 \
+npx jukto-cli
 ```
 
 Other useful environment variables:
 
 | Variable | Description |
 | --- | --- |
-| `LUNEL_PROXY_URL` | Gateway/proxy URL |
-| `LUNEL_MANAGER_URL` | Manager URL |
-| `LUNEL_DEBUG` | Set to `1` for debug logging |
-| `LUNEL_DEBUG_AI` | Set to `1` for AI backend debug logging |
+| `JUKTO_PROXY_URL` | Gateway/proxy URL |
+| `JUKTO_MANAGER_URL` | Manager URL |
+| `JUKTO_DEBUG` | Set to `1` for debug logging |
+| `JUKTO_DEBUG_AI` | Set to `1` for AI backend debug logging |
 | `NO_COLOR` | Disable colored terminal output |
 | `FORCE_COLOR` | Force colored terminal output |
 
-Session config is saved per project root in the OS-specific Lunel config directory:
+Session config is saved per project root in the OS-specific Jukto config directory:
 
-- macOS: `~/Library/Application Support/lunel/config.json`
-- Windows: `%APPDATA%\lunel\config.json`
-- Linux: `$XDG_CONFIG_HOME/lunel/config.json` or `~/.config/lunel/config.json`
+- macOS: `~/Library/Application Support/jukto/config.json`
+- Windows: `%APPDATA.\jukto\config.json`
+- Linux: `$XDG_CONFIG_HOME/jukto/config.json` or `~/.config/jukto/config.json`
 
 ## Development
 
@@ -102,7 +102,7 @@ src/
 
 ## Publishing
 
-The package is published as `lunel-cli`. `prepublishOnly` runs the production build before publishing.
+The package is published as `jukto-cli`. `prepublishOnly` runs the production build before publishing.
 
 ```bash
 npm publish

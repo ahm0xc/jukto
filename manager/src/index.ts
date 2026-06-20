@@ -13,8 +13,8 @@ const VM_HEARTBEAT_STALE_MS = 30_000; // 30 seconds before a VM is considered de
 const SAFETY_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 1 week
 const CONTROL_MAX_SIZE = 64 * 1024; // 64KB
 const ANALYTICS_INTERVAL_MS = 15_000;
-const MANAGER_ADMIN_TOKEN_AUDIENCE = "lunel-manager-admin";
-const MANAGER_ADMIN_TOKEN_ISSUER = "lunel-manager";
+const MANAGER_ADMIN_TOKEN_AUDIENCE = "jukto-manager-admin";
+const MANAGER_ADMIN_TOKEN_ISSUER = "jukto-manager";
 const MANAGER_ADMIN_TOKEN_TTL_S = 12 * 60 * 60;
 const STALE_GATEWAY_MS = 45_000; // 3 missed heartbeats at 15s interval; aligns with client retry budget
 const GATEWAY_EVENT_DEDUPE_MS = 10 * 60 * 1000;
@@ -1838,7 +1838,7 @@ function startManager(): void {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Lunel Manager</title>
+  <title>Jukto Manager</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -2198,7 +2198,7 @@ function startManager(): void {
 <body>
   <div id="loginOverlay">
     <div class="login-card">
-      <h2>Lunel Manager</h2>
+      <h2>Jukto Manager</h2>
       <p>Enter your admin password to continue.</p>
       <div id="loginError"></div>
       <input id="loginPw" type="password" class="input-app mb-3" placeholder="Admin password" autocomplete="current-password" />
@@ -2209,7 +2209,7 @@ function startManager(): void {
   <div class="shell">
     <div class="app-header">
       <div>
-        <h1>Lunel Manager</h1>
+        <h1>Jukto Manager</h1>
         <div class="sub">Proxy control plane</div>
       </div>
       <button id="signOutBtn" class="btn-app btn-app-ghost">Sign out</button>
@@ -2245,7 +2245,7 @@ function startManager(): void {
         </div>
         <div class="card-body border-bottom-line">
           <div class="proxy-form">
-            <input id="newUrl" class="input-app" placeholder="https://gateway-1.lunel.dev" />
+            <input id="newUrl" class="input-app" placeholder="https://gateway-1.jukto.dev" />
             <input id="newProxyPw" type="password" class="input-app" placeholder="Proxy password" />
             <button id="addBtn" class="btn-app btn-app-primary">Add Proxy</button>
           </div>
@@ -3656,7 +3656,7 @@ function startManager(): void {
                 }
                 const health = await healthRes.json() as { status?: string; mode?: string };
                 if (health.status !== "ok" || health.mode !== "gateway") {
-                  return Response.json({ error: "URL does not point to a lunel proxy" }, { status: 400, headers: corsHeaders });
+                  return Response.json({ error: "URL does not point to a jukto proxy" }, { status: 400, headers: corsHeaders });
                 }
               } catch {
                 return Response.json({ error: "could not reach proxy — check the URL and that the proxy is running" }, { status: 400, headers: corsHeaders });

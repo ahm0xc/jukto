@@ -19,7 +19,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useSessionRegistryActions } from '@/contexts/SessionRegistry';
 import { typography } from '@/constants/themes';
 import { PluginPanelProps } from '../../types';
-import { lunelApi } from '@/lib/storage';
+import { juktoApi } from '@/lib/storage';
 import { useApi, ApiError } from '@/hooks/useApi';
 
 const HISTORY_KEY = 'http-history';
@@ -62,12 +62,12 @@ interface HistoryItem {
 }
 
 async function loadHistory(): Promise<HistoryItem[]> {
-  const data = await lunelApi.storage.jsons.read<HistoryItem[]>(HISTORY_KEY);
+  const data = await juktoApi.storage.jsons.read<HistoryItem[]>(HISTORY_KEY);
   return data || [];
 }
 
 async function saveHistory(history: HistoryItem[]) {
-  await lunelApi.storage.jsons.write(HISTORY_KEY, history);
+  await juktoApi.storage.jsons.write(HISTORY_KEY, history);
 }
 
 const METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];

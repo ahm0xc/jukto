@@ -1,4 +1,4 @@
-// Lunel Design System - Theme Tokens
+// Jukto Design System - Theme Tokens
 // Based on DESIGN.md - "Depth Through Color, Not Lines"
 
 export type ThemeId =

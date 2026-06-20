@@ -512,7 +512,7 @@ function ExplorerPanel({ instanceId, isActive }: PluginPanelProps) {
       }
 
       const safeName = item.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const localUri = `${FileSystem.cacheDirectory}lunel-open-${Date.now()}-${safeName}`;
+      const localUri = `${FileSystem.cacheDirectory}jukto-open-${Date.now()}-${safeName}`;
       await FileSystem.writeAsStringAsync(localUri, result.content, {
         encoding: FileSystem.EncodingType.Base64,
       });

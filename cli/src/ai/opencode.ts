@@ -15,7 +15,7 @@ import type {
   ShareInfo,
 } from "./interface.js";
 
-const VERBOSE_AI_LOGS = process.env.LUNEL_DEBUG === "1" || process.env.LUNEL_DEBUG_AI === "1";
+const VERBOSE_AI_LOGS = process.env.JUKTO_DEBUG === "1" || process.env.JUKTO_DEBUG_AI === "1";
 
 const SSE_BACKOFF_INITIAL_MS = 500;
 const SSE_BACKOFF_CAP_MS = 30_000;
@@ -333,7 +333,7 @@ export class OpenCodeProvider implements AIProvider {
   }
 
   async init(): Promise<void> {
-    const opencodeUsername = "lunel";
+    const opencodeUsername = "jukto";
     const opencodePassword = crypto.randomBytes(32).toString("base64url");
     const authHeader = `Basic ${Buffer.from(`${opencodeUsername}:${opencodePassword}`).toString("base64")}`;
 

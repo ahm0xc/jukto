@@ -6,11 +6,11 @@ import { configureProxy, startPortServers, stopAllServers } from '@/lib/proxySer
 import { logger } from '@/lib/logger';
 import { V2SessionTransport } from '@/lib/transport/v2';
 
-const DEFAULT_GATEWAY = 'wss://gateway.lunel.dev';
-const MANAGER_URL = 'https://manager.lunel.dev';
-const LAST_SESSION_STORAGE_KEY = 'lunel_last_session';
-const LAST_SESSION_FALLBACK_STORAGE_KEY = '@lunel_last_session_fallback';
-const PAIRED_SESSIONS_STORAGE_KEY = 'lunel_paired_sessions';
+const DEFAULT_GATEWAY = 'wss://gateway.jukto.dev';
+const MANAGER_URL = 'https://manager.jukto.dev';
+const LAST_SESSION_STORAGE_KEY = 'jukto_last_session';
+const LAST_SESSION_FALLBACK_STORAGE_KEY = '@jukto_last_session_fallback';
+const PAIRED_SESSIONS_STORAGE_KEY = 'jukto_paired_sessions';
 
 // ============================================================================
 // Types
@@ -249,7 +249,7 @@ function parseConnectPayload(value: string): { code: string } {
     return { code };
   }
 
-  // Support URL payloads, e.g. lunel://connect?code=ABC or https://.../ABC
+  // Support URL payloads, e.g. jukto://connect?code=ABC or https://.../ABC
   try {
     const url = new URL(raw);
     const queryCode = url.searchParams.get('code')?.trim();

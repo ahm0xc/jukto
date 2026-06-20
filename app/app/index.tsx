@@ -7,7 +7,7 @@ export default function Index() {
   const [target, setTarget] = useState<"/onboarding" | "/auth" | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem("@lunel_onboarding_done").then((val) => {
+    AsyncStorage.getItem("@jukto_onboarding_done").then((val) => {
       setTarget(val === "true" ? "/auth" : "/onboarding");
     });
   }, []);

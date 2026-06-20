@@ -18,7 +18,7 @@ import { Message, useConnection } from "@/contexts/ConnectionContext";
 import type { AIEvent } from "@/plugins/core/ai/types";
 import { Linking, Platform } from "react-native";
 
-const REVIEW_PROMPT_STORAGE_KEY = "@lunel_review_prompt";
+const REVIEW_PROMPT_STORAGE_KEY = "@jukto_review_prompt";
 const REVIEW_TRIGGER_PROBABILITY = 0.2;
 const REVIEW_PROMPT_COOLDOWN_MS = 1000 * 60 * 60 * 24 * 14;
 const REVIEW_PROMPT_LIMIT = 3;

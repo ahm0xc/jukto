@@ -207,7 +207,7 @@ function createEditorHtml({
           window.ReactNativeWebView.postMessage(JSON.stringify({ type: type, value: value }));
         }
 
-        var editor = window.__lunelCreateCodeMirrorEditor({
+        var editor = window.__juktoCreateCodeMirrorEditor({
           parent: root,
           value: '',
           fileName: config.fileName,
@@ -230,27 +230,27 @@ function createEditorHtml({
           }
         });
 
-        window.__lunelSetValue = function (value) {
+        window.__juktoSetValue = function (value) {
           editor.setValue(value);
         };
 
-        window.__lunelSetFileName = function (fileName) {
+        window.__juktoSetFileName = function (fileName) {
           editor.setFileName(fileName);
         };
 
-        window.__lunelSetWrapLines = function (wrapLines) {
+        window.__juktoSetWrapLines = function (wrapLines) {
           editor.setWrapLines(!!wrapLines);
         };
 
-        window.__lunelSetReadOnly = function (nextReadOnly) {
+        window.__juktoSetReadOnly = function (nextReadOnly) {
           editor.setReadOnly(!!nextReadOnly);
         };
 
-        window.__lunelOpenSearch = function () {
+        window.__juktoOpenSearch = function () {
           editor.openSearch();
         };
 
-        window.__lunelCloseSearch = function () {
+        window.__juktoCloseSearch = function () {
           editor.closeSearch();
           postMessage('searchInfo', JSON.stringify({ current: 0, total: 0 }));
         };
@@ -260,36 +260,36 @@ function createEditorHtml({
           postMessage('searchInfo', JSON.stringify(info));
         }
 
-        window.__lunelSetSearchQuery = function (search, replace) {
+        window.__juktoSetSearchQuery = function (search, replace) {
           editor.setSearchQuery(search, replace);
           postSearchInfo();
         };
 
-        window.__lunelFindNext = function () {
+        window.__juktoFindNext = function () {
           editor.findNext();
           postSearchInfo();
         };
 
-        window.__lunelFindPrev = function () {
+        window.__juktoFindPrev = function () {
           editor.findPrev();
           postSearchInfo();
         };
 
-        window.__lunelReplaceNext = function () {
+        window.__juktoReplaceNext = function () {
           editor.replaceNext();
           postSearchInfo();
         };
 
-        window.__lunelReplaceAll = function () {
+        window.__juktoReplaceAll = function () {
           editor.replaceAll();
           postSearchInfo();
         };
 
-        window.__lunelFocusEditor = function () {
+        window.__juktoFocusEditor = function () {
           editor.focus();
         };
 
-        window.__lunelBlurEditor = function () {
+        window.__juktoBlurEditor = function () {
           editor.blur();
         };
 
@@ -635,10 +635,10 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
     const tab = tabsRef.current.find((candidate) => candidate.id === tabId);
     if (activeTabId === tabId && tab) {
       webViewRef.current?.injectJavaScript(`
-        window.__lunelSetValue && window.__lunelSetValue('${escapeForSingleQuotedJs(result.content)}');
-        window.__lunelSetFileName && window.__lunelSetFileName('${escapeForSingleQuotedJs(tab.path)}');
-        window.__lunelSetWrapLines && window.__lunelSetWrapLines(${config.wrapLines ? "true" : "false"});
-        window.__lunelSetReadOnly && window.__lunelSetReadOnly(${tab.isDeleted || !!tab.loadError ? "true" : "false"});
+        window.__juktoSetValue && window.__juktoSetValue('${escapeForSingleQuotedJs(result.content)}');
+        window.__juktoSetFileName && window.__juktoSetFileName('${escapeForSingleQuotedJs(tab.path)}');
+        window.__juktoSetWrapLines && window.__juktoSetWrapLines(${config.wrapLines ? "true" : "false"});
+        window.__juktoSetReadOnly && window.__juktoSetReadOnly(${tab.isDeleted || !!tab.loadError ? "true" : "false"});
         true;
       `);
     }
@@ -796,10 +796,10 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
 
   const syncWebViewState = useCallback((tabId: string, content: string, readOnly: boolean, fileName: string, wrapLines: boolean) => {
     webViewRef.current?.injectJavaScript(`
-      window.__lunelSetValue && window.__lunelSetValue('${escapeForSingleQuotedJs(content)}');
-      window.__lunelSetFileName && window.__lunelSetFileName('${escapeForSingleQuotedJs(fileName)}');
-      window.__lunelSetWrapLines && window.__lunelSetWrapLines(${wrapLines ? "true" : "false"});
-      window.__lunelSetReadOnly && window.__lunelSetReadOnly(${readOnly ? "true" : "false"});
+      window.__juktoSetValue && window.__juktoSetValue('${escapeForSingleQuotedJs(content)}');
+      window.__juktoSetFileName && window.__juktoSetFileName('${escapeForSingleQuotedJs(fileName)}');
+      window.__juktoSetWrapLines && window.__juktoSetWrapLines(${wrapLines ? "true" : "false"});
+      window.__juktoSetReadOnly && window.__juktoSetReadOnly(${readOnly ? "true" : "false"});
       true;
     `);
     webViewContentRef.current[tabId] = content;
@@ -857,9 +857,9 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
     const currentWebValue = webViewContentRef.current[activeTabId];
     if (currentWebValue === activeTabContent && webViewRef.current) {
       webViewRef.current.injectJavaScript(`
-        window.__lunelSetFileName && window.__lunelSetFileName('${escapeForSingleQuotedJs(activeTabPath)}');
-        window.__lunelSetWrapLines && window.__lunelSetWrapLines(${config.wrapLines ? "true" : "false"});
-        window.__lunelSetReadOnly && window.__lunelSetReadOnly(${activeTabIsDeleted || activeTabHasLoadError ? "true" : "false"});
+        window.__juktoSetFileName && window.__juktoSetFileName('${escapeForSingleQuotedJs(activeTabPath)}');
+        window.__juktoSetWrapLines && window.__juktoSetWrapLines(${config.wrapLines ? "true" : "false"});
+        window.__juktoSetReadOnly && window.__juktoSetReadOnly(${activeTabIsDeleted || activeTabHasLoadError ? "true" : "false"});
         true;
       `);
       return;
@@ -926,7 +926,7 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
 
   const openSearchPanel = useCallback(() => {
     webViewRef.current?.injectJavaScript(`
-      window.__lunelOpenSearch && window.__lunelOpenSearch();
+      window.__juktoOpenSearch && window.__juktoOpenSearch();
       true;
     `);
     setIsSearchOpen(true);
@@ -934,7 +934,7 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
 
   const closeSearchPanel = useCallback(() => {
     webViewRef.current?.injectJavaScript(`
-      window.__lunelCloseSearch && window.__lunelCloseSearch();
+      window.__juktoCloseSearch && window.__juktoCloseSearch();
       true;
     `);
     setIsSearchOpen(false);
@@ -947,7 +947,7 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
   const handleSearchQueryChange = useCallback((text: string) => {
     setSearchQuery(text);
     webViewRef.current?.injectJavaScript(`
-      window.__lunelSetSearchQuery && window.__lunelSetSearchQuery('${escapeForSingleQuotedJs(text)}', '${escapeForSingleQuotedJs(replaceQuery)}');
+      window.__juktoSetSearchQuery && window.__juktoSetSearchQuery('${escapeForSingleQuotedJs(text)}', '${escapeForSingleQuotedJs(replaceQuery)}');
       true;
     `);
   }, [replaceQuery]);
@@ -955,35 +955,35 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
   const handleReplaceQueryChange = useCallback((text: string) => {
     setReplaceQuery(text);
     webViewRef.current?.injectJavaScript(`
-      window.__lunelSetSearchQuery && window.__lunelSetSearchQuery('${escapeForSingleQuotedJs(searchQuery)}', '${escapeForSingleQuotedJs(text)}');
+      window.__juktoSetSearchQuery && window.__juktoSetSearchQuery('${escapeForSingleQuotedJs(searchQuery)}', '${escapeForSingleQuotedJs(text)}');
       true;
     `);
   }, [searchQuery]);
 
   const handleFindNext = useCallback(() => {
     webViewRef.current?.injectJavaScript(`
-      window.__lunelFindNext && window.__lunelFindNext();
+      window.__juktoFindNext && window.__juktoFindNext();
       true;
     `);
   }, []);
 
   const handleFindPrev = useCallback(() => {
     webViewRef.current?.injectJavaScript(`
-      window.__lunelFindPrev && window.__lunelFindPrev();
+      window.__juktoFindPrev && window.__juktoFindPrev();
       true;
     `);
   }, []);
 
   const handleReplaceNext = useCallback(() => {
     webViewRef.current?.injectJavaScript(`
-      window.__lunelReplaceNext && window.__lunelReplaceNext();
+      window.__juktoReplaceNext && window.__juktoReplaceNext();
       true;
     `);
   }, []);
 
   const handleReplaceAll = useCallback(() => {
     webViewRef.current?.injectJavaScript(`
-      window.__lunelReplaceAll && window.__lunelReplaceAll();
+      window.__juktoReplaceAll && window.__juktoReplaceAll();
       true;
     `);
   }, []);
@@ -992,7 +992,7 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (isKeyboardVisible) {
       webViewRef.current?.injectJavaScript(`
-        window.__lunelBlurEditor && window.__lunelBlurEditor();
+        window.__juktoBlurEditor && window.__juktoBlurEditor();
         true;
       `);
       Keyboard.dismiss();
@@ -1000,7 +1000,7 @@ export default function EditorPanel({ bottomBarHeight: _bottomBarHeight }: Plugi
     }
 
     webViewRef.current?.injectJavaScript(`
-      window.__lunelFocusEditor && window.__lunelFocusEditor();
+      window.__juktoFocusEditor && window.__juktoFocusEditor();
       true;
     `);
   }, [isKeyboardVisible]);

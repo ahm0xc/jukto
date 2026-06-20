@@ -1,12 +1,12 @@
-# Lunel App - Performance Optimization Context
+# Jukto App - Performance Optimization Context
 
 ## Project Overview
-Lunel is a React Native/Expo mobile IDE that connects to developer machines via WebSocket proxy. It has a plugin-based architecture with a bottom navigation bar.
+Jukto is a React Native/Expo mobile IDE that connects to developer machines via WebSocket proxy. It has a plugin-based architecture with a bottom navigation bar.
 
 **Key directories:**
-- `/Users/soham/lunel/lunel` - Main React Native app
-- `/Users/soham/lunel/lunel-cli` - Node.js CLI (runs on dev machine)
-- `/Users/soham/lunel/lunel-proxy` - Bun WebSocket relay server
+- `/Users/soham/jukto/jukto` - Main React Native app
+- `/Users/soham/jukto/jukto-cli` - Node.js CLI (runs on dev machine)
+- `/Users/soham/jukto/jukto-proxy` - Bun WebSocket relay server
 
 ## What Was Already Done
 
@@ -29,7 +29,7 @@ Lunel is a React Native/Expo mobile IDE that connects to developer machines via 
 
 ### 4. Other Fixes
 - ✅ Fixed proxy session locking bug (app couldn't connect both channels)
-- ✅ Updated proxy URL to `gateway.lunel.dev`
+- ✅ Updated proxy URL to `gateway.jukto.dev`
 - ✅ Fixed TypeScript errors (`accent.primary` → `accent.default`, etc.)
 - ✅ Fixed duplicate key error in Ports plugin
 

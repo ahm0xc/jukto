@@ -286,7 +286,7 @@ export class V2SessionTransport {
 
     const keyPair = this.ensureKeyPair();
     const hello: V2HandshakeFrame = {
-      t: 'lunel_v2',
+      t: 'jukto_v2',
       kind: 'client_hello',
       pubkey: sodium.to_base64(keyPair.publicKey, sodium.base64_variants.URLSAFE_NO_PADDING),
     };
@@ -303,7 +303,7 @@ export class V2SessionTransport {
       this.remotePublicKey = sodium.from_base64(frame.pubkey, sodium.base64_variants.URLSAFE_NO_PADDING);
       const keyPair = this.ensureKeyPair();
       const response: V2HandshakeFrame = {
-        t: 'lunel_v2',
+        t: 'jukto_v2',
         kind: 'server_hello',
         pubkey: sodium.to_base64(keyPair.publicKey, sodium.base64_variants.URLSAFE_NO_PADDING),
       };
@@ -340,7 +340,7 @@ export class V2SessionTransport {
 
       this.sessionKeys = { rx: s2cKey, tx: c2sKey };
       this.sendJsonFrame({
-        t: 'lunel_v2',
+        t: 'jukto_v2',
         kind: 'client_key',
         nonce: sodium.to_base64(nonce, sodium.base64_variants.URLSAFE_NO_PADDING),
         box: sodium.to_base64(boxed, sodium.base64_variants.URLSAFE_NO_PADDING),
@@ -382,7 +382,7 @@ export class V2SessionTransport {
         tx: sodium.from_base64(payload.s2c, sodium.base64_variants.URLSAFE_NO_PADDING),
       };
       this.sendJsonFrame({
-        t: 'lunel_v2',
+        t: 'jukto_v2',
         kind: 'server_ready',
         auth: this.computeHandshakeAuth(
           'server_ready',

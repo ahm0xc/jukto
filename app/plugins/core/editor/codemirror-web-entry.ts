@@ -78,7 +78,7 @@ interface CreateEditorOptions {
 
 declare global {
   interface Window {
-    __lunelCreateCodeMirrorEditor?: (options: CreateEditorOptions) => {
+    __juktoCreateCodeMirrorEditor?: (options: CreateEditorOptions) => {
       getValue: () => string;
       setValue: (value: string) => void;
       setFileName: (fileName: string) => void;
@@ -461,7 +461,7 @@ function createTheme(options: CreateEditorOptions) {
   });
 }
 
-window.__lunelCreateCodeMirrorEditor = function createCodeMirrorEditor(options: CreateEditorOptions) {
+window.__juktoCreateCodeMirrorEditor = function createCodeMirrorEditor(options: CreateEditorOptions) {
   const editableCompartment = new Compartment();
   const languageCompartment = new Compartment();
   const readOnlyCompartment = new Compartment();

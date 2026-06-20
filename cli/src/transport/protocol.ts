@@ -45,24 +45,24 @@ export interface SystemMessage {
 
 export type V2HandshakeFrame =
   | {
-      t: "lunel_v2";
+      t: "jukto_v2";
       kind: "client_hello";
       pubkey: string;
     }
   | {
-      t: "lunel_v2";
+      t: "jukto_v2";
       kind: "server_hello";
       pubkey: string;
     }
   | {
-      t: "lunel_v2";
+      t: "jukto_v2";
       kind: "client_key";
       nonce: string;
       box: string;
       auth: string;
     }
   | {
-      t: "lunel_v2";
+      t: "jukto_v2";
       kind: "server_ready";
       auth: string;
     };
@@ -108,7 +108,7 @@ export function isProtocolResponse(value: unknown): value is Response {
 export function isV2HandshakeFrame(value: unknown): value is V2HandshakeFrame {
   if (!value || typeof value !== "object") return false;
   const frame = value as Partial<V2HandshakeFrame>;
-  if (frame.t !== "lunel_v2" || typeof frame.kind !== "string") return false;
+  if (frame.t !== "jukto_v2" || typeof frame.kind !== "string") return false;
   if (frame.kind === "client_hello") return typeof frame.pubkey === "string";
   if (frame.kind === "server_hello") return typeof frame.pubkey === "string";
   if (frame.kind === "client_key") {

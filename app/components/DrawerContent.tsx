@@ -749,7 +749,7 @@ export default function DrawerContent(props: DrawerContentComponentProps) {
               </View>
               <View style={{ justifyContent: 'center' }}>
                 <Text style={{ fontSize: 20, fontFamily: 'PublicSans_700Bold', color: colors.fg.default, lineHeight: 26 }}>
-                  Lunel
+                  Jukto
                 </Text>
                 <Text style={{ fontSize: 12, fontFamily: fonts.sans.regular, color: colors.fg.subtle, lineHeight: 17 }}>
                   {t('auth.tagline')}

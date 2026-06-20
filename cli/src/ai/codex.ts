@@ -1,5 +1,5 @@
 // Codex AI provider — spawns `codex app-server` and speaks JSON-RPC 2.0
-// over stdin/stdout. Maps Codex's thread/turn model onto Lunel's AIProvider
+// over stdin/stdout. Maps Codex's thread/turn model onto Jukto's AIProvider
 // contract using the same thread/list + thread/read flow used by Remodex.
 
 import * as crypto from "crypto";
@@ -97,7 +97,7 @@ const CODEX_AGENTS = [
     description: "Plan-first Codex collaboration mode.",
   },
 ] as const;
-const DEBUG_MODE = process.env.LUNEL_DEBUG === "1" || process.env.LUNEL_DEBUG_AI === "1";
+const DEBUG_MODE = process.env.JUKTO_DEBUG === "1" || process.env.JUKTO_DEBUG_AI === "1";
 
 function joinStreamingText(previousText: string, nextChunk: string): string {
   if (!previousText) {
@@ -180,7 +180,7 @@ export class CodexProvider implements AIProvider {
     });
 
     await this.call("initialize", {
-      clientInfo: { name: "lunel", version: "1.0" },
+      clientInfo: { name: "jukto", version: "1.0" },
       capabilities: {
         experimentalApi: true,
       },
@@ -495,19 +495,19 @@ export class CodexProvider implements AIProvider {
   }
 
   async setAuth(providerId: string, key: string): Promise<Record<string, never>> {
-    throw new Error("Codex auth configuration is not supported by Lunel yet");
+    throw new Error("Codex auth configuration is not supported by Jukto yet");
   }
 
   async command(sessionId: string, command: string, args: string): Promise<{ result: unknown }> {
-    throw new Error("Codex command execution is not supported by Lunel yet");
+    throw new Error("Codex command execution is not supported by Jukto yet");
   }
 
   async revert(sessionId: string, messageId: string): Promise<Record<string, never>> {
-    throw new Error("Codex revert is not supported by Lunel yet");
+    throw new Error("Codex revert is not supported by Jukto yet");
   }
 
   async unrevert(sessionId: string): Promise<Record<string, never>> {
-    throw new Error("Codex unrevert is not supported by Lunel yet");
+    throw new Error("Codex unrevert is not supported by Jukto yet");
   }
 
   async share(sessionId: string): Promise<{ share: ShareInfo }> {

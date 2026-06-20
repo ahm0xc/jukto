@@ -26,7 +26,7 @@ import tw from './locales/tw.json';
 import ms from './locales/ms.json';
 import esMX from './locales/es-MX.json';
 
-export const LANGUAGE_KEY = '@lunel_language';
+export const LANGUAGE_KEY = '@jukto_language';
 export const SUPPORTED_LANGUAGES = [
   'en',
   'zh',

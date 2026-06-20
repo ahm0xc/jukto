@@ -30,7 +30,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePlugins } from "@/plugins";
 import { useTranslation } from "react-i18next";
 
-const WORKSPACE_STORAGE_KEY = "@lunel_workspace";
+const WORKSPACE_STORAGE_KEY = "@jukto_workspace";
 
 interface PluginBottomBarProps {
   openTab: (pluginId: string) => string;

@@ -1,9 +1,9 @@
 <div align="center">
-  <a href="https://lunel.dev">
+  <a href="https://jukto.dev">
     <picture>
-      <source srcset="https://lunel.dev/img/github/github-main-dark.png" media="(prefers-color-scheme: dark)" width="600">
-      <source srcset="https://lunel.dev/img/github/github-main-light.png" media="(prefers-color-scheme: light)" width="600">
-      <img src="https://lunel.dev/img/github/github-main-dark.png" alt="Lunel">
+      <source srcset="https://jukto.dev/img/github/github-main-dark.png" media="(prefers-color-scheme: dark)" width="600">
+      <source srcset="https://jukto.dev/img/github/github-main-light.png" media="(prefers-color-scheme: light)" width="600">
+      <img src="https://jukto.dev/img/github/github-main-dark.png" alt="Jukto">
     </picture>
   </a>
 </div><br />
@@ -14,7 +14,7 @@
 | Directory | Description |
 |-----------|-------------|
 | `app/` | Expo/React Native mobile app |
-| `cli/` | CLI tool (`lunel-cli`) |
+| `cli/` | CLI tool (`jukto-cli`) |
 | `manager/` | Manager server |
 | `proxy/` | Proxy server |
 | `pty/` | Rust PTY binary uses wezterm internal libs for rendering |
@@ -25,8 +25,8 @@
 
 This can be used in two ways, both are for coding:
 
-- Lunel Connect: One is when you want to remotely use pc without dealing with ssh and shit, geared towards coding
-- Lunel Cloud: Coming soon
+- Jukto Connect: One is when you want to remotely use pc without dealing with ssh and shit, geared towards coding
+- Jukto Cloud: Coming soon
 
 <br /> 
 
@@ -47,7 +47,7 @@ Mobile app for iOS/Android/Web built with Expo. App is just a dumb client with m
 
 ## CLI
 
-Node.js CLI that bridges your local machine to the app via WebSocket. Can be ran using `npx lunel-cli`
+Node.js CLI that bridges your local machine to the app via WebSocket. Can be ran using `npx jukto-cli`
 
 - Filesystem operations (read, write, grep, etc.)
 - Git commands (status, commit, push, pull, etc.)
@@ -57,14 +57,14 @@ Node.js CLI that bridges your local machine to the app via WebSocket. Can be ran
 - System monitoring (CPU, memory, disk, battery)
 
 ```bash
-npx lunel-cli
+npx jukto-cli
 ```
 
 <br />
 
 ## Manager and Proxy
 
-Bun-based WebSocket relay server that connects CLI and app using session codes. Public verion deployed on gateway.lunel.dev
+Bun-based WebSocket relay server that connects CLI and app using session codes. Public verion deployed on gateway.jukto.dev
 
 - Session management with 10-min TTL
 - Dual-channel architecture (control + data)
@@ -91,10 +91,10 @@ MIT: See [LICENSE](LICENSE) for details.
 
 ## Star History
 
-<a href="https://www.star-history.com/#lunel-dev/lunel&Timeline">
+<a href="https://www.star-history.com/#jukto-dev/jukto&Timeline">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=lunel-dev/lunel&type=Timeline&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=lunel-dev/lunel&type=Timeline" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=lunel-dev/lunel&type=Timeline" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=jukto-dev/jukto&type=Timeline&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=jukto-dev/jukto&type=Timeline" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=jukto-dev/jukto&type=Timeline" />
  </picture>
 </a>

@@ -5,7 +5,7 @@
 import type { AIProvider, AiEvent, AiEventEmitter, ModelSelector, FileAttachment, CodexPromptOptions } from "./interface.js";
 
 export type AiBackend = "opencode" | "codex";
-const DEBUG_MODE = process.env.LUNEL_DEBUG === "1" || process.env.LUNEL_DEBUG_AI === "1";
+const DEBUG_MODE = process.env.JUKTO_DEBUG === "1" || process.env.JUKTO_DEBUG_AI === "1";
 
 export class AiManager {
   private _providers: Partial<Record<AiBackend, AIProvider>> = {};

@@ -16,9 +16,9 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import Svg, { Path } from "react-native-svg";
 
 const TABLET_BREAKPOINT = 768;
-const TERMS_URL = "https://app.lunel.dev/terms";
-const PRIVACY_URL = "https://app.lunel.dev/privacy";
-const UPDATE_CHECK_URL = "https://internal-api.lunel.dev/updateNeeded?version=1.0.1";
+const TERMS_URL = "https://app.jukto.dev/terms";
+const PRIVACY_URL = "https://app.jukto.dev/privacy";
+const UPDATE_CHECK_URL = "https://internal-api.jukto.dev/updateNeeded?version=1.0.1";
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const LOGO_SOURCE_DARK = require("@/assets/images/icon-bg.png");
 const LOGO_SOURCE_LIGHT = require("@/assets/images/icon-bg-light.png");
@@ -559,7 +559,7 @@ export default function Auth() {
         <View style={styles.actionsSection}>
           <View style={styles.buttons}>
             <TouchableOpacity
-              onPress={() => router.push("/lunel-connect")}
+              onPress={() => router.push("/jukto-connect")}
               activeOpacity={0.75}
               style={[styles.btn, { backgroundColor: colors.fg.default, borderColor: colors.fg.default, borderRadius: ctaRadius }]}
             >

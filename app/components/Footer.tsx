@@ -12,7 +12,7 @@ export function Footer() {
   const { fonts } = useTheme();
   const { t } = useTranslation();
   const handleVersionPress = () => {
-    Linking.openURL("https://github.com/lunel-dev");
+    Linking.openURL("https://github.com/jukto-dev");
   };
 
   const handleSupportPress = () => {

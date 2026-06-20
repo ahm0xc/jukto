@@ -31,8 +31,8 @@ import React, {
 } from "react";
 import { useColorScheme } from "react-native";
 
-const THEME_STORAGE_KEY = "@lunel_theme";
-const FONTS_STORAGE_KEY = "@lunel_fonts";
+const THEME_STORAGE_KEY = "@jukto_theme";
+const FONTS_STORAGE_KEY = "@jukto_fonts";
 
 interface ThemeContextType {
   // Theme selection

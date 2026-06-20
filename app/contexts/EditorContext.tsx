@@ -8,7 +8,7 @@ import React, {
   useState,
 } from "react";
 
-const EDITOR_CONFIG_STORAGE_KEY = "@lunel_editor_config";
+const EDITOR_CONFIG_STORAGE_KEY = "@jukto_editor_config";
 
 interface EditorContextType {
   config: EditorConfig;

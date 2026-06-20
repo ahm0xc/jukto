@@ -7,7 +7,7 @@ import React, {
   useState,
 } from "react";
 
-const APP_SETTINGS_STORAGE_KEY = "@lunel_app_settings";
+const APP_SETTINGS_STORAGE_KEY = "@jukto_app_settings";
 
 interface AppSettings {
   keepAwakeEnabled: boolean;

@@ -33,7 +33,7 @@ yarn-error.*
 
 # local env files
 .env*.local
-.env.hotupdater
+
 *-firebase-adminsdk-*.json
 
 # typescript
@@ -44,5 +44,4 @@ app-example
 # generated native folders
 /ios
 /android
-# hot-updater
-.hot-updater/output
+

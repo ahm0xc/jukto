@@ -1,20 +1,15 @@
 {
-  "name": "lunel-cli",
-  "version": "0.1.122",
-  "author": [
-    {
-      "name": "Soham Bharambe",
-      "email": "soham@lunel.dev"
-    },
-    {
-      "name": "Rinkit Adhana",
-      "email": "rinkit@lunel.dev"
-    }
-  ],
+  "name": "jukto-cli",
+  "version": "0.1.0",
+  "author": {
+    "name": "Saif Ahmed",
+    "email": "codingwebsa@gmail.com",
+    "username": "ahm0xc"
+  },
   "license": "MIT",
   "type": "module",
   "bin": {
-    "lunel-cli": "dist/index.js"
+    "jukto-cli": "dist/index.js"
   },
   "files": [
     "dist",

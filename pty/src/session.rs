@@ -24,9 +24,9 @@ impl Write for PtyResponseWriter {
 }
 
 #[derive(Debug)]
-struct LunelTermConfig;
+struct JuktoTermConfig;
 
-impl TerminalConfiguration for LunelTermConfig {
+impl TerminalConfiguration for JuktoTermConfig {
     fn scrollback_size(&self) -> usize {
         1000
     }
@@ -182,8 +182,8 @@ impl TerminalSession {
                 pixel_height: 0,
                 dpi: 0,
             },
-            Arc::new(LunelTermConfig),
-            "lunel-pty",
+            Arc::new(JuktoTermConfig),
+            "jukto-pty",
             "0.1.0",
             Box::new(PtyResponseWriter(Arc::clone(&writer_arc))),
         )));
