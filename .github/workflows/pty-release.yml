@@ -55,12 +55,10 @@ jobs:
           path: artifacts
 
       - name: Upload to GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create v0 --repo ${{ github.repository }} \
-            --title "PTY Binaries" \
-            --notes "Auto-built from main" \
-            artifacts/*/* || true
-          gh release upload v0 --repo ${{ github.repository }} \
-            artifacts/*/* --clobber
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0
+          name: PTY Binaries
+          body: Auto-built from main
+          files: artifacts/*/*
+          fail_on_unmatched: false
