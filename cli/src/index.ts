@@ -20,10 +20,10 @@ import { createServer, createConnection, Socket } from "net";
 import { createInterface } from "readline";
 
 const DEFAULT_PROXY_URL = normalizeGatewayUrl(
-  process.env.JUKTO_PROXY_URL || "https://gateway.jukto.dev", // TODO: check if it's proxy of gateway
+  process.env.JUKTO_PROXY_URL || "https://proxy.jukto.pw", // TODO: check if it's proxy of gateway
 );
 const MANAGER_URL = normalizeGatewayUrl(
-  process.env.JUKTO_MANAGER_URL || "https://manager.jukto.dev",
+  process.env.JUKTO_MANAGER_URL || "https://manager.jukto.pw",
 );
 const CLI_ARGS = process.argv.slice(2);
 function hasAnyFlag(args: string[], ...flags: string[]): boolean {
