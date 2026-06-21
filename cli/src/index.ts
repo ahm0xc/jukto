@@ -19,8 +19,12 @@ import { spawn, spawnSync, ChildProcess, execSync } from "child_process";
 import { createServer, createConnection, Socket } from "net";
 import { createInterface } from "readline";
 
-const DEFAULT_PROXY_URL = normalizeGatewayUrl(process.env.JUKTO_PROXY_URL || "https://gateway.jukto.pw");
-const MANAGER_URL = normalizeGatewayUrl(process.env.JUKTO_MANAGER_URL || "https://manager.jukto.pw");
+const DEFAULT_PROXY_URL = normalizeGatewayUrl(
+  process.env.JUKTO_PROXY_URL || "https://gateway.jukto.pw",
+);
+const MANAGER_URL = normalizeGatewayUrl(
+  process.env.JUKTO_MANAGER_URL || "https://manager.jukto.pw",
+);
 const CLI_ARGS = process.argv.slice(2);
 function hasAnyFlag(args: string[], ...flags: string[]): boolean {
   return flags.some((flag) => args.includes(flag));
@@ -35,7 +39,8 @@ import { createRequire } from "module";
 const __require = createRequire(import.meta.url);
 const VERSION = (__require("../package.json") as { version: string }).version;
 const VERBOSE_AI_LOGS = process.env.JUKTO_DEBUG_AI === "1";
-const PTY_RELEASE_BASE_URL = "https://github.com/ahm0xc/jukto/releases/download/v0";
+const PTY_RELEASE_BASE_URL =
+  "https://github.com/ahm0xc/jukto/releases/download/v0";
 const AI_RUNTIME_INSTALL_CANDIDATES: Record<AiBackend, string[]> = {
   opencode: ["opencode-ai", "@opencode-ai/cli", "opencode"],
   codex: ["@openai/codex", "codex"],
@@ -65,13 +70,21 @@ const ROOT_DIR = (() => {
 })();
 const CLI_CONFIG_PATH = (() => {
   if (process.platform === "darwin") {
-    return path.join(os.homedir(), "Library", "Application Support", "jukto", "config.json");
+    return path.join(
+      os.homedir(),
+      "Library",
+      "Application Support",
+      "jukto",
+      "config.json",
+    );
   }
   if (process.platform === "win32") {
-    const appData = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
+    const appData =
+      process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
     return path.join(appData, "jukto", "config.json");
   }
-  const xdgConfig = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
+  const xdgConfig =
+    process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
   return path.join(xdgConfig, "jukto", "config.json");
 })();
 
@@ -80,7 +93,10 @@ const terminals = new Set<string>();
 
 // PTY binary process
 let ptyProcess: ChildProcess | null = null;
-const ptyPendingSpawns = new Map<string, { resolve: () => void; reject: (err: Error) => void }>();
+const ptyPendingSpawns = new Map<
+  string,
+  { resolve: () => void; reject: (err: Error) => void }
+>();
 
 function getDefaultTerminalShell(): string {
   if (process.platform === "win32") {
@@ -120,7 +136,11 @@ const trackedEditorFiles = new Map<string, TrackedEditorFile>();
 const trackedEditorDirectories = new Map<string, TrackedEditorDirectory>();
 const pendingTrackedFileChecks = new Set<string>();
 
-function logWithTimestamp(scope: string, message: string, fields?: Record<string, unknown>): void {
+function logWithTimestamp(
+  scope: string,
+  message: string,
+  fields?: Record<string, unknown>,
+): void {
   if (!DEBUG_MODE) return;
   const timestamp = new Date().toISOString();
   const suffix = fields ? ` ${JSON.stringify(fields)}` : "";
@@ -187,13 +207,26 @@ interface ProxyControlFrame {
 function redactSensitive(input: unknown): string {
   const text = typeof input === "string" ? input : JSON.stringify(input);
   return text
-    .replace(/([A-Za-z0-9\-_]{20,}\.[A-Za-z0-9\-_]{20,}\.[A-Za-z0-9\-_]{20,})/g, "[redacted_jwt]")
-    .replace(/(password|token|authorization|resumeToken|x-manager-password)\s*[:=]\s*["']?[^"',\s}]+/gi, "$1=[redacted]")
+    .replace(
+      /([A-Za-z0-9\-_]{20,}\.[A-Za-z0-9\-_]{20,}\.[A-Za-z0-9\-_]{20,})/g,
+      "[redacted_jwt]",
+    )
+    .replace(
+      /(password|token|authorization|resumeToken|x-manager-password)\s*[:=]\s*["']?[^"',\s}]+/gi,
+      "$1=[redacted]",
+    )
     .replace(/[A-Za-z0-9+/=_-]{40,}/g, "[redacted_secret]");
 }
 
-function parseProxyControlFrame(raw: WebSocket.RawData): ProxyControlFrame | null {
-  const text = typeof raw === "string" ? raw : Buffer.isBuffer(raw) ? raw.toString("utf-8") : null;
+function parseProxyControlFrame(
+  raw: WebSocket.RawData,
+): ProxyControlFrame | null {
+  const text =
+    typeof raw === "string"
+      ? raw
+      : Buffer.isBuffer(raw)
+        ? raw.toString("utf-8")
+        : null;
   if (!text) return null;
   try {
     const parsed = JSON.parse(text) as Partial<ProxyControlFrame>;
@@ -210,7 +243,11 @@ function parseProxyControlFrame(raw: WebSocket.RawData): ProxyControlFrame | nul
   }
 }
 
-function sendProxyControl(tunnel: ActiveTunnel, action: ProxyControlAction, reason?: string): void {
+function sendProxyControl(
+  tunnel: ActiveTunnel,
+  action: ProxyControlAction,
+  reason?: string,
+): void {
   if (tunnel.proxyWs.readyState !== WebSocket.OPEN) return;
   const frame: ProxyControlFrame = { v: 1, t: "proxy_ctrl", action, reason };
   tunnel.proxyWs.send(JSON.stringify(frame));
@@ -230,7 +267,10 @@ function maybeFinalizeTunnel(tunnelId: string): void {
     if (!current.tcpSocket.destroyed) {
       current.tcpSocket.destroy();
     }
-    if (current.proxyWs.readyState === WebSocket.OPEN || current.proxyWs.readyState === WebSocket.CONNECTING) {
+    if (
+      current.proxyWs.readyState === WebSocket.OPEN ||
+      current.proxyWs.readyState === WebSocket.CONNECTING
+    ) {
       current.proxyWs.close();
     }
   }, PROXY_TUNNEL_LINGER_MS);
@@ -363,9 +403,16 @@ function resolveSafePath(requestedPath: string): string | null {
   }
   // Ensure ROOT_DIR itself is canonical for a reliable prefix comparison.
   const canonicalRoot = (() => {
-    try { return fssync.realpathSync(ROOT_DIR); } catch { return ROOT_DIR; }
+    try {
+      return fssync.realpathSync(ROOT_DIR);
+    } catch {
+      return ROOT_DIR;
+    }
   })();
-  if (!canonical.startsWith(canonicalRoot + path.sep) && canonical !== canonicalRoot) {
+  if (
+    !canonical.startsWith(canonicalRoot + path.sep) &&
+    canonical !== canonicalRoot
+  ) {
     return null;
   }
   return canonical;
@@ -382,7 +429,8 @@ function assertSafePath(requestedPath: string): string {
 }
 
 function generatePersistentSecret(length: number): string {
-  const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const alphabet =
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   const bytes = randomBytes(length);
   let out = "";
   for (let i = 0; i < length; i++) {
@@ -397,19 +445,28 @@ async function readCliConfig(): Promise<CliConfig> {
     const parsed = JSON.parse(raw) as Partial<CliConfig>;
     return {
       version: 1,
-      deviceId: typeof parsed.deviceId === "string" && parsed.deviceId ? parsed.deviceId : generatePersistentSecret(32),
+      deviceId:
+        typeof parsed.deviceId === "string" && parsed.deviceId
+          ? parsed.deviceId
+          : generatePersistentSecret(32),
       sessions: Array.isArray(parsed.sessions)
-        ? parsed.sessions.filter((entry): entry is CliSavedSession => (
-          !!entry
-          && typeof entry.rootDir === "string"
-          && typeof entry.sessionPassword === "string"
-          && typeof entry.savedAt === "number"
-        )).map((entry) => ({
-          rootDir: entry.rootDir,
-          sessionCode: typeof entry.sessionCode === "string" ? entry.sessionCode : null,
-          sessionPassword: entry.sessionPassword,
-          savedAt: entry.savedAt,
-        }))
+        ? parsed.sessions
+            .filter(
+              (entry): entry is CliSavedSession =>
+                !!entry &&
+                typeof entry.rootDir === "string" &&
+                typeof entry.sessionPassword === "string" &&
+                typeof entry.savedAt === "number",
+            )
+            .map((entry) => ({
+              rootDir: entry.rootDir,
+              sessionCode:
+                typeof entry.sessionCode === "string"
+                  ? entry.sessionCode
+                  : null,
+              sessionPassword: entry.sessionPassword,
+              savedAt: entry.savedAt,
+            }))
         : [],
     };
   } catch {
@@ -436,12 +493,18 @@ async function getCliConfig(): Promise<CliConfig> {
   return await cliConfigPromise;
 }
 
-function getSavedSessionForRoot(config: CliConfig, rootDir: string): CliSavedSession | null {
+function getSavedSessionForRoot(
+  config: CliConfig,
+  rootDir: string,
+): CliSavedSession | null {
   const sessions = Array.isArray(config.sessions) ? config.sessions : [];
   return sessions.find((entry) => entry.rootDir === rootDir) || null;
 }
 
-async function saveSessionForRoot(sessionCode: string | null, sessionPassword: string): Promise<void> {
+async function saveSessionForRoot(
+  sessionCode: string | null,
+  sessionPassword: string,
+): Promise<void> {
   const config = await getCliConfig();
   const sessions = Array.isArray(config.sessions) ? [...config.sessions] : [];
   const nextEntry: CliSavedSession = {
@@ -486,7 +549,9 @@ function isLikelyBinaryBuffer(buffer: Buffer): boolean {
   return suspicious / buffer.length > 0.3;
 }
 
-async function handleFsLs(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleFsLs(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const reqPath = (payload.path as string) || ".";
   const safePath = assertSafePath(reqPath);
 
@@ -516,15 +581,25 @@ async function handleFsLs(payload: Record<string, unknown>): Promise<Record<stri
   return { path: reqPath, entries: result };
 }
 
-async function handleFsSearchFiles(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleFsSearchFiles(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const reqPath = (payload.path as string) || ".";
-  const query = typeof payload.query === "string" ? payload.query.trim().toLowerCase() : "";
-  const maxResults = Math.max(1, Math.min((payload.maxResults as number) || 10, 10));
+  const query =
+    typeof payload.query === "string" ? payload.query.trim().toLowerCase() : "";
+  const maxResults = Math.max(
+    1,
+    Math.min((payload.maxResults as number) || 10, 10),
+  );
   const safePath = assertSafePath(reqPath);
   const rootIgnore = await loadGitignore(ROOT_DIR);
   const matches: FileSearchMatch[] = [];
 
-  async function searchDir(dirPath: string, relativePath: string, ig: IgnoreInstance): Promise<void> {
+  async function searchDir(
+    dirPath: string,
+    relativePath: string,
+    ig: IgnoreInstance,
+  ): Promise<void> {
     if (matches.length >= maxResults) return;
 
     const localIgnore = ignore().add(ig);
@@ -541,7 +616,9 @@ async function handleFsSearchFiles(payload: Record<string, unknown>): Promise<Re
     for (const entry of entries) {
       if (matches.length >= maxResults) break;
 
-      const relPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
+      const relPath = relativePath
+        ? `${relativePath}/${entry.name}`
+        : entry.name;
       const checkPath = entry.isDirectory() ? `${relPath}/` : relPath;
       if (localIgnore.ignores(checkPath)) continue;
 
@@ -564,9 +641,12 @@ async function handleFsSearchFiles(payload: Record<string, unknown>): Promise<Re
   return { path: reqPath, query, maxResults, files: matches };
 }
 
-async function handleFsStat(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleFsStat(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const reqPath = payload.path as string;
-  if (!reqPath) throw Object.assign(new Error("path is required"), { code: "EINVAL" });
+  if (!reqPath)
+    throw Object.assign(new Error("path is required"), { code: "EINVAL" });
 
   const safePath = assertSafePath(reqPath);
   const stat = await fs.stat(safePath);
@@ -600,9 +680,12 @@ async function handleFsStat(payload: Record<string, unknown>): Promise<Record<st
   return result;
 }
 
-async function handleFsRead(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleFsRead(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const reqPath = payload.path as string;
-  if (!reqPath) throw Object.assign(new Error("path is required"), { code: "EINVAL" });
+  if (!reqPath)
+    throw Object.assign(new Error("path is required"), { code: "EINVAL" });
   const startedAt = Date.now();
   logWithTimestamp("fs-read", "starting", { path: reqPath });
 
@@ -639,14 +722,18 @@ async function handleFsRead(payload: Record<string, unknown>): Promise<Record<st
   };
 }
 
-async function handleFsWrite(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleFsWrite(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const reqPath = payload.path as string;
   const content = payload.content as string;
   const encoding = (payload.encoding as string) || "utf8";
   const source = typeof payload.source === "string" ? payload.source : null;
 
-  if (!reqPath) throw Object.assign(new Error("path is required"), { code: "EINVAL" });
-  if (typeof content !== "string") throw Object.assign(new Error("content is required"), { code: "EINVAL" });
+  if (!reqPath)
+    throw Object.assign(new Error("path is required"), { code: "EINVAL" });
+  if (typeof content !== "string")
+    throw Object.assign(new Error("content is required"), { code: "EINVAL" });
 
   const safePath = assertSafePath(reqPath);
   const parentDir = path.dirname(safePath);
@@ -663,11 +750,14 @@ async function handleFsWrite(payload: Record<string, unknown>): Promise<Record<s
   return { path: reqPath };
 }
 
-async function handleFsMkdir(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleFsMkdir(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const reqPath = payload.path as string;
   const recursive = payload.recursive !== false;
 
-  if (!reqPath) throw Object.assign(new Error("path is required"), { code: "EINVAL" });
+  if (!reqPath)
+    throw Object.assign(new Error("path is required"), { code: "EINVAL" });
 
   const safePath = assertSafePath(reqPath);
   await fs.mkdir(safePath, { recursive });
@@ -675,11 +765,14 @@ async function handleFsMkdir(payload: Record<string, unknown>): Promise<Record<s
   return { path: reqPath };
 }
 
-async function handleFsRm(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleFsRm(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const reqPath = payload.path as string;
   const recursive = payload.recursive === true;
 
-  if (!reqPath) throw Object.assign(new Error("path is required"), { code: "EINVAL" });
+  if (!reqPath)
+    throw Object.assign(new Error("path is required"), { code: "EINVAL" });
 
   const safePath = assertSafePath(reqPath);
   await fs.rm(safePath, { recursive, force: false });
@@ -688,11 +781,14 @@ async function handleFsRm(payload: Record<string, unknown>): Promise<Record<stri
   return { path: reqPath };
 }
 
-async function handleFsMv(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleFsMv(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const from = payload.from as string;
   const to = payload.to as string;
 
-  if (!from) throw Object.assign(new Error("from is required"), { code: "EINVAL" });
+  if (!from)
+    throw Object.assign(new Error("from is required"), { code: "EINVAL" });
   if (!to) throw Object.assign(new Error("to is required"), { code: "EINVAL" });
 
   const safeFrom = assertSafePath(from);
@@ -721,13 +817,59 @@ async function loadGitignore(dirPath: string): Promise<IgnoreInstance> {
 }
 
 const KNOWN_BINARY_EXTENSIONS = new Set([
-  ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".avif", ".ico", ".icns", ".heic", ".heif", ".tiff", ".tif",
-  ".psd", ".ai", ".eps",
-  ".mp3", ".wav", ".ogg", ".m4a", ".flac", ".aac",
-  ".mp4", ".mov", ".avi", ".mkv", ".webm", ".wmv", ".m4v",
-  ".pdf", ".zip", ".gz", ".tgz", ".bz2", ".xz", ".7z", ".rar", ".tar",
-  ".exe", ".dll", ".so", ".dylib", ".bin", ".class", ".o", ".obj", ".a", ".lib",
-  ".ttf", ".otf", ".woff", ".woff2", ".eot",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".bmp",
+  ".webp",
+  ".avif",
+  ".ico",
+  ".icns",
+  ".heic",
+  ".heif",
+  ".tiff",
+  ".tif",
+  ".psd",
+  ".ai",
+  ".eps",
+  ".mp3",
+  ".wav",
+  ".ogg",
+  ".m4a",
+  ".flac",
+  ".aac",
+  ".mp4",
+  ".mov",
+  ".avi",
+  ".mkv",
+  ".webm",
+  ".wmv",
+  ".m4v",
+  ".pdf",
+  ".zip",
+  ".gz",
+  ".tgz",
+  ".bz2",
+  ".xz",
+  ".7z",
+  ".rar",
+  ".tar",
+  ".exe",
+  ".dll",
+  ".so",
+  ".dylib",
+  ".bin",
+  ".class",
+  ".o",
+  ".obj",
+  ".a",
+  ".lib",
+  ".ttf",
+  ".otf",
+  ".woff",
+  ".woff2",
+  ".eot",
 ]);
 
 function isLikelyBinaryContent(content: Buffer): boolean {
@@ -750,13 +892,16 @@ function shouldSkipAsBinary(filePath: string, content: Buffer): boolean {
   return isLikelyBinaryContent(content);
 }
 
-async function handleFsGrep(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleFsGrep(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const reqPath = (payload.path as string) || ".";
   const pattern = payload.pattern as string;
   const caseSensitive = payload.caseSensitive !== false;
   const maxResults = (payload.maxResults as number) || 100;
 
-  if (!pattern) throw Object.assign(new Error("pattern is required"), { code: "EINVAL" });
+  if (!pattern)
+    throw Object.assign(new Error("pattern is required"), { code: "EINVAL" });
 
   const safePath = assertSafePath(reqPath);
   const matches: GrepMatch[] = [];
@@ -764,14 +909,20 @@ async function handleFsGrep(payload: Record<string, unknown>): Promise<Record<st
   try {
     regex = new RegExp(pattern, caseSensitive ? "g" : "gi");
   } catch {
-    throw Object.assign(new Error("pattern must be a valid regular expression"), { code: "EINVAL" });
+    throw Object.assign(
+      new Error("pattern must be a valid regular expression"),
+      { code: "EINVAL" },
+    );
   }
   const rootIgnore = await loadGitignore(ROOT_DIR);
   const previousSilent = shell.config.silent;
   shell.config.silent = true;
 
   try {
-    async function searchFile(filePath: string, relativePath: string): Promise<void> {
+    async function searchFile(
+      filePath: string,
+      relativePath: string,
+    ): Promise<void> {
       if (matches.length >= maxResults) return;
 
       try {
@@ -799,7 +950,11 @@ async function handleFsGrep(payload: Record<string, unknown>): Promise<Record<st
       }
     }
 
-    async function searchDir(dirPath: string, relativePath: string, ig: IgnoreInstance): Promise<void> {
+    async function searchDir(
+      dirPath: string,
+      relativePath: string,
+      ig: IgnoreInstance,
+    ): Promise<void> {
       if (matches.length >= maxResults) return;
 
       const localIgnore = ignore().add(ig);
@@ -816,7 +971,9 @@ async function handleFsGrep(payload: Record<string, unknown>): Promise<Record<st
       for (const entry of entries) {
         if (matches.length >= maxResults) break;
 
-        const relPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
+        const relPath = relativePath
+          ? `${relativePath}/${entry.name}`
+          : entry.name;
         const checkPath = entry.isDirectory() ? `${relPath}/` : relPath;
         if (localIgnore.ignores(checkPath)) continue;
 
@@ -843,13 +1000,18 @@ async function handleFsGrep(payload: Record<string, unknown>): Promise<Record<st
   return { matches };
 }
 
-async function handleFsCreate(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleFsCreate(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const reqPath = payload.path as string;
   const type = payload.type as string;
 
-  if (!reqPath) throw Object.assign(new Error("path is required"), { code: "EINVAL" });
+  if (!reqPath)
+    throw Object.assign(new Error("path is required"), { code: "EINVAL" });
   if (!type || (type !== "file" && type !== "directory")) {
-    throw Object.assign(new Error("type must be 'file' or 'directory'"), { code: "EINVAL" });
+    throw Object.assign(new Error("type must be 'file' or 'directory'"), {
+      code: "EINVAL",
+    });
   }
 
   const safePath = assertSafePath(reqPath);
@@ -871,7 +1033,9 @@ async function handleFsCreate(payload: Record<string, unknown>): Promise<Record<
 // Git Handlers
 // ============================================================================
 
-async function runGit(args: string[]): Promise<{ stdout: string; stderr: string; code: number }> {
+async function runGit(
+  args: string[],
+): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve) => {
     const proc = spawn("git", args, { cwd: ROOT_DIR });
     let stdout = "";
@@ -899,7 +1063,9 @@ async function handleGitStatus(): Promise<Record<string, unknown>> {
   const statusResult = await runGit(["status", "--porcelain", "-uall"]);
   // Preserve leading whitespace in each porcelain line.
   // Example: " M file" (unstaged-only) starts with a space that is semantically important.
-  const lines = statusResult.stdout.split(/\r?\n/).filter((line) => line.length > 0);
+  const lines = statusResult.stdout
+    .split(/\r?\n/)
+    .filter((line) => line.length > 0);
 
   const staged: Array<{ path: string; status: string }> = [];
   const unstaged: Array<{ path: string; status: string }> = [];
@@ -918,8 +1084,8 @@ async function handleGitStatus(): Promise<Record<string, unknown>> {
     }
 
     // For renamed files, extract just the new name
-    if (filepath.includes(' -> ')) {
-      filepath = filepath.split(' -> ')[1];
+    if (filepath.includes(" -> ")) {
+      filepath = filepath.split(" -> ")[1];
     }
 
     if (index === "?" && worktree === "?") {
@@ -935,7 +1101,12 @@ async function handleGitStatus(): Promise<Record<string, unknown>> {
   }
 
   // Get ahead/behind
-  const aheadBehind = await runGit(["rev-list", "--left-right", "--count", "@{u}...HEAD"]);
+  const aheadBehind = await runGit([
+    "rev-list",
+    "--left-right",
+    "--count",
+    "@{u}...HEAD",
+  ]);
   let ahead = 0;
   let behind = 0;
   if (aheadBehind.code === 0) {
@@ -947,21 +1118,29 @@ async function handleGitStatus(): Promise<Record<string, unknown>> {
   return { branch, ahead, behind, staged, unstaged, untracked };
 }
 
-async function handleGitStage(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleGitStage(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const paths = payload.paths as string[];
-  if (!paths || !paths.length) throw Object.assign(new Error("paths is required"), { code: "EINVAL" });
+  if (!paths || !paths.length)
+    throw Object.assign(new Error("paths is required"), { code: "EINVAL" });
 
   const result = await runGit(["add", "--", ...paths]);
   if (result.code !== 0) {
-    throw Object.assign(new Error(result.stderr || "git add failed"), { code: "EGIT" });
+    throw Object.assign(new Error(result.stderr || "git add failed"), {
+      code: "EGIT",
+    });
   }
 
   return {};
 }
 
-async function handleGitUnstage(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleGitUnstage(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const paths = payload.paths as string[];
-  if (!paths || !paths.length) throw Object.assign(new Error("paths is required"), { code: "EINVAL" });
+  if (!paths || !paths.length)
+    throw Object.assign(new Error("paths is required"), { code: "EINVAL" });
 
   // Use git restore --staged (Git 2.23+) which is more reliable
   // Falls back to git reset HEAD for older versions
@@ -970,20 +1149,27 @@ async function handleGitUnstage(payload: Record<string, unknown>): Promise<Recor
     // Fallback to reset for older git versions
     result = await runGit(["reset", "HEAD", "--", ...paths]);
     if (result.code !== 0) {
-      throw Object.assign(new Error(result.stderr || "git unstage failed"), { code: "EGIT" });
+      throw Object.assign(new Error(result.stderr || "git unstage failed"), {
+        code: "EGIT",
+      });
     }
   }
 
   return {};
 }
 
-async function handleGitCommit(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleGitCommit(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const message = payload.message as string;
-  if (!message) throw Object.assign(new Error("message is required"), { code: "EINVAL" });
+  if (!message)
+    throw Object.assign(new Error("message is required"), { code: "EINVAL" });
 
   const result = await runGit(["commit", "-m", message]);
   if (result.code !== 0) {
-    throw Object.assign(new Error(result.stderr || "git commit failed"), { code: "EGIT" });
+    throw Object.assign(new Error(result.stderr || "git commit failed"), {
+      code: "EGIT",
+    });
   }
 
   // Get the commit hash
@@ -993,7 +1179,9 @@ async function handleGitCommit(payload: Record<string, unknown>): Promise<Record
   return { hash, message };
 }
 
-async function handleGitLog(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleGitLog(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const limit = (payload.limit as number) || 20;
 
   const result = await runGit([
@@ -1003,7 +1191,9 @@ async function handleGitLog(payload: Record<string, unknown>): Promise<Record<st
   ]);
 
   if (result.code !== 0) {
-    throw Object.assign(new Error(result.stderr || "git log failed"), { code: "EGIT" });
+    throw Object.assign(new Error(result.stderr || "git log failed"), {
+      code: "EGIT",
+    });
   }
 
   const commits = result.stdout
@@ -1023,12 +1213,20 @@ async function handleGitLog(payload: Record<string, unknown>): Promise<Record<st
   return { commits };
 }
 
-async function handleGitCommitDetails(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleGitCommitDetails(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const hash = (payload.hash as string)?.trim();
-  if (!hash) throw Object.assign(new Error("hash is required"), { code: "EINVAL" });
+  if (!hash)
+    throw Object.assign(new Error("hash is required"), { code: "EINVAL" });
 
   try {
-    const commitResult = await runGit(["show", "-s", "--format=%H%n%s%n%an%n%at", hash]);
+    const commitResult = await runGit([
+      "show",
+      "-s",
+      "--format=%H%n%s%n%an%n%at",
+      hash,
+    ]);
     if (commitResult.code !== 0 || !commitResult.stdout.trim()) {
       throw Object.assign(new Error("Commit not found"), { code: "EGIT" });
     }
@@ -1042,9 +1240,16 @@ async function handleGitCommitDetails(payload: Record<string, unknown>): Promise
       throw Object.assign(new Error("Commit not found"), { code: "EGIT" });
     }
 
-    const filesResult = await runGit(["show", "--name-status", "--format=", hash]);
+    const filesResult = await runGit([
+      "show",
+      "--name-status",
+      "--format=",
+      hash,
+    ]);
     if (filesResult.code !== 0) {
-      throw Object.assign(new Error(filesResult.stderr || "git show failed"), { code: "EGIT" });
+      throw Object.assign(new Error(filesResult.stderr || "git show failed"), {
+        code: "EGIT",
+      });
     }
 
     const filesRaw = filesResult.stdout;
@@ -1063,7 +1268,9 @@ async function handleGitCommitDetails(payload: Record<string, unknown>): Promise
 
     const diffResult = await runGit(["show", "--patch", "--format=", hash]);
     if (diffResult.code !== 0) {
-      throw Object.assign(new Error(diffResult.stderr || "git show failed"), { code: "EGIT" });
+      throw Object.assign(new Error(diffResult.stderr || "git show failed"), {
+        code: "EGIT",
+      });
     }
     const diff = diffResult.stdout;
     const fileDiffs: Record<string, string> = {};
@@ -1095,7 +1302,9 @@ async function handleGitCommitDetails(payload: Record<string, unknown>): Promise
   }
 }
 
-async function handleGitDiff(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleGitDiff(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const filepath = payload.path as string;
   const staged = payload.staged === true;
 
@@ -1111,7 +1320,9 @@ async function handleGitDiff(payload: Record<string, unknown>): Promise<Record<s
 async function handleGitBranches(): Promise<Record<string, unknown>> {
   const result = await runGit(["branch", "-a"]);
   if (result.code !== 0) {
-    throw Object.assign(new Error(result.stderr || "git branch failed"), { code: "EGIT" });
+    throw Object.assign(new Error(result.stderr || "git branch failed"), {
+      code: "EGIT",
+    });
   }
 
   const lines = result.stdout.trim().split("\n");
@@ -1131,27 +1342,38 @@ async function handleGitBranches(): Promise<Record<string, unknown>> {
   return { current, branches };
 }
 
-async function handleGitCheckout(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleGitCheckout(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const branch = payload.branch as string;
   const create = payload.create === true;
-  if (!branch) throw Object.assign(new Error("branch is required"), { code: "EINVAL" });
+  if (!branch)
+    throw Object.assign(new Error("branch is required"), { code: "EINVAL" });
 
   const args = create ? ["checkout", "-b", branch] : ["checkout", branch];
   const result = await runGit(args);
   if (result.code !== 0) {
-    throw Object.assign(new Error(result.stderr || "git checkout failed"), { code: "EGIT" });
+    throw Object.assign(new Error(result.stderr || "git checkout failed"), {
+      code: "EGIT",
+    });
   }
 
   return { branch };
 }
 
-async function handleGitDeleteBranch(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleGitDeleteBranch(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const branch = payload.branch as string;
-  if (!branch) throw Object.assign(new Error("branch is required"), { code: "EINVAL" });
+  if (!branch)
+    throw Object.assign(new Error("branch is required"), { code: "EINVAL" });
 
   const result = await runGit(["branch", "-d", branch]);
   if (result.code !== 0) {
-    throw Object.assign(new Error(result.stderr || "git branch delete failed"), { code: "EGIT" });
+    throw Object.assign(
+      new Error(result.stderr || "git branch delete failed"),
+      { code: "EGIT" },
+    );
   }
 
   return { branch };
@@ -1160,13 +1382,20 @@ async function handleGitDeleteBranch(payload: Record<string, unknown>): Promise<
 async function handleGitPull(): Promise<Record<string, unknown>> {
   const result = await runGit(["pull"]);
   if (result.code !== 0) {
-    throw Object.assign(new Error(result.stderr || "git pull failed"), { code: "EGIT" });
+    throw Object.assign(new Error(result.stderr || "git pull failed"), {
+      code: "EGIT",
+    });
   }
 
-  return { success: true, summary: result.stdout.trim() || result.stderr.trim() };
+  return {
+    success: true,
+    summary: result.stdout.trim() || result.stderr.trim(),
+  };
 }
 
-async function handleGitPush(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleGitPush(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const setUpstream = payload.setUpstream === true;
 
   const args = ["push"];
@@ -1179,40 +1408,59 @@ async function handleGitPush(payload: Record<string, unknown>): Promise<Record<s
 
   const result = await runGit(args);
   if (result.code !== 0) {
-    throw Object.assign(new Error(result.stderr || "git push failed"), { code: "EGIT" });
+    throw Object.assign(new Error(result.stderr || "git push failed"), {
+      code: "EGIT",
+    });
   }
 
   return { success: true };
 }
 
-async function handleGitDiscard(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleGitDiscard(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const paths = payload.paths as string[] | undefined;
   const all = payload.all === true;
 
   if (!paths && !all) {
-    throw Object.assign(new Error("paths or all is required"), { code: "EINVAL" });
+    throw Object.assign(new Error("paths or all is required"), {
+      code: "EINVAL",
+    });
   }
 
   if (all) {
     // Discard all changes
     const result = await runGit(["checkout", "--", "."]);
     if (result.code !== 0) {
-      throw Object.assign(new Error(result.stderr || "git checkout failed"), { code: "EGIT" });
+      throw Object.assign(new Error(result.stderr || "git checkout failed"), {
+        code: "EGIT",
+      });
     }
     // Also clean untracked files
     await runGit(["clean", "-fd"]);
   } else if (paths && paths.length > 0) {
     for (const filePath of paths) {
-      const tracked = await runGit(["ls-files", "--error-unmatch", "--", filePath]);
+      const tracked = await runGit([
+        "ls-files",
+        "--error-unmatch",
+        "--",
+        filePath,
+      ]);
       if (tracked.code === 0) {
         const result = await runGit(["checkout", "--", filePath]);
         if (result.code !== 0) {
-          throw Object.assign(new Error(result.stderr || `git checkout failed for ${filePath}`), { code: "EGIT" });
+          throw Object.assign(
+            new Error(result.stderr || `git checkout failed for ${filePath}`),
+            { code: "EGIT" },
+          );
         }
       } else {
         const cleanResult = await runGit(["clean", "-fd", "--", filePath]);
         if (cleanResult.code !== 0) {
-          throw Object.assign(new Error(cleanResult.stderr || `git clean failed for ${filePath}`), { code: "EGIT" });
+          throw Object.assign(
+            new Error(cleanResult.stderr || `git clean failed for ${filePath}`),
+            { code: "EGIT" },
+          );
         }
       }
     }
@@ -1225,18 +1473,33 @@ function emitAppEvent(msg: Message): void {
   if (activeV2Transport) {
     if (!activeV2Transport.isSecure()) {
       if (DEBUG_MODE) {
-        console.error("[transport:v2] dropped event before secure session:", `${msg.ns}.${msg.action}`);
+        console.error(
+          "[transport:v2] dropped event before secure session:",
+          `${msg.ns}.${msg.action}`,
+        );
       }
       return;
     }
     void activeV2Transport.sendEvent(msg).catch((error) => {
-      if (DEBUG_MODE) console.error("[transport:v2] failed to send event:", error instanceof Error ? error.message : String(error));
+      if (DEBUG_MODE)
+        console.error(
+          "[transport:v2] failed to send event:",
+          error instanceof Error ? error.message : String(error),
+        );
     });
   }
 }
 
-function emitEditorFileChanged(requestPath: string, mtimeMs: number, size: number): void {
-  logWithTimestamp("editor-watch", "emitting fileChanged", { path: requestPath, mtime: mtimeMs, size });
+function emitEditorFileChanged(
+  requestPath: string,
+  mtimeMs: number,
+  size: number,
+): void {
+  logWithTimestamp("editor-watch", "emitting fileChanged", {
+    path: requestPath,
+    mtime: mtimeMs,
+    size,
+  });
   emitAppEvent({
     v: 1,
     id: `editor-change-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -1247,7 +1510,9 @@ function emitEditorFileChanged(requestPath: string, mtimeMs: number, size: numbe
 }
 
 function emitEditorFileDeleted(requestPath: string): void {
-  logWithTimestamp("editor-watch", "emitting fileDeleted", { path: requestPath });
+  logWithTimestamp("editor-watch", "emitting fileDeleted", {
+    path: requestPath,
+  });
   emitAppEvent({
     v: 1,
     id: `editor-delete-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -1279,7 +1544,9 @@ function queueTrackedEditorFileCheck(safePath: string): void {
       if (!tracked) {
         return;
       }
-      logWithTimestamp("editor-watch", "checking tracked file", { path: tracked.requestPath });
+      logWithTimestamp("editor-watch", "checking tracked file", {
+        path: tracked.requestPath,
+      });
 
       let stat: fssync.Stats;
       try {
@@ -1310,7 +1577,8 @@ function queueTrackedEditorFileCheck(safePath: string): void {
         return;
       }
 
-      const changed = tracked.lastMtimeMs !== stat.mtimeMs || tracked.lastSize !== stat.size;
+      const changed =
+        tracked.lastMtimeMs !== stat.mtimeMs || tracked.lastSize !== stat.size;
       logWithTimestamp("editor-watch", "stat compared", {
         path: tracked.requestPath,
         changed,
@@ -1334,7 +1602,10 @@ function queueTrackedEditorFileCheck(safePath: string): void {
       emitEditorFileChanged(tracked.requestPath, stat.mtimeMs, stat.size);
     } catch (error) {
       if (DEBUG_MODE) {
-        console.error("[editor-watch] file check failed:", error instanceof Error ? error.message : String(error));
+        console.error(
+          "[editor-watch] file check failed:",
+          error instanceof Error ? error.message : String(error),
+        );
       }
     } finally {
       pendingTrackedFileChecks.delete(safePath);
@@ -1355,7 +1626,10 @@ function ensureTrackedEditorDirectory(dirPath: string): TrackedEditorDirectory {
     }
 
     const changedName = fileName == null ? null : String(fileName);
-    logWithTimestamp("editor-watch", "directory event", { dirPath, fileName: changedName });
+    logWithTimestamp("editor-watch", "directory event", {
+      dirPath,
+      fileName: changedName,
+    });
     if (!changedName) {
       for (const safePath of trackedDir.filePaths) {
         queueTrackedEditorFileCheck(safePath);
@@ -1372,7 +1646,11 @@ function ensureTrackedEditorDirectory(dirPath: string): TrackedEditorDirectory {
   });
   watcher.on("error", (error) => {
     if (DEBUG_MODE) {
-      console.error("[editor-watch] directory watcher error:", dirPath, error instanceof Error ? error.message : String(error));
+      console.error(
+        "[editor-watch] directory watcher error:",
+        dirPath,
+        error instanceof Error ? error.message : String(error),
+      );
     }
   });
 
@@ -1384,11 +1662,15 @@ function ensureTrackedEditorDirectory(dirPath: string): TrackedEditorDirectory {
   return trackedDir;
 }
 
-async function trackEditorFile(requestPath: string): Promise<Record<string, unknown>> {
+async function trackEditorFile(
+  requestPath: string,
+): Promise<Record<string, unknown>> {
   const safePath = assertSafePath(requestPath);
   const stat = await fs.stat(safePath);
   if (!stat.isFile()) {
-    throw Object.assign(new Error("Only files can be tracked by the editor"), { code: "EINVAL" });
+    throw Object.assign(new Error("Only files can be tracked by the editor"), {
+      code: "EINVAL",
+    });
   }
 
   const existing = trackedEditorFiles.get(safePath);
@@ -1397,7 +1679,10 @@ async function trackEditorFile(requestPath: string): Promise<Record<string, unkn
     existing.requestPath = requestPath;
     existing.lastMtimeMs = stat.mtimeMs;
     existing.lastSize = stat.size;
-    logWithTimestamp("editor-watch", "increment tracked file", { path: requestPath, openCount: existing.openCount });
+    logWithTimestamp("editor-watch", "increment tracked file", {
+      path: requestPath,
+      openCount: existing.openCount,
+    });
     return { path: requestPath, tracked: true };
   }
 
@@ -1414,7 +1699,12 @@ async function trackEditorFile(requestPath: string): Promise<Record<string, unkn
     lastSize: stat.size,
     suppressWatcherUntil: 0,
   });
-  logWithTimestamp("editor-watch", "tracking file", { path: requestPath, dirPath, mtime: stat.mtimeMs, size: stat.size });
+  logWithTimestamp("editor-watch", "tracking file", {
+    path: requestPath,
+    dirPath,
+    mtime: stat.mtimeMs,
+    size: stat.size,
+  });
 
   return { path: requestPath, tracked: true };
 }
@@ -1427,7 +1717,10 @@ function untrackEditorFile(requestPath: string): Record<string, unknown> {
   }
 
   tracked.openCount -= 1;
-  logWithTimestamp("editor-watch", "decrement tracked file", { path: requestPath, openCount: tracked.openCount });
+  logWithTimestamp("editor-watch", "decrement tracked file", {
+    path: requestPath,
+    openCount: tracked.openCount,
+  });
   if (tracked.openCount > 0) {
     return { path: requestPath, tracked: true };
   }
@@ -1442,14 +1735,20 @@ function untrackEditorFile(requestPath: string): Record<string, unknown> {
   return { path: requestPath, tracked: false };
 }
 
-async function renameTrackedEditorFile(fromPath: string, toPath: string): Promise<Record<string, unknown>> {
+async function renameTrackedEditorFile(
+  fromPath: string,
+  toPath: string,
+): Promise<Record<string, unknown>> {
   const safeFrom = assertSafePath(fromPath);
   const safeTo = assertSafePath(toPath);
   const tracked = trackedEditorFiles.get(safeFrom);
   if (!tracked) {
     return { from: fromPath, to: toPath, tracked: false };
   }
-  logWithTimestamp("editor-watch", "renaming tracked file", { from: fromPath, to: toPath });
+  logWithTimestamp("editor-watch", "renaming tracked file", {
+    from: fromPath,
+    to: toPath,
+  });
 
   const fromDir = trackedEditorDirectories.get(tracked.dirPath);
   if (fromDir) {
@@ -1480,7 +1779,9 @@ function deleteTrackedEditorFile(requestPath: string): Record<string, unknown> {
   if (!tracked) {
     return { path: requestPath, tracked: false };
   }
-  logWithTimestamp("editor-watch", "deleting tracked file", { path: requestPath });
+  logWithTimestamp("editor-watch", "deleting tracked file", {
+    path: requestPath,
+  });
 
   trackedEditorFiles.delete(safePath);
   const trackedDir = trackedEditorDirectories.get(tracked.dirPath);
@@ -1492,7 +1793,10 @@ function deleteTrackedEditorFile(requestPath: string): Record<string, unknown> {
   return { path: requestPath, tracked: false };
 }
 
-async function noteTrackedFileWrite(requestPath: string, source: string | null): Promise<void> {
+async function noteTrackedFileWrite(
+  requestPath: string,
+  source: string | null,
+): Promise<void> {
   const safePath = assertSafePath(requestPath);
   const tracked = trackedEditorFiles.get(safePath);
   if (!tracked) {
@@ -1525,7 +1829,8 @@ function normalizeJsonWithTrailingCommas(text: string): string {
 function getJuktoConfigDir(): string {
   const platform = os.platform();
   if (platform === "win32") {
-    const appData = process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
+    const appData =
+      process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming");
     return path.join(appData, "jukto");
   }
   if (platform === "darwin") {
@@ -1545,7 +1850,10 @@ function getPtyBinaryPath(fileName: string): string {
   return path.join(getJuktoConfigDir(), "pty-releases", fileName);
 }
 
-async function downloadPtyBinary(url: string, destination: string): Promise<void> {
+async function downloadPtyBinary(
+  url: string,
+  destination: string,
+): Promise<void> {
   const tempPath = `${destination}.download`;
   console.log("[pty] Downloading PTY [downloading...]");
   const response = await fetch(url);
@@ -1574,7 +1882,9 @@ async function downloadPtyBinary(url: string, destination: string): Promise<void
     await fs.chmod(tempPath, 0o755);
   }
   await fs.rename(tempPath, destination);
-  console.log(`[pty] Downloaded PTY (${Math.max(1, Math.round(totalBytes / 1024))} KB)`);
+  console.log(
+    `[pty] Downloaded PTY (${Math.max(1, Math.round(totalBytes / 1024))} KB)`,
+  );
 }
 
 async function ensurePtyBinaryReady(): Promise<string | null> {
@@ -1695,12 +2005,16 @@ async function ensurePtyProcess(): Promise<void> {
 
 function sendToPty(cmd: object): void {
   if (!ptyProcess || !ptyProcess.stdin) {
-    throw Object.assign(new Error("PTY process not running"), { code: "ENOPTY" });
+    throw Object.assign(new Error("PTY process not running"), {
+      code: "ENOPTY",
+    });
   }
   ptyProcess.stdin.write(JSON.stringify(cmd) + "\n");
 }
 
-async function handleTerminalSpawn(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleTerminalSpawn(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   await ensurePtyProcess();
 
   const shell = (payload.shell as string) || getDefaultTerminalShell();
@@ -1726,47 +2040,72 @@ async function handleTerminalSpawn(payload: Record<string, unknown>): Promise<Re
   return { terminalId };
 }
 
-function handleTerminalWrite(payload: Record<string, unknown>): Record<string, unknown> {
+function handleTerminalWrite(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
   const terminalId = payload.terminalId as string;
   const data = payload.data as string;
 
-  if (!terminalId) throw Object.assign(new Error("terminalId is required"), { code: "EINVAL" });
-  if (typeof data !== "string") throw Object.assign(new Error("data is required"), { code: "EINVAL" });
-  if (!terminals.has(terminalId)) throw Object.assign(new Error("Terminal not found"), { code: "ENOTERM" });
+  if (!terminalId)
+    throw Object.assign(new Error("terminalId is required"), {
+      code: "EINVAL",
+    });
+  if (typeof data !== "string")
+    throw Object.assign(new Error("data is required"), { code: "EINVAL" });
+  if (!terminals.has(terminalId))
+    throw Object.assign(new Error("Terminal not found"), { code: "ENOTERM" });
 
   sendToPty({ cmd: "write", id: terminalId, data });
   return {};
 }
 
-function handleTerminalResize(payload: Record<string, unknown>): Record<string, unknown> {
+function handleTerminalResize(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
   const terminalId = payload.terminalId as string;
   const cols = payload.cols as number;
   const rows = payload.rows as number;
 
-  if (!terminalId) throw Object.assign(new Error("terminalId is required"), { code: "EINVAL" });
-  if (!terminals.has(terminalId)) throw Object.assign(new Error("Terminal not found"), { code: "ENOTERM" });
+  if (!terminalId)
+    throw Object.assign(new Error("terminalId is required"), {
+      code: "EINVAL",
+    });
+  if (!terminals.has(terminalId))
+    throw Object.assign(new Error("Terminal not found"), { code: "ENOTERM" });
 
   sendToPty({ cmd: "resize", id: terminalId, cols, rows });
   return {};
 }
 
-function handleTerminalKill(payload: Record<string, unknown>): Record<string, unknown> {
+function handleTerminalKill(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
   const terminalId = payload.terminalId as string;
 
-  if (!terminalId) throw Object.assign(new Error("terminalId is required"), { code: "EINVAL" });
-  if (!terminals.has(terminalId)) throw Object.assign(new Error("Terminal not found"), { code: "ENOTERM" });
+  if (!terminalId)
+    throw Object.assign(new Error("terminalId is required"), {
+      code: "EINVAL",
+    });
+  if (!terminals.has(terminalId))
+    throw Object.assign(new Error("Terminal not found"), { code: "ENOTERM" });
 
   sendToPty({ cmd: "kill", id: terminalId });
   terminals.delete(terminalId);
   return {};
 }
 
-function handleTerminalScroll(payload: Record<string, unknown>): Record<string, unknown> {
+function handleTerminalScroll(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
   const terminalId = payload.terminalId as string;
   const offset = (payload.offset as number) || 0;
 
-  if (!terminalId) throw Object.assign(new Error("terminalId is required"), { code: "EINVAL" });
-  if (!terminals.has(terminalId)) throw Object.assign(new Error("Terminal not found"), { code: "ENOTERM" });
+  if (!terminalId)
+    throw Object.assign(new Error("terminalId is required"), {
+      code: "EINVAL",
+    });
+  if (!terminals.has(terminalId))
+    throw Object.assign(new Error("Terminal not found"), { code: "ENOTERM" });
 
   sendToPty({ cmd: "scroll", id: terminalId, offset });
   return {};
@@ -1779,7 +2118,18 @@ function handleTerminalScroll(payload: Record<string, unknown>): Record<string, 
 function handleSystemCapabilities(): Record<string, unknown> {
   return {
     version: VERSION,
-    namespaces: ["fs", "git", "terminal", "processes", "ports", "monitor", "http", "ai", "proxy", "editor"],
+    namespaces: [
+      "fs",
+      "git",
+      "terminal",
+      "processes",
+      "ports",
+      "monitor",
+      "http",
+      "ai",
+      "proxy",
+      "editor",
+    ],
     platform: os.platform(),
     rootDir: ROOT_DIR,
     hostname: os.hostname(),
@@ -1818,13 +2168,16 @@ function handleProcessesList(): Record<string, unknown> {
   return { processes: result };
 }
 
-async function handleProcessesSpawn(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleProcessesSpawn(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const command = payload.command as string;
   const args = (payload.args as string[]) || [];
   const cwd = payload.cwd as string | undefined;
   const extraEnv = (payload.env as Record<string, string>) || {};
 
-  if (!command) throw Object.assign(new Error("command is required"), { code: "EINVAL" });
+  if (!command)
+    throw Object.assign(new Error("command is required"), { code: "EINVAL" });
 
   const workDir = cwd ? assertSafePath(cwd) : ROOT_DIR;
 
@@ -1843,7 +2196,11 @@ async function handleProcessesSpawn(payload: Record<string, unknown>): Promise<R
       settled = true;
       proc.removeListener("error", handleError);
       if (!proc.pid) {
-        reject(Object.assign(new Error(`Failed to spawn "${command}"`), { code: "ERROR" }));
+        reject(
+          Object.assign(new Error(`Failed to spawn "${command}"`), {
+            code: "ERROR",
+          }),
+        );
         return;
       }
       resolve(proc.pid);
@@ -1853,9 +2210,14 @@ async function handleProcessesSpawn(payload: Record<string, unknown>): Promise<R
       if (settled) return;
       settled = true;
       proc.removeListener("spawn", handleSpawn);
-      reject(Object.assign(new Error(err.message || `Failed to spawn "${command}"`), {
-        code: err.code || "ERROR",
-      }));
+      reject(
+        Object.assign(
+          new Error(err.message || `Failed to spawn "${command}"`),
+          {
+            code: err.code || "ERROR",
+          },
+        ),
+      );
     };
 
     proc.once("spawn", handleSpawn);
@@ -1881,7 +2243,10 @@ async function handleProcessesSpawn(payload: Record<string, unknown>): Promise<R
   const sendOutput = (stream: "stdout" | "stderr") => (data: Buffer) => {
     const text = data.toString();
     managedProc.output.push(text);
-    processOutputBuffers.set(channel, (processOutputBuffers.get(channel) || "") + text);
+    processOutputBuffers.set(
+      channel,
+      (processOutputBuffers.get(channel) || "") + text,
+    );
 
     const msg: Message = {
       v: 1,
@@ -1897,7 +2262,10 @@ async function handleProcessesSpawn(payload: Record<string, unknown>): Promise<R
   proc.stderr?.on("data", sendOutput("stderr"));
   proc.on("error", (err) => {
     const message = err.message || `Process "${command}" failed`;
-    processOutputBuffers.set(channel, (processOutputBuffers.get(channel) || "") + `${message}\n`);
+    processOutputBuffers.set(
+      channel,
+      (processOutputBuffers.get(channel) || "") + `${message}\n`,
+    );
     emitAppEvent({
       v: 1,
       id: `evt-${Date.now()}`,
@@ -1921,12 +2289,16 @@ async function handleProcessesSpawn(payload: Record<string, unknown>): Promise<R
   return { pid, channel };
 }
 
-function handleProcessesKill(payload: Record<string, unknown>): Record<string, unknown> {
+function handleProcessesKill(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
   const pid = payload.pid as number;
-  if (!pid) throw Object.assign(new Error("pid is required"), { code: "EINVAL" });
+  if (!pid)
+    throw Object.assign(new Error("pid is required"), { code: "EINVAL" });
 
   const proc = processes.get(pid);
-  if (!proc) throw Object.assign(new Error("Process not found"), { code: "ENOPROC" });
+  if (!proc)
+    throw Object.assign(new Error("Process not found"), { code: "ENOPROC" });
 
   proc.proc.kill();
   processes.delete(pid);
@@ -1934,15 +2306,20 @@ function handleProcessesKill(payload: Record<string, unknown>): Record<string, u
   return {};
 }
 
-function handleProcessesGetOutput(payload: Record<string, unknown>): Record<string, unknown> {
+function handleProcessesGetOutput(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
   const channel = payload.channel as string;
-  if (!channel) throw Object.assign(new Error("channel is required"), { code: "EINVAL" });
+  if (!channel)
+    throw Object.assign(new Error("channel is required"), { code: "EINVAL" });
 
   const output = processOutputBuffers.get(channel) || "";
   return { channel, output };
 }
 
-function handleProcessesClearOutput(payload: Record<string, unknown>): Record<string, unknown> {
+function handleProcessesClearOutput(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
   const channel = payload.channel as string;
 
   if (channel) {
@@ -1960,7 +2337,12 @@ function handleProcessesClearOutput(payload: Record<string, unknown>): Record<st
 
 function handlePortsList(): Record<string, unknown> {
   const platform = os.platform();
-  const ports: Array<{ port: number; pid: number; process: string; address: string }> = [];
+  const ports: Array<{
+    port: number;
+    pid: number;
+    process: string;
+    address: string;
+  }> = [];
 
   try {
     let output: string;
@@ -1991,10 +2373,13 @@ function handlePortsList(): Record<string, unknown> {
         }
       } catch {
         // lsof might fail, try netstat
-        output = execSync("netstat -tlnp 2>/dev/null || netstat -an 2>/dev/null || true", {
-          encoding: "utf-8",
-          timeout: 5000,
-        });
+        output = execSync(
+          "netstat -tlnp 2>/dev/null || netstat -an 2>/dev/null || true",
+          {
+            encoding: "utf-8",
+            timeout: 5000,
+          },
+        );
       }
     } else if (platform === "win32") {
       output = execSync("netstat -ano | findstr LISTENING", {
@@ -2024,10 +2409,15 @@ function handlePortsList(): Record<string, unknown> {
   return { ports };
 }
 
-function handlePortsIsAvailable(payload: Record<string, unknown>): Record<string, unknown> {
+function handlePortsIsAvailable(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
   const port = Math.floor(Number(payload.port));
   if (!Number.isFinite(port) || port < 1 || port > 65535) {
-    throw Object.assign(new Error("port must be an integer between 1 and 65535"), { code: "EINVAL" });
+    throw Object.assign(
+      new Error("port must be an integer between 1 and 65535"),
+      { code: "EINVAL" },
+    );
   }
 
   return new Promise((resolve) => {
@@ -2051,14 +2441,20 @@ function handlePortsIsAvailable(payload: Record<string, unknown>): Record<string
   }) as unknown as Record<string, unknown>;
 }
 
-function handlePortsKill(payload: Record<string, unknown>): Record<string, unknown> {
+function handlePortsKill(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
   const port = payload.port as number;
-  if (!port) throw Object.assign(new Error("port is required"), { code: "EINVAL" });
+  if (!port)
+    throw Object.assign(new Error("port is required"), { code: "EINVAL" });
 
   // Strict port range validation to prevent injection via crafted numeric values
   const portNum = Math.floor(Number(port));
   if (!Number.isFinite(portNum) || portNum < 1 || portNum > 65535) {
-    throw Object.assign(new Error("port must be an integer between 1 and 65535"), { code: "EINVAL" });
+    throw Object.assign(
+      new Error("port must be an integer between 1 and 65535"),
+      { code: "EINVAL" },
+    );
   }
 
   const platform = os.platform();
@@ -2069,14 +2465,20 @@ function handlePortsKill(payload: Record<string, unknown>): Record<string, unkno
     if (platform === "darwin" || platform === "linux") {
       // Use spawnSync with an explicit args array — never shell: true — so portNum
       // cannot escape into a shell command even if it were somehow non-numeric.
-      const result = spawnSync("lsof", ["-ti", String(portNum)], { encoding: "utf-8" });
+      const result = spawnSync("lsof", ["-ti", String(portNum)], {
+        encoding: "utf-8",
+      });
       const pids = (result.stdout || "").trim().split("\n").filter(Boolean);
       for (const pidStr of pids) {
         const p = parseInt(pidStr, 10);
         if (!Number.isFinite(p) || p <= 0) continue;
         if (pid === null) pid = p;
         // Send SIGKILL directly via process.kill — no shell involved.
-        try { process.kill(p, "SIGKILL"); } catch { /* already dead */ }
+        try {
+          process.kill(p, "SIGKILL");
+        } catch {
+          /* already dead */
+        }
       }
     } else if (platform === "win32") {
       // Use netstat via args array, parse PIDs, then taskkill via args array.
@@ -2099,7 +2501,10 @@ function handlePortsKill(payload: Record<string, unknown>): Record<string, unkno
 
     return { port: portNum, pid };
   } catch (err) {
-    throw Object.assign(new Error(`Failed to kill process on port ${portNum}`), { code: "EPERM" });
+    throw Object.assign(
+      new Error(`Failed to kill process on port ${portNum}`),
+      { code: "EPERM" },
+    );
   }
 }
 
@@ -2121,7 +2526,8 @@ function getCpuUsage(): { usage: number; cores: number[] } {
     if (lastCpuInfo && lastCpuInfo[i]) {
       const deltaTotal = total - lastCpuInfo[i].total;
       const deltaIdle = idle - lastCpuInfo[i].idle;
-      const usage = deltaTotal > 0 ? ((deltaTotal - deltaIdle) / deltaTotal) * 100 : 0;
+      const usage =
+        deltaTotal > 0 ? ((deltaTotal - deltaIdle) / deltaTotal) * 100 : 0;
       coreUsages.push(Math.round(usage * 10) / 10);
     } else {
       coreUsages.push(0);
@@ -2137,14 +2543,20 @@ function getCpuUsage(): { usage: number; cores: number[] } {
     total: Object.values(cpu.times).reduce((a, b) => a + b, 0),
   }));
 
-  const avgUsage = coreUsages.length > 0
-    ? coreUsages.reduce((a, b) => a + b, 0) / coreUsages.length
-    : 0;
+  const avgUsage =
+    coreUsages.length > 0
+      ? coreUsages.reduce((a, b) => a + b, 0) / coreUsages.length
+      : 0;
 
   return { usage: Math.round(avgUsage * 10) / 10, cores: coreUsages };
 }
 
-function getMemoryInfo(): { total: number; used: number; free: number; usedPercent: number } {
+function getMemoryInfo(): {
+  total: number;
+  used: number;
+  free: number;
+  usedPercent: number;
+} {
   const total = os.totalmem();
   const free = os.freemem();
   const used = total - free;
@@ -2153,13 +2565,29 @@ function getMemoryInfo(): { total: number; used: number; free: number; usedPerce
   return { total, used, free, usedPercent };
 }
 
-function getDiskInfo(): Array<{ mount: string; filesystem: string; size: number; used: number; free: number; usedPercent: number }> {
+function getDiskInfo(): Array<{
+  mount: string;
+  filesystem: string;
+  size: number;
+  used: number;
+  free: number;
+  usedPercent: number;
+}> {
   const platform = os.platform();
-  const disks: Array<{ mount: string; filesystem: string; size: number; used: number; free: number; usedPercent: number }> = [];
+  const disks: Array<{
+    mount: string;
+    filesystem: string;
+    size: number;
+    used: number;
+    free: number;
+    usedPercent: number;
+  }> = [];
 
   try {
     if (platform === "darwin" || platform === "linux") {
-      const output = execSync("df -k 2>/dev/null || true", { encoding: "utf-8" });
+      const output = execSync("df -k 2>/dev/null || true", {
+        encoding: "utf-8",
+      });
       const lines = output.trim().split("\n").slice(1);
 
       for (const line of lines) {
@@ -2172,7 +2600,11 @@ function getDiskInfo(): Array<{ mount: string; filesystem: string; size: number;
           const mount = parts[5];
 
           // Skip special filesystems
-          if (mount.startsWith("/") && !filesystem.startsWith("devfs") && !filesystem.startsWith("map ")) {
+          if (
+            mount.startsWith("/") &&
+            !filesystem.startsWith("devfs") &&
+            !filesystem.startsWith("map ")
+          ) {
             disks.push({
               mount,
               filesystem,
@@ -2185,7 +2617,9 @@ function getDiskInfo(): Array<{ mount: string; filesystem: string; size: number;
         }
       }
     } else if (platform === "win32") {
-      const output = execSync("wmic logicaldisk get size,freespace,caption", { encoding: "utf-8" });
+      const output = execSync("wmic logicaldisk get size,freespace,caption", {
+        encoding: "utf-8",
+      });
       const lines = output.trim().split("\n").slice(1);
 
       for (const line of lines) {
@@ -2216,12 +2650,19 @@ function getDiskInfo(): Array<{ mount: string; filesystem: string; size: number;
   return disks;
 }
 
-function getBatteryInfo(): { hasBattery: boolean; percent: number; charging: boolean; timeRemaining: number | null } {
+function getBatteryInfo(): {
+  hasBattery: boolean;
+  percent: number;
+  charging: boolean;
+  timeRemaining: number | null;
+} {
   const platform = os.platform();
 
   try {
     if (platform === "darwin") {
-      const output = execSync("pmset -g batt 2>/dev/null || true", { encoding: "utf-8" });
+      const output = execSync("pmset -g batt 2>/dev/null || true", {
+        encoding: "utf-8",
+      });
       const percentMatch = output.match(/(\d+)%/);
       const chargingMatch = output.match(/AC Power|charging|charged/i);
       const timeMatch = output.match(/(\d+):(\d+) remaining/);
@@ -2231,7 +2672,9 @@ function getBatteryInfo(): { hasBattery: boolean; percent: number; charging: boo
           hasBattery: true,
           percent: parseInt(percentMatch[1]),
           charging: !!chargingMatch,
-          timeRemaining: timeMatch ? parseInt(timeMatch[1]) * 60 + parseInt(timeMatch[2]) : null,
+          timeRemaining: timeMatch
+            ? parseInt(timeMatch[1]) * 60 + parseInt(timeMatch[2])
+            : null,
         };
       }
     } else if (platform === "linux") {
@@ -2239,8 +2682,15 @@ function getBatteryInfo(): { hasBattery: boolean; percent: number; charging: boo
         const capacityPath = "/sys/class/power_supply/BAT0/capacity";
         const statusPath = "/sys/class/power_supply/BAT0/status";
 
-        const capacity = parseInt(execSync(`cat ${capacityPath} 2>/dev/null || echo 0`, { encoding: "utf-8" }).trim());
-        const status = execSync(`cat ${statusPath} 2>/dev/null || echo Unknown`, { encoding: "utf-8" }).trim();
+        const capacity = parseInt(
+          execSync(`cat ${capacityPath} 2>/dev/null || echo 0`, {
+            encoding: "utf-8",
+          }).trim(),
+        );
+        const status = execSync(
+          `cat ${statusPath} 2>/dev/null || echo Unknown`,
+          { encoding: "utf-8" },
+        ).trim();
 
         if (capacity > 0) {
           return {
@@ -2254,7 +2704,10 @@ function getBatteryInfo(): { hasBattery: boolean; percent: number; charging: boo
         // No battery
       }
     } else if (platform === "win32") {
-      const output = execSync("WMIC Path Win32_Battery Get EstimatedChargeRemaining,BatteryStatus 2>nul || echo", { encoding: "utf-8" });
+      const output = execSync(
+        "WMIC Path Win32_Battery Get EstimatedChargeRemaining,BatteryStatus 2>nul || echo",
+        { encoding: "utf-8" },
+      );
       const lines = output.trim().split("\n").slice(1);
 
       if (lines.length > 0) {
@@ -2276,7 +2729,12 @@ function getBatteryInfo(): { hasBattery: boolean; percent: number; charging: boo
     // No battery or error
   }
 
-  return { hasBattery: false, percent: 0, charging: false, timeRemaining: null };
+  return {
+    hasBattery: false,
+    percent: 0,
+    charging: false,
+    timeRemaining: null,
+  };
 }
 
 function handleMonitorSystem(): Record<string, unknown> {
@@ -2315,14 +2773,17 @@ function handleMonitorBattery(): Record<string, unknown> {
 // HTTP Handlers
 // ============================================================================
 
-async function handleHttpRequest(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleHttpRequest(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const method = (payload.method as string) || "GET";
   const url = payload.url as string;
   const headers = (payload.headers as Record<string, string>) || {};
   const body = payload.body as string | undefined;
   const timeout = (payload.timeout as number) || 30000;
 
-  if (!url) throw Object.assign(new Error("url is required"), { code: "EINVAL" });
+  if (!url)
+    throw Object.assign(new Error("url is required"), { code: "EINVAL" });
 
   const startTime = Date.now();
 
@@ -2359,7 +2820,9 @@ async function handleHttpRequest(payload: Record<string, unknown>): Promise<Reco
     if (error.name === "AbortError") {
       throw Object.assign(new Error("Request timed out"), { code: "ETIMEOUT" });
     }
-    throw Object.assign(new Error(error.message || "Network error"), { code: "ENETWORK" });
+    throw Object.assign(new Error(error.message || "Network error"), {
+      code: "ENETWORK",
+    });
   }
 }
 
@@ -2442,7 +2905,9 @@ async function publishDiscoveredPorts(force = false): Promise<void> {
       action: "ports_discovered",
       payload: { ports: openPorts },
     });
-    debugLog(`[proxy] ports updated (${openPorts.length}): ${openPorts.join(", ") || "-"}`);
+    debugLog(
+      `[proxy] ports updated (${openPorts.length}): ${openPorts.join(", ") || "-"}`,
+    );
   } catch (err) {
     console.error("Port scan failed:", err);
   } finally {
@@ -2459,10 +2924,15 @@ async function getProxyState(): Promise<Record<string, unknown>> {
   };
 }
 
-async function handleTrackProxyPort(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleTrackProxyPort(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const port = Number(payload.port);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw Object.assign(new Error("port must be an integer between 1 and 65535"), { code: "EINVAL" });
+    throw Object.assign(
+      new Error("port must be an integer between 1 and 65535"),
+      { code: "EINVAL" },
+    );
   }
 
   trackedProxyPorts.add(port);
@@ -2478,10 +2948,15 @@ async function handleTrackProxyPort(payload: Record<string, unknown>): Promise<R
   };
 }
 
-async function handleUntrackProxyPort(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleUntrackProxyPort(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const port = Number(payload.port);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw Object.assign(new Error("port must be an integer between 1 and 65535"), { code: "EINVAL" });
+    throw Object.assign(
+      new Error("port must be an integer between 1 and 65535"),
+      { code: "EINVAL" },
+    );
   }
 
   trackedProxyPorts.delete(port);
@@ -2513,11 +2988,14 @@ function startPortSync(): void {
   }, PORT_SYNC_INTERVAL_MS);
 }
 
-async function handleProxyConnect(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function handleProxyConnect(
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   const tunnelId = payload.tunnelId as string;
   const port = payload.port as number;
   const setupStartedAt = Date.now();
-  const getRemainingSetupMs = () => TUNNEL_SETUP_BUDGET_MS - (Date.now() - setupStartedAt);
+  const getRemainingSetupMs = () =>
+    TUNNEL_SETUP_BUDGET_MS - (Date.now() - setupStartedAt);
   debugLog("[proxy] handleProxyConnect received", {
     tunnelId,
     port,
@@ -2526,11 +3004,16 @@ async function handleProxyConnect(payload: Record<string, unknown>): Promise<Rec
     activeGatewayUrl,
   });
 
-  if (!tunnelId) throw Object.assign(new Error("tunnelId is required"), { code: "EINVAL" });
-  if (!port) throw Object.assign(new Error("port is required"), { code: "EINVAL" });
-  if (!currentSessionCode && !currentSessionPassword) throw Object.assign(new Error("no active session"), { code: "ENOENT" });
+  if (!tunnelId)
+    throw Object.assign(new Error("tunnelId is required"), { code: "EINVAL" });
+  if (!port)
+    throw Object.assign(new Error("port is required"), { code: "EINVAL" });
+  if (!currentSessionCode && !currentSessionPassword)
+    throw Object.assign(new Error("no active session"), { code: "ENOENT" });
   if (getRemainingSetupMs() <= 0) {
-    throw Object.assign(new Error("Tunnel setup timeout before start"), { code: "ETIMEOUT" });
+    throw Object.assign(new Error("Tunnel setup timeout before start"), {
+      code: "ETIMEOUT",
+    });
   }
 
   // 1. Open TCP connection to the local service (dual-stack localhost fallback)
@@ -2539,15 +3022,25 @@ async function handleProxyConnect(payload: Record<string, unknown>): Promise<Rec
   for (const host of LOOPBACK_HOSTS) {
     const remainingMs = getRemainingSetupMs();
     if (remainingMs <= 0) {
-      throw Object.assign(new Error("Tunnel setup timeout before local TCP connect"), { code: "ETIMEOUT" });
+      throw Object.assign(
+        new Error("Tunnel setup timeout before local TCP connect"),
+        { code: "ETIMEOUT" },
+      );
     }
-    const tcpConnectTimeoutMs = Math.min(CLI_LOCAL_TCP_CONNECT_TIMEOUT_MS, Math.max(250, remainingMs));
+    const tcpConnectTimeoutMs = Math.min(
+      CLI_LOCAL_TCP_CONNECT_TIMEOUT_MS,
+      Math.max(250, remainingMs),
+    );
     const candidate = createConnection({ port, host });
     try {
       await new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => {
           candidate.destroy();
-          reject(Object.assign(new Error(`TCP connect timeout to ${host}:${port}`), { code: "ETIMEOUT" }));
+          reject(
+            Object.assign(new Error(`TCP connect timeout to ${host}:${port}`), {
+              code: "ETIMEOUT",
+            }),
+          );
         }, tcpConnectTimeoutMs);
 
         candidate.on("connect", () => {
@@ -2557,7 +3050,14 @@ async function handleProxyConnect(payload: Record<string, unknown>): Promise<Rec
 
         candidate.on("error", (err) => {
           clearTimeout(timeout);
-          reject(Object.assign(new Error(`TCP connect failed to ${host}:${port}: ${err.message}`), { code: "ECONNREFUSED" }));
+          reject(
+            Object.assign(
+              new Error(
+                `TCP connect failed to ${host}:${port}: ${err.message}`,
+              ),
+              { code: "ECONNREFUSED" },
+            ),
+          );
         });
       });
       tcpSocket = candidate;
@@ -2577,14 +3077,21 @@ async function handleProxyConnect(payload: Record<string, unknown>): Promise<Rec
       port,
       error: tcpConnectError?.message ?? null,
     });
-    throw tcpConnectError || Object.assign(new Error(`TCP connect failed to localhost:${port}`), { code: "ECONNREFUSED" });
+    throw (
+      tcpConnectError ||
+      Object.assign(new Error(`TCP connect failed to localhost:${port}`), {
+        code: "ECONNREFUSED",
+      })
+    );
   }
   debugLog("[proxy] local tcp connected", { tunnelId, port });
 
   // 2. Open proxy WebSocket to gateway
   const wsBase = activeGatewayUrl.replace(/^https:/, "wss:");
   if (!wsBase.startsWith("wss://")) {
-    throw Object.assign(new Error("Gateway URL must use https://"), { code: "EPROTO" });
+    throw Object.assign(new Error("Gateway URL must use https://"), {
+      code: "EPROTO",
+    });
   }
   const authQuery = currentSessionPassword
     ? `password=${encodeURIComponent(currentSessionPassword)}`
@@ -2603,17 +3110,27 @@ async function handleProxyConnect(payload: Record<string, unknown>): Promise<Rec
     const remainingMs = getRemainingSetupMs();
     if (remainingMs <= 0) {
       tcpSocket.destroy();
-      throw Object.assign(new Error("Tunnel setup timeout while connecting proxy WS"), { code: "ETIMEOUT" });
+      throw Object.assign(
+        new Error("Tunnel setup timeout while connecting proxy WS"),
+        { code: "ETIMEOUT" },
+      );
     }
 
-    const wsConnectTimeoutMs = Math.min(PROXY_WS_CONNECT_TIMEOUT_MS, Math.max(250, remainingMs));
+    const wsConnectTimeoutMs = Math.min(
+      PROXY_WS_CONNECT_TIMEOUT_MS,
+      Math.max(250, remainingMs),
+    );
     const candidateWs = new WebSocket(proxyWsUrl);
 
     try {
       await new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => {
           candidateWs.close();
-          reject(Object.assign(new Error("Proxy WS connect timeout"), { code: "ETIMEOUT" }));
+          reject(
+            Object.assign(new Error("Proxy WS connect timeout"), {
+              code: "ETIMEOUT",
+            }),
+          );
         }, wsConnectTimeoutMs);
 
         candidateWs.on("open", () => {
@@ -2623,12 +3140,20 @@ async function handleProxyConnect(payload: Record<string, unknown>): Promise<Rec
 
         candidateWs.on("error", (err) => {
           clearTimeout(timeout);
-          reject(Object.assign(new Error(`Proxy WS failed: ${err.message}`), { code: "ECONNREFUSED" }));
+          reject(
+            Object.assign(new Error(`Proxy WS failed: ${err.message}`), {
+              code: "ECONNREFUSED",
+            }),
+          );
         });
 
         candidateWs.on("close", () => {
           clearTimeout(timeout);
-          reject(Object.assign(new Error("Proxy WS closed during connect"), { code: "ECONNRESET" }));
+          reject(
+            Object.assign(new Error("Proxy WS closed during connect"), {
+              code: "ECONNRESET",
+            }),
+          );
         });
       });
 
@@ -2646,8 +3171,11 @@ async function handleProxyConnect(payload: Record<string, unknown>): Promise<Rec
         break;
       }
 
-      const jitterSpan = PROXY_WS_RETRY_JITTER_MAX_MS - PROXY_WS_RETRY_JITTER_MIN_MS;
-      const jitterMs = PROXY_WS_RETRY_JITTER_MIN_MS + Math.floor(Math.random() * (jitterSpan + 1));
+      const jitterSpan =
+        PROXY_WS_RETRY_JITTER_MAX_MS - PROXY_WS_RETRY_JITTER_MIN_MS;
+      const jitterMs =
+        PROXY_WS_RETRY_JITTER_MIN_MS +
+        Math.floor(Math.random() * (jitterSpan + 1));
       if (getRemainingSetupMs() <= jitterMs) {
         break;
       }
@@ -2657,7 +3185,11 @@ async function handleProxyConnect(payload: Record<string, unknown>): Promise<Rec
 
   if (!proxyWs) {
     tcpSocket.destroy();
-    const err = lastProxyError || Object.assign(new Error("Proxy WS connect failed"), { code: "ECONNREFUSED" });
+    const err =
+      lastProxyError ||
+      Object.assign(new Error("Proxy WS connect failed"), {
+        code: "ECONNREFUSED",
+      });
     debugLog("[proxy] cli proxy websocket connect failed", {
       tunnelId,
       port,
@@ -2705,7 +3237,10 @@ async function handleProxyConnect(payload: Record<string, unknown>): Promise<Rec
         if (!tcpSocket.destroyed) {
           tcpSocket.destroy();
         }
-        if (proxyWs.readyState === WebSocket.OPEN || proxyWs.readyState === WebSocket.CONNECTING) {
+        if (
+          proxyWs.readyState === WebSocket.OPEN ||
+          proxyWs.readyState === WebSocket.CONNECTING
+        ) {
           proxyWs.close();
         }
       }
@@ -2757,7 +3292,10 @@ async function handleProxyConnect(payload: Record<string, unknown>): Promise<Rec
       }
     }
     activeTunnels.delete(tunnelId);
-    if (proxyWs.readyState === WebSocket.OPEN || proxyWs.readyState === WebSocket.CONNECTING) {
+    if (
+      proxyWs.readyState === WebSocket.OPEN ||
+      proxyWs.readyState === WebSocket.CONNECTING
+    ) {
       proxyWs.close();
     }
   });
@@ -2817,7 +3355,12 @@ async function processMessage(message: Message): Promise<Response> {
   const { v, id, ns, action, payload } = message;
   const startedAt = Date.now();
   const pathValue = typeof payload?.path === "string" ? payload.path : null;
-  logWithTimestamp("router", "request received", { id, ns, action, path: pathValue });
+  logWithTimestamp("router", "request received", {
+    id,
+    ns,
+    action,
+    path: pathValue,
+  });
 
   // Validate protocol version
   if (v !== 1) {
@@ -2836,7 +3379,7 @@ async function processMessage(message: Message): Promise<Response> {
   if (!ns || !action) {
     debugWarn(
       "[router] Ignoring message with missing ns/action:",
-      redactSensitive(JSON.stringify(message).substring(0, 300))
+      redactSensitive(JSON.stringify(message).substring(0, 300)),
     );
     return {
       v: 1,
@@ -2863,10 +3406,15 @@ async function processMessage(message: Message): Promise<Response> {
             result = handleSystemPing();
             break;
           case "pairDevice": {
-            throw Object.assign(new Error("pairDevice is no longer supported"), { code: "EINVAL" });
+            throw Object.assign(
+              new Error("pairDevice is no longer supported"),
+              { code: "EINVAL" },
+            );
           }
           default:
-            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), { code: "EINVAL" });
+            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), {
+              code: "EINVAL",
+            });
         }
         break;
 
@@ -2903,7 +3451,9 @@ async function processMessage(message: Message): Promise<Response> {
             result = await handleFsCreate(payload);
             break;
           default:
-            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), { code: "EINVAL" });
+            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), {
+              code: "EINVAL",
+            });
         }
         break;
 
@@ -2916,13 +3466,18 @@ async function processMessage(message: Message): Promise<Response> {
             result = untrackEditorFile(payload.path as string);
             break;
           case "rename":
-            result = await renameTrackedEditorFile(payload.from as string, payload.to as string);
+            result = await renameTrackedEditorFile(
+              payload.from as string,
+              payload.to as string,
+            );
             break;
           case "delete":
             result = deleteTrackedEditorFile(payload.path as string);
             break;
           default:
-            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), { code: "EINVAL" });
+            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), {
+              code: "EINVAL",
+            });
         }
         break;
 
@@ -2968,7 +3523,9 @@ async function processMessage(message: Message): Promise<Response> {
             result = await handleGitDiscard(payload);
             break;
           default:
-            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), { code: "EINVAL" });
+            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), {
+              code: "EINVAL",
+            });
         }
         break;
 
@@ -2990,7 +3547,9 @@ async function processMessage(message: Message): Promise<Response> {
             result = handleTerminalScroll(payload);
             break;
           default:
-            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), { code: "EINVAL" });
+            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), {
+              code: "EINVAL",
+            });
         }
         break;
 
@@ -3012,7 +3571,9 @@ async function processMessage(message: Message): Promise<Response> {
             result = handleProcessesClearOutput(payload);
             break;
           default:
-            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), { code: "EINVAL" });
+            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), {
+              code: "EINVAL",
+            });
         }
         break;
 
@@ -3028,7 +3589,9 @@ async function processMessage(message: Message): Promise<Response> {
             result = handlePortsKill(payload);
             break;
           default:
-            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), { code: "EINVAL" });
+            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), {
+              code: "EINVAL",
+            });
         }
         break;
 
@@ -3050,7 +3613,9 @@ async function processMessage(message: Message): Promise<Response> {
             result = handleMonitorBattery();
             break;
           default:
-            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), { code: "EINVAL" });
+            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), {
+              code: "EINVAL",
+            });
         }
         break;
 
@@ -3060,13 +3625,20 @@ async function processMessage(message: Message): Promise<Response> {
             result = await handleHttpRequest(payload);
             break;
           default:
-            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), { code: "EINVAL" });
+            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), {
+              code: "EINVAL",
+            });
         }
         break;
 
       case "ai": {
-        if (!aiManager) throw Object.assign(new Error("AI manager not initialized"), { code: "EUNAVAILABLE" });
-        const backend = ((payload.backend as string) === "codex" ? "codex" : "opencode") as AiBackend;
+        if (!aiManager)
+          throw Object.assign(new Error("AI manager not initialized"), {
+            code: "EUNAVAILABLE",
+          });
+        const backend = (
+          (payload.backend as string) === "codex" ? "codex" : "opencode"
+        ) as AiBackend;
         switch (action) {
           case "backends":
             result = { backends: aiManager.availableBackends() };
@@ -3076,32 +3648,118 @@ async function processMessage(message: Message): Promise<Response> {
               backend,
               payload.sessionId as string,
               payload.text as string,
-              payload.model as { providerID: string; modelID: string } | undefined,
+              payload.model as
+                | { providerID: string; modelID: string }
+                | undefined,
               payload.agent as string | undefined,
-              payload.files as Array<{ type: "file"; mime: string; filename?: string; url: string }> | undefined,
-              payload.codexOptions as { reasoningEffort?: string; speed?: string; permissionMode?: "default" | "full-access" } | undefined,
+              payload.files as
+                | Array<{
+                    type: "file";
+                    mime: string;
+                    filename?: string;
+                    url: string;
+                  }>
+                | undefined,
+              payload.codexOptions as
+                | {
+                    reasoningEffort?: string;
+                    speed?: string;
+                    permissionMode?: "default" | "full-access";
+                  }
+                | undefined,
             );
             break;
-          case "createSession":  result = await aiManager.createSession(backend, payload.title as string | undefined); break;
-          case "listSessions":   result = await aiManager.listAllSessions(); break;
-          case "getSession":     result = await aiManager.getSession(backend, payload.id as string); break;
-          case "deleteSession":  result = await aiManager.deleteSession(backend, payload.id as string); break;
-          case "renameSession":  result = await aiManager.renameSession(backend, payload.id as string, payload.title as string); break;
-          case "getMessages":    result = await aiManager.getMessages(backend, payload.id as string); break;
-          case "statuses":       result = await aiManager.statuses(backend); break;
-          case "abort":          result = await aiManager.abort(backend, payload.sessionId as string); break;
-          case "agents":         result = await aiManager.agents(backend); break;
-          case "providers":      result = await aiManager.providers(backend); break;
-          case "setAuth":        result = await aiManager.setAuth(backend, payload.providerId as string, payload.key as string); break;
-          case "command":        result = await aiManager.command(backend, payload.sessionId as string, payload.command as string, (payload.arguments as string) || ""); break;
-          case "revert":         result = await aiManager.revert(backend, payload.sessionId as string, payload.messageId as string); break;
-          case "unrevert":       result = await aiManager.unrevert(backend, payload.sessionId as string); break;
-          case "share":          result = await aiManager.share(backend, payload.sessionId as string); break;
+          case "createSession":
+            result = await aiManager.createSession(
+              backend,
+              payload.title as string | undefined,
+            );
+            break;
+          case "listSessions":
+            result = await aiManager.listAllSessions();
+            break;
+          case "getSession":
+            result = await aiManager.getSession(backend, payload.id as string);
+            break;
+          case "deleteSession":
+            result = await aiManager.deleteSession(
+              backend,
+              payload.id as string,
+            );
+            break;
+          case "renameSession":
+            result = await aiManager.renameSession(
+              backend,
+              payload.id as string,
+              payload.title as string,
+            );
+            break;
+          case "getMessages":
+            result = await aiManager.getMessages(backend, payload.id as string);
+            break;
+          case "statuses":
+            result = await aiManager.statuses(backend);
+            break;
+          case "abort":
+            result = await aiManager.abort(
+              backend,
+              payload.sessionId as string,
+            );
+            break;
+          case "agents":
+            result = await aiManager.agents(backend);
+            break;
+          case "providers":
+            result = await aiManager.providers(backend);
+            break;
+          case "setAuth":
+            result = await aiManager.setAuth(
+              backend,
+              payload.providerId as string,
+              payload.key as string,
+            );
+            break;
+          case "command":
+            result = await aiManager.command(
+              backend,
+              payload.sessionId as string,
+              payload.command as string,
+              (payload.arguments as string) || "",
+            );
+            break;
+          case "revert":
+            result = await aiManager.revert(
+              backend,
+              payload.sessionId as string,
+              payload.messageId as string,
+            );
+            break;
+          case "unrevert":
+            result = await aiManager.unrevert(
+              backend,
+              payload.sessionId as string,
+            );
+            break;
+          case "share":
+            result = await aiManager.share(
+              backend,
+              payload.sessionId as string,
+            );
+            break;
           case "permission": {
             const r = payload.response as string | undefined;
             const permResp: "once" | "always" | "reject" =
-              r === "once" || r === "always" || r === "reject" ? r : (payload.approved ? "once" : "reject");
-            result = await aiManager.permissionReply(backend, payload.sessionId as string, payload.permissionId as string, permResp);
+              r === "once" || r === "always" || r === "reject"
+                ? r
+                : payload.approved
+                  ? "once"
+                  : "reject";
+            result = await aiManager.permissionReply(
+              backend,
+              payload.sessionId as string,
+              payload.permissionId as string,
+              permResp,
+            );
             break;
           }
           case "questionReply":
@@ -3120,7 +3778,9 @@ async function processMessage(message: Message): Promise<Response> {
             );
             break;
           default:
-            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), { code: "EINVAL" });
+            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), {
+              code: "EINVAL",
+            });
         }
         break;
       }
@@ -3140,15 +3800,26 @@ async function processMessage(message: Message): Promise<Response> {
             result = await handleUntrackProxyPort(payload);
             break;
           default:
-            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), { code: "EINVAL" });
+            throw Object.assign(new Error(`Unknown action: ${ns}.${action}`), {
+              code: "EINVAL",
+            });
         }
         break;
 
       default:
-        throw Object.assign(new Error(`Unknown namespace: ${ns}`), { code: "EINVAL" });
+        throw Object.assign(new Error(`Unknown namespace: ${ns}`), {
+          code: "EINVAL",
+        });
     }
 
-    const response: Response = { v: 1, id, ns, action, ok: true, payload: result };
+    const response: Response = {
+      v: 1,
+      id,
+      ns,
+      action,
+      ok: true,
+      payload: result,
+    };
     logWithTimestamp("router", "request completed", {
       id,
       ns,
@@ -3161,7 +3832,11 @@ async function processMessage(message: Message): Promise<Response> {
   } catch (error) {
     const err = error as NodeJS.ErrnoException;
     if (DEBUG_MODE) {
-      console.error(`[router] ${ns}.${action} error:`, err.code || "ERROR", err.message);
+      console.error(
+        `[router] ${ns}.${action} error:`,
+        err.code || "ERROR",
+        err.message,
+      );
     }
     logWithTimestamp("router", "request failed", {
       id,
@@ -3219,7 +3894,10 @@ function normalizeGatewayUrl(input: string): string {
   if (!raw) {
     throw new Error("Gateway URL is required");
   }
-  if (raw.toLowerCase().startsWith("http://") || raw.toLowerCase().startsWith("ws://")) {
+  if (
+    raw.toLowerCase().startsWith("http://") ||
+    raw.toLowerCase().startsWith("ws://")
+  ) {
     throw new Error("Insecure gateway protocol is not allowed; use https://");
   }
 
@@ -3233,14 +3911,17 @@ function normalizeGatewayUrl(input: string): string {
   if (parsed.protocol !== "https:") {
     throw new Error("Gateway URL must use https://");
   }
-  const path = parsed.pathname === "/" ? "" : parsed.pathname.replace(/\/+$/, "");
+  const path =
+    parsed.pathname === "/" ? "" : parsed.pathname.replace(/\/+$/, "");
   return `${parsed.protocol}//${parsed.host}${path}`;
 }
 
 async function createQrCode(): Promise<ManagerQrResponse> {
   const response = await fetch(`${MANAGER_URL}/v2/qr`);
   if (!response.ok) {
-    throw new Error(`Failed to create QR code from manager: ${response.status}`);
+    throw new Error(
+      `Failed to create QR code from manager: ${response.status}`,
+    );
   }
   return (await response.json()) as ManagerQrResponse;
 }
@@ -3264,8 +3945,16 @@ async function assembleWithCode(code: string): Promise<AssembleResult> {
 
     ws.on("message", (data) => {
       try {
-        const parsed = JSON.parse(data.toString()) as { type?: string; code?: string; password?: string };
-        if (parsed.type !== "assembled" || typeof parsed.code !== "string" || typeof parsed.password !== "string") {
+        const parsed = JSON.parse(data.toString()) as {
+          type?: string;
+          code?: string;
+          password?: string;
+        };
+        if (
+          parsed.type !== "assembled" ||
+          typeof parsed.code !== "string" ||
+          typeof parsed.password !== "string"
+        ) {
           fail(new Error("Invalid assemble payload"));
           return;
         }
@@ -3280,7 +3969,11 @@ async function assembleWithCode(code: string): Promise<AssembleResult> {
 
     ws.on("close", (codeValue, reason) => {
       if (settled) return;
-      fail(new Error(`Assemble socket closed (${codeValue}: ${reason.toString()})`));
+      fail(
+        new Error(
+          `Assemble socket closed (${codeValue}: ${reason.toString()})`,
+        ),
+      );
     });
 
     ws.on("error", (error) => {
@@ -3296,7 +3989,10 @@ async function getAssignedProxyUrl(password: string): Promise<string> {
   if (!response.ok) {
     let message = `Failed to get proxy from manager: ${response.status}`;
     try {
-      const payload = await response.json() as { error?: string; reason?: string };
+      const payload = (await response.json()) as {
+        error?: string;
+        reason?: string;
+      };
       if (payload.error) {
         message = payload.error;
       } else if (payload.reason) {
@@ -3307,7 +4003,7 @@ async function getAssignedProxyUrl(password: string): Promise<string> {
     }
     throw new Error(message);
   }
-  const payload = await response.json() as Partial<ManagerProxyResponse>;
+  const payload = (await response.json()) as Partial<ManagerProxyResponse>;
   if (typeof payload.proxyUrl !== "string" || !payload.proxyUrl) {
     throw new Error("Manager returned invalid proxy assignment");
   }
@@ -3326,7 +4022,10 @@ async function claimReattach(password: string): Promise<ReattachClaimResponse> {
   if (!response.ok) {
     let message = `Failed to claim reattach from manager: ${response.status}`;
     try {
-      const payload = await response.json() as { error?: string; reason?: string };
+      const payload = (await response.json()) as {
+        error?: string;
+        reason?: string;
+      };
       if (payload.error) {
         message = payload.error;
       } else if (payload.reason) {
@@ -3337,14 +4036,21 @@ async function claimReattach(password: string): Promise<ReattachClaimResponse> {
     }
     throw new Error(message);
   }
-  const payload = await response.json() as Partial<ReattachClaimResponse>;
+  const payload = (await response.json()) as Partial<ReattachClaimResponse>;
   if (typeof payload.proxyUrl !== "string" || !payload.proxyUrl) {
     throw new Error("Manager returned invalid reattach proxy assignment");
   }
-  if (typeof payload.generation !== "number" || !Number.isFinite(payload.generation) || payload.generation < 1) {
+  if (
+    typeof payload.generation !== "number" ||
+    !Number.isFinite(payload.generation) ||
+    payload.generation < 1
+  ) {
     throw new Error("Manager returned invalid reattach generation");
   }
-  if (typeof payload.expiresAt !== "number" || !Number.isFinite(payload.expiresAt)) {
+  if (
+    typeof payload.expiresAt !== "number" ||
+    !Number.isFinite(payload.expiresAt)
+  ) {
     throw new Error("Manager returned invalid reattach expiry");
   }
   return {
@@ -3354,7 +4060,10 @@ async function claimReattach(password: string): Promise<ReattachClaimResponse> {
   };
 }
 
-async function revokePassword(password: string, reason = "revoked by cli --new"): Promise<void> {
+async function revokePassword(
+  password: string,
+  reason = "revoked by cli --new",
+): Promise<void> {
   const response = await fetch(new URL("/v2/revoke", MANAGER_URL), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -3366,7 +4075,10 @@ async function revokePassword(password: string, reason = "revoked by cli --new")
 
   let message = `Failed to revoke previous session: ${response.status}`;
   try {
-    const payload = await response.json() as { error?: string; reason?: string };
+    const payload = (await response.json()) as {
+      error?: string;
+      reason?: string;
+    };
     if (payload.error) {
       message = payload.error;
     } else if (payload.reason) {
@@ -3428,7 +4140,9 @@ function displaySavedSessionNotice(): void {
   console.log("");
   console.log(`${red}${border}${reset}`);
   for (const line of lines) {
-    console.log(`${red}|${reset} ${bold}${line.padEnd(width, " ")}${reset} ${red}|${reset}`);
+    console.log(
+      `${red}|${reset} ${bold}${line.padEnd(width, " ")}${reset} ${red}|${reset}`,
+    );
   }
   console.log(`${red}${border}${reset}`);
   console.log("");
@@ -3447,9 +4161,13 @@ function isCommandAvailable(command: string): boolean {
 }
 
 function askYesNo(question: string, defaultValue = false): Promise<boolean> {
-  if (!process.stdin.isTTY || !process.stdout.isTTY) return Promise.resolve(false);
+  if (!process.stdin.isTTY || !process.stdout.isTTY)
+    return Promise.resolve(false);
   return new Promise((resolve) => {
-    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
     const suffix = defaultValue ? " [Y/n] " : " [y/N] ";
     rl.question(`${question}${suffix}`, (answer) => {
       rl.close();
@@ -3474,12 +4192,15 @@ function installLatestNpmPackage(pkg: string): boolean {
 }
 
 async function ensureAiCliRuntimes(): Promise<void> {
-  const missingBackends = (Object.keys(AI_RUNTIME_INSTALL_CANDIDATES) as AiBackend[])
-    .filter((backend) => !isCommandAvailable(backend));
+  const missingBackends = (
+    Object.keys(AI_RUNTIME_INSTALL_CANDIDATES) as AiBackend[]
+  ).filter((backend) => !isCommandAvailable(backend));
   if (missingBackends.length === 0) return;
 
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
-    console.warn(`[ai] Missing runtimes: ${missingBackends.join(", ")}. Run in an interactive shell to install them.`);
+    console.warn(
+      `[ai] Missing runtimes: ${missingBackends.join(", ")}. Run in an interactive shell to install them.`,
+    );
     return;
   }
 
@@ -3495,7 +4216,9 @@ async function ensureAiCliRuntimes(): Promise<void> {
     const candidates = AI_RUNTIME_INSTALL_CANDIDATES[backend];
     let installed = false;
     for (const pkg of candidates) {
-      console.log(`[ai] Installing ${backend} via npm package ${pkg}@latest...`);
+      console.log(
+        `[ai] Installing ${backend} via npm package ${pkg}@latest...`,
+      );
       if (!installLatestNpmPackage(pkg)) continue;
       if (isCommandAvailable(backend)) {
         installed = true;
@@ -3504,7 +4227,9 @@ async function ensureAiCliRuntimes(): Promise<void> {
       }
     }
     if (!installed) {
-      console.warn(`[ai] Failed to install ${backend}. You can install it manually and restart the CLI.`);
+      console.warn(
+        `[ai] Failed to install ${backend}. You can install it manually and restart the CLI.`,
+      );
     }
   }
 }
@@ -3602,7 +4327,9 @@ async function connectWebSocketV2(): Promise<void> {
 
         if (message.type === "app_disconnected") {
           if (message.reconnectDeadline) {
-            console.log(`[session] app disconnected, waiting until ${new Date(message.reconnectDeadline).toISOString()}`);
+            console.log(
+              `[session] app disconnected, waiting until ${new Date(message.reconnectDeadline).toISOString()}`,
+            );
           }
           return;
         }
@@ -3611,7 +4338,9 @@ async function connectWebSocketV2(): Promise<void> {
           const reason = message.reason || "expired";
           console.log(`[session] closed by gateway: ${reason}`);
           if (reason === "session ended from app") {
-            console.log("[session] Run `npx jukto-cli` again and scan the new QR code to reconnect.");
+            console.log(
+              "[session] Run `npx jukto-cli` again and scan the new QR code to reconnect.",
+            );
           }
           gracefulShutdown();
         }
@@ -3668,7 +4397,10 @@ async function handleConnectionDrop(reason: string): Promise<void> {
       debugLog(`[reconnect] connected via ${activeGatewayUrl}`);
       return;
     } catch (err) {
-      if (DEBUG_MODE) console.error(`[reconnect] attempt ${attempt} failed: ${(err as Error).message}`);
+      if (DEBUG_MODE)
+        console.error(
+          `[reconnect] attempt ${attempt} failed: ${(err as Error).message}`,
+        );
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
@@ -3695,7 +4427,9 @@ async function main(): Promise<void> {
     if (ptyBinaryPath) {
       debugLog("PTY runtime ready.\n");
     } else {
-      debugLog(`PTY runtime unsupported on ${os.platform()}/${os.arch()}. Skipping prefetch.\n`);
+      debugLog(
+        `PTY runtime unsupported on ${os.platform()}/${os.arch()}. Skipping prefetch.\n`,
+      );
     }
 
     await ensureAiCliRuntimes();
@@ -3743,7 +4477,9 @@ async function main(): Promise<void> {
     const message = error instanceof Error ? error.message : String(error);
     if (
       usedSavedSession &&
-      /invalid|revoked|not found|expired|password invalid|password revoked/i.test(message)
+      /invalid|revoked|not found|expired|password invalid|password revoked/i.test(
+        message,
+      )
     ) {
       await clearSavedSessionForRoot().catch(() => {});
     }
