@@ -294,6 +294,17 @@ function parseConnectPayload(value: string): {
   const raw = value.trim();
   if (!raw) return { code: "" };
 
+  // Support JSON payloads, e.g. {"c":"ABC","p":"secret"}
+  try {
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    if (parsed.c || parsed.code) {
+      return { code: parsed.c || parsed.code, password: parsed.p || parsed.password };
+    }
+  } catch {
+    // ignore JSON parsing failures and continue with fallback
+  }
+
+  // Support legacy comma-separated payloads: "ABC,XYZ"
   const parts = raw
     .split(",")
     .map((x) => x.trim())
@@ -1669,35 +1680,18 @@ export function ConnectionProvider({
         throw new Error("Invalid connection code");
       }
 
-      let assembled: AssembleResult;
-      try {
-        logger.info("connection", "assembling session in manager", {
-          code: parsed.code,
-        });
-        assembled = await assembleWithCode(parsed.code);
-      } catch (err) {
-        const msg =
-          err instanceof Error ? err.message : "Manager assemble failed";
-        logger.error("connection", "manager assemble failed", {
-          code: parsed.code,
-          error: msg,
-        });
-        setSessionState("ended");
-        setStatus("error");
-        setError(msg);
-        throw new Error(msg);
-      }
+      const password = parsed.password || parsed.code;
 
       setSessionState("pending");
       setStatus("connecting");
       setError(null);
       setSessionCode(parsed.code);
 
-      sessionCodeRef.current = assembled.code;
-      sessionPasswordRef.current = assembled.password;
+      sessionCodeRef.current = parsed.code;
+      sessionPasswordRef.current = password;
       reattachGenerationRef.current = null;
       try {
-        gatewaysRef.current = [await getAssignedProxyUrl(assembled.password)];
+        gatewaysRef.current = [await getAssignedProxyUrl(password)];
         logger.info("connection", "resolved gateways", {
           gateways: gatewaysRef.current,
         });
@@ -1716,8 +1710,8 @@ export function ConnectionProvider({
       const gateway = gatewaysRef.current[0];
       try {
         await connectToGatewayV2(gateway, {
-          sessionPassword: assembled.password,
-          sessionCode: assembled.code,
+          sessionPassword: password,
+          sessionCode: parsed.code,
         });
         return;
       } catch (err) {
@@ -1736,7 +1730,7 @@ export function ConnectionProvider({
         throw lastError;
       }
     },
-    [assembleWithCode, cleanupSockets, connectToGatewayV2, getAssignedProxyUrl],
+    [cleanupSockets, connectToGatewayV2, getAssignedProxyUrl],
   );
 
   const resumeSession = useCallback(

@@ -1950,34 +1950,35 @@ function startManager(): void {
   };
 
   const maybeIssueAssemblePassword = (session: AssembleSession): void => {
-    if (session.password) return;
     if (!session.appWs || !session.cliWs) return;
 
-    const password = makeV2Password();
-    const now = Date.now();
-    const passwordHash = hashPassword(password);
-    const expiresAt = now + DEFAULT_RESUME_TOKEN_TTL_MS;
-    session.password = password;
-    const record: IssuedPasswordRecord = {
-      code: session.code,
-      passwordHash,
-      proxyUrl: null,
-      issuedAt: now,
-      expiresAt,
-    };
-    issuedPasswordsByHash.set(passwordHash, record);
-    upsertIssuedPasswordStmt.run(
-      passwordHash,
-      session.code,
-      null,
-      now,
-      expiresAt,
-    );
+    if (!session.password) {
+      const password = makeV2Password();
+      const now = Date.now();
+      const passwordHash = hashPassword(password);
+      const expiresAt = now + DEFAULT_RESUME_TOKEN_TTL_MS;
+      session.password = password;
+      const record: IssuedPasswordRecord = {
+        code: session.code,
+        passwordHash,
+        proxyUrl: null,
+        issuedAt: now,
+        expiresAt,
+      };
+      issuedPasswordsByHash.set(passwordHash, record);
+      upsertIssuedPasswordStmt.run(
+        passwordHash,
+        session.code,
+        null,
+        now,
+        expiresAt,
+      );
+    }
 
     const payload = JSON.stringify({
       type: "assembled",
       code: session.code,
-      password,
+      password: session.password,
     });
     session.appWs.send(payload);
     session.cliWs.send(payload);
@@ -3182,9 +3183,23 @@ function startManager(): void {
         do {
           code = generateSecureCode();
         } while (assembleSessionsByCode.has(code));
-        getOrCreateAssembleSession(code);
+        const session = getOrCreateAssembleSession(code);
+        const password = makeV2Password();
+        const now = Date.now();
+        const passwordHash = hashPassword(password);
+        const expiresAt = now + DEFAULT_RESUME_TOKEN_TTL_MS;
+        session.password = password;
+        const record: IssuedPasswordRecord = {
+          code: session.code,
+          passwordHash,
+          proxyUrl: null,
+          issuedAt: now,
+          expiresAt,
+        };
+        issuedPasswordsByHash.set(passwordHash, record);
+        upsertIssuedPasswordStmt.run(passwordHash, session.code, null, now, expiresAt);
         return Response.json(
-          { code, expiresInMs: V2_CODE_TTL_MS },
+          { code, password, expiresInMs: V2_CODE_TTL_MS },
           { headers: corsHeaders },
         );
       }
