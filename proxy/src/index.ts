@@ -1094,6 +1094,7 @@ function startGateway(): void {
 
   const server = Bun.serve<WebSocketData>({
     port: process.env.PORT || 3000,
+    idleTimeout: 0,
 
     async fetch(req, server) {
       const url = new URL(req.url);

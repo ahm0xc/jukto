@@ -3102,6 +3102,7 @@ function startManager(): void {
 
   Bun.serve({
     port: Number(process.env.PORT || 8899),
+    idleTimeout: 0,
     fetch(req, server) {
       const url = new URL(req.url);
       const path = url.pathname;

@@ -18,7 +18,7 @@ import {
 import { logger } from "@/lib/logger";
 import { V2SessionTransport } from "@/lib/transport/v2";
 
-const DEFAULT_GATEWAY = "wss://gateway.jukto.pw";
+const DEFAULT_GATEWAY = "wss://proxy.jukto.pw";
 const MANAGER_URL = "https://manager.jukto.pw";
 const LAST_SESSION_STORAGE_KEY = "jukto_last_session";
 const LAST_SESSION_FALLBACK_STORAGE_KEY = "@jukto_last_session_fallback";
@@ -298,7 +298,10 @@ function parseConnectPayload(value: string): {
   try {
     const parsed = JSON.parse(raw) as Record<string, string>;
     if (parsed.c || parsed.code) {
-      return { code: parsed.c || parsed.code, password: parsed.p || parsed.password };
+      return {
+        code: parsed.c || parsed.code,
+        password: parsed.p || parsed.password,
+      };
     }
   } catch {
     // ignore JSON parsing failures and continue with fallback
@@ -1242,10 +1245,12 @@ export function ConnectionProvider({
       return await new Promise<AssembleResult>((resolve, reject) => {
         const ws = new WebSocket(wsUrl);
         let settled = false;
+        let socketError: string | null = null;
 
         const fail = (error: Error) => {
           if (settled) return;
           settled = true;
+          done();
           logger.warn("connection", "assemble websocket failed", {
             code,
             wsUrl,
@@ -1257,6 +1262,26 @@ export function ConnectionProvider({
             // ignore
           }
           reject(error);
+        };
+
+        const timeout = setTimeout(() => {
+          if (settled) return;
+          fail(
+            new Error(
+              `Assemble socket timed out after 30s${
+                socketError ? ` (last error: ${socketError})` : ""
+              }`,
+            ),
+          );
+          try {
+            ws.close();
+          } catch {
+            // ignore
+          }
+        }, 30_000);
+
+        const done = () => {
+          clearTimeout(timeout);
         };
 
         ws.onopen = () => {
@@ -1290,6 +1315,7 @@ export function ConnectionProvider({
             }
             if (settled) return;
             settled = true;
+            done();
             ws.send(JSON.stringify({ type: "ack" }));
             logger.info("connection", "assemble websocket completed", {
               code,
@@ -1303,30 +1329,42 @@ export function ConnectionProvider({
         };
 
         ws.onerror = (event) => {
+          const eventDetails = describeWebSocketErrorEvent(event);
+          socketError = String(eventDetails.nativeMessage ?? eventDetails.message ?? "unknown");
           logger.warn("connection", "assemble websocket error event", {
             code,
             wsUrl,
-            ...describeWebSocketErrorEvent(event),
+            ...eventDetails,
           });
-          fail(new Error("Assemble socket error"));
         };
 
         ws.onclose = (event) => {
+          done();
           if (settled) return;
+          const closeCode = typeof event.code === "number" ? event.code : null;
+          const closeReason =
+            typeof event.reason === "string" ? event.reason : null;
           logger.warn(
             "connection",
             "assemble websocket closed before completion",
             {
               code,
               wsUrl,
-              closeCode: typeof event.code === "number" ? event.code : null,
-              closeReason:
-                typeof event.reason === "string" ? event.reason : null,
+              closeCode,
+              closeReason,
               wasClean:
                 typeof event.wasClean === "boolean" ? event.wasClean : null,
             },
           );
-          fail(new Error(`Assemble socket closed (${event.code})`));
+          const parts: string[] = [];
+          if (socketError) parts.push(`error: ${socketError}`);
+          if (closeReason) parts.push(`reason: ${closeReason}`);
+          if (closeCode) parts.push(`code: ${closeCode}`);
+          fail(
+            new Error(
+              `Assemble socket closed${parts.length > 0 ? ` (${parts.join(", ")})` : ""}`,
+            ),
+          );
         };
       });
     },
@@ -1680,7 +1718,11 @@ export function ConnectionProvider({
         throw new Error("Invalid connection code");
       }
 
-      const password = parsed.password || parsed.code;
+      let password = parsed.password;
+      if (!password) {
+        const assembled = await assembleWithCode(parsed.code);
+        password = assembled.password;
+      }
 
       setSessionState("pending");
       setStatus("connecting");
@@ -1730,7 +1772,7 @@ export function ConnectionProvider({
         throw lastError;
       }
     },
-    [cleanupSockets, connectToGatewayV2, getAssignedProxyUrl],
+    [assembleWithCode, cleanupSockets, connectToGatewayV2, getAssignedProxyUrl],
   );
 
   const resumeSession = useCallback(

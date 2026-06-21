@@ -64,7 +64,7 @@ npx jukto-cli
 
 ## Manager and Proxy
 
-Bun-based WebSocket relay server that connects CLI and app using session codes. Public verion deployed on gateway.jukto.pw
+Bun-based WebSocket relay server that connects CLI and app using session codes. Public verion deployed on proxy.jukto.pw
 
 - Session management with 10-min TTL
 - Dual-channel architecture (control + data)
