@@ -20,10 +20,10 @@ import { createServer, createConnection, Socket } from "net";
 import { createInterface } from "readline";
 
 const DEFAULT_PROXY_URL = normalizeGatewayUrl(
-  process.env.JUKTO_PROXY_URL || "https://gateway.jukto.pw",
+  process.env.JUKTO_PROXY_URL || "https://gateway.jukto.dev", // TODO: check if it's proxy of gateway
 );
 const MANAGER_URL = normalizeGatewayUrl(
-  process.env.JUKTO_MANAGER_URL || "https://manager.jukto.pw",
+  process.env.JUKTO_MANAGER_URL || "https://manager.jukto.dev",
 );
 const CLI_ARGS = process.argv.slice(2);
 function hasAnyFlag(args: string[], ...flags: string[]): boolean {
@@ -3868,7 +3868,6 @@ async function processMessage(message: Message): Promise<Response> {
 
 interface ManagerQrResponse {
   code: string;
-  password: string;
   expiresInMs: number;
 }
 
@@ -4090,19 +4089,11 @@ async function revokePassword(
   throw new Error(message);
 }
 
-function displayQR(payload: string): void {
+function displayQR(code: string): void {
   console.log("\n");
-  qrcode.generate(payload, { small: true }, (qr) => {
+  qrcode.generate(code, { small: true }, (qr) => {
     console.log(qr);
-    const displayCode = (() => {
-      try {
-        const parsed = JSON.parse(payload) as { c?: string; p?: string };
-        return parsed.c || payload;
-      } catch {
-        return payload;
-      }
-    })();
-    console.log(`\n  Session code: ${displayCode}\n`);
+    console.log(`\n  Session code: ${code}\n`);
     console.log(`  Root directory: ${ROOT_DIR}\n`);
     console.log("  Scan the QR code with the Jukto app to connect.");
     console.log("  Press Ctrl+C to exit.\n");
@@ -4454,9 +4445,10 @@ async function main(): Promise<void> {
       }
       const qr = await createQrCode();
       currentSessionCode = qr.code;
-      displayQR(JSON.stringify({ c: qr.code, p: qr.password }));
-      sessionCodeToUse = qr.code;
-      sessionPasswordToUse = qr.password;
+      displayQR(qr.code);
+      const assembled = await assembleWithCode(qr.code);
+      sessionCodeToUse = assembled.code;
+      sessionPasswordToUse = assembled.password;
       await saveSessionForRoot(sessionCodeToUse, sessionPasswordToUse);
     }
 

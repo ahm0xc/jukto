@@ -794,15 +794,6 @@ function startManager(): void {
       expires_at INTEGER NOT NULL
     );
   `);
-  db.run(`
-    CREATE TABLE IF NOT EXISTS issued_passwords (
-      password_hash TEXT PRIMARY KEY,
-      code TEXT NOT NULL,
-      proxy_url TEXT,
-      issued_at INTEGER NOT NULL,
-      expires_at INTEGER NOT NULL
-    );
-  `);
 
   const upsertProxyStmt = db.query(`
     INSERT INTO proxies (
@@ -1105,22 +1096,6 @@ function startManager(): void {
   const deleteExpiredReattachSessionsStmt = db.query(`
     DELETE FROM reattach_sessions
     WHERE expires_at <= ?1
-  `);
-  const upsertIssuedPasswordStmt = db.query(`
-    INSERT INTO issued_passwords (password_hash, code, proxy_url, issued_at, expires_at)
-    VALUES (?1, ?2, ?3, ?4, ?5)
-    ON CONFLICT(password_hash) DO UPDATE SET
-      proxy_url = COALESCE(NULLIF(excluded.proxy_url, ''), issued_passwords.proxy_url),
-      expires_at = excluded.expires_at
-  `);
-  const deleteExpiredIssuedPasswordsStmt = db.query(`
-    DELETE FROM issued_passwords
-    WHERE expires_at <= ?1
-  `);
-  const loadIssuedPasswordsStmt = db.query(`
-    SELECT password_hash, code, proxy_url, issued_at, expires_at
-    FROM issued_passwords
-    WHERE expires_at > ?1
   `);
   const listDeadVmHeartbeatsForCliGraceStmt = db.query(`
     SELECT v.sandbox_id as sandboxId, v.resume_token as resumeToken, v.sandman_url as sandmanUrl,
@@ -1850,30 +1825,6 @@ function startManager(): void {
 
   const assembleSessionsByCode = new Map<string, AssembleSession>();
   const issuedPasswordsByHash = new Map<string, IssuedPasswordRecord>();
-
-  {
-    const now = Date.now();
-    const rows = loadIssuedPasswordsStmt.all(now) as {
-      password_hash: string;
-      code: string;
-      proxy_url: string | null;
-      issued_at: number;
-      expires_at: number;
-    }[];
-    for (const row of rows) {
-      issuedPasswordsByHash.set(row.password_hash, {
-        code: row.code,
-        passwordHash: row.password_hash,
-        proxyUrl: row.proxy_url,
-        issuedAt: row.issued_at,
-        expiresAt: row.expires_at,
-      });
-    }
-    if (rows.length > 0) {
-      console.log(`[manager] loaded ${rows.length} persisted password records`);
-    }
-  }
-
   const assembleMutex = new Mutex();
   const proxyAssignmentMutex = new Mutex();
   const reattachMutex = new Mutex();
@@ -1908,7 +1859,6 @@ function startManager(): void {
       }
     }
 
-    deleteExpiredIssuedPasswordsStmt.run(now);
     deleteExpiredReattachSessionsStmt.run(now);
   };
 
@@ -1950,35 +1900,25 @@ function startManager(): void {
   };
 
   const maybeIssueAssemblePassword = (session: AssembleSession): void => {
+    if (session.password) return;
     if (!session.appWs || !session.cliWs) return;
 
-    if (!session.password) {
-      const password = makeV2Password();
-      const now = Date.now();
-      const passwordHash = hashPassword(password);
-      const expiresAt = now + DEFAULT_RESUME_TOKEN_TTL_MS;
-      session.password = password;
-      const record: IssuedPasswordRecord = {
-        code: session.code,
-        passwordHash,
-        proxyUrl: null,
-        issuedAt: now,
-        expiresAt,
-      };
-      issuedPasswordsByHash.set(passwordHash, record);
-      upsertIssuedPasswordStmt.run(
-        passwordHash,
-        session.code,
-        null,
-        now,
-        expiresAt,
-      );
-    }
+    const password = makeV2Password();
+    const now = Date.now();
+    const passwordHash = hashPassword(password);
+    session.password = password;
+    issuedPasswordsByHash.set(passwordHash, {
+      code: session.code,
+      passwordHash,
+      proxyUrl: null,
+      issuedAt: now,
+      expiresAt: now + DEFAULT_RESUME_TOKEN_TTL_MS,
+    });
 
     const payload = JSON.stringify({
       type: "assembled",
       code: session.code,
-      password: session.password,
+      password,
     });
     session.appWs.send(payload);
     session.cliWs.send(payload);
@@ -2000,13 +1940,6 @@ function startManager(): void {
       const index = hashSessionToRingIndex(record.code, activeProxyUrls);
       record.proxyUrl = activeProxyUrls[index];
       issuedPasswordsByHash.set(passwordHash, record);
-      upsertIssuedPasswordStmt.run(
-        passwordHash,
-        record.code,
-        record.proxyUrl,
-        record.issuedAt,
-        record.expiresAt,
-      );
       return record;
     });
   };
@@ -2613,7 +2546,7 @@ function startManager(): void {
         </div>
         <div class="card-body border-bottom-line">
           <div class="proxy-form">
-            <input id="newUrl" class="input-app" placeholder="https://gateway-1.jukto.pw" />
+            <input id="newUrl" class="input-app" placeholder="https://gateway-1.jukto.dev" />
             <input id="newProxyPw" type="password" class="input-app" placeholder="Proxy password" />
             <button id="addBtn" class="btn-app btn-app-primary">Add Proxy</button>
           </div>
@@ -3183,23 +3116,9 @@ function startManager(): void {
         do {
           code = generateSecureCode();
         } while (assembleSessionsByCode.has(code));
-        const session = getOrCreateAssembleSession(code);
-        const password = makeV2Password();
-        const now = Date.now();
-        const passwordHash = hashPassword(password);
-        const expiresAt = now + DEFAULT_RESUME_TOKEN_TTL_MS;
-        session.password = password;
-        const record: IssuedPasswordRecord = {
-          code: session.code,
-          passwordHash,
-          proxyUrl: null,
-          issuedAt: now,
-          expiresAt,
-        };
-        issuedPasswordsByHash.set(passwordHash, record);
-        upsertIssuedPasswordStmt.run(passwordHash, session.code, null, now, expiresAt);
+        getOrCreateAssembleSession(code);
         return Response.json(
-          { code, password, expiresInMs: V2_CODE_TTL_MS },
+          { code, expiresInMs: V2_CODE_TTL_MS },
           { headers: corsHeaders },
         );
       }

@@ -120,11 +120,23 @@ interface GatewayControlEvent {
   networkInBps?: number;
   networkOutBps?: number;
   lastTelemetry?: number;
-  event?: "peer_connected" | "app_disconnected" | "session_ended" | "session_expired";
-  connectionAction?: "socket_connected" | "socket_disconnected" | "session_end_requested";
+  event?:
+    | "peer_connected"
+    | "app_disconnected"
+    | "session_ended"
+    | "session_expired";
+  connectionAction?:
+    | "socket_connected"
+    | "socket_disconnected"
+    | "session_end_requested";
   resumeToken?: string;
   reconnectDeadline?: number | null;
-  command?: "close_session" | "set_reconnect_grace" | "clear_reconnect_grace" | "set_cli_reconnect_grace" | "ring_update";
+  command?:
+    | "close_session"
+    | "set_reconnect_grace"
+    | "clear_reconnect_grace"
+    | "set_cli_reconnect_grace"
+    | "ring_update";
   ring?: string[];
   role?: Role;
   channel?: string;
@@ -172,7 +184,8 @@ interface AuditLogRow {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Proxy-Password",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, X-Proxy-Password",
 };
 
 function generateSecureCode(): string {
@@ -195,7 +208,7 @@ function getOppositeRole(role: Role): Role {
 function sendSystemMessage(
   ws: ServerWebSocket<WebSocketData> | null | undefined,
   type: string,
-  payload: Record<string, unknown> = {}
+  payload: Record<string, unknown> = {},
 ): void {
   if (!ws) return;
   try {
@@ -211,10 +224,11 @@ function normalizeGatewayUrl(input: string | null): string | null {
     const raw = input.trim();
     const withScheme = raw.includes("://") ? raw : `https://${raw}`;
     const parsed = new URL(withScheme);
-    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    if (parsed.protocol !== "https:") {
       return null;
     }
-    const path = parsed.pathname === "/" ? "" : parsed.pathname.replace(/\/+$/, "");
+    const path =
+      parsed.pathname === "/" ? "" : parsed.pathname.replace(/\/+$/, "");
     return `${parsed.protocol}//${parsed.host}${path}`;
   } catch {
     return null;
@@ -229,12 +243,16 @@ function normalizeGatewayId(input: string | null | undefined): string | null {
   return normalized;
 }
 
-
 function extractClientIp(req: Request): string {
   const forwardedFor = req.headers.get("x-forwarded-for") || "";
   const realIp = req.headers.get("x-real-ip") || "";
   const cfIp = req.headers.get("cf-connecting-ip") || "";
-  const raw = (forwardedFor.split(",")[0] || realIp || cfIp || "unknown").trim();
+  const raw = (
+    forwardedFor.split(",")[0] ||
+    realIp ||
+    cfIp ||
+    "unknown"
+  ).trim();
   return raw || "unknown";
 }
 
@@ -250,10 +268,20 @@ function messageByteLength(message: string | ArrayBuffer | Uint8Array): number {
   return message.byteLength;
 }
 
-function parseProxyControlMessage(message: string | ArrayBuffer | Uint8Array): { action: "fin" | "rst"; reason?: string } | null {
-  const text = typeof message === "string" ? message : Buffer.from(message as ArrayBufferLike).toString("utf-8");
+function parseProxyControlMessage(
+  message: string | ArrayBuffer | Uint8Array,
+): { action: "fin" | "rst"; reason?: string } | null {
+  const text =
+    typeof message === "string"
+      ? message
+      : Buffer.from(message as ArrayBufferLike).toString("utf-8");
   try {
-    const parsed = JSON.parse(text) as { v?: number; t?: string; action?: string; reason?: string };
+    const parsed = JSON.parse(text) as {
+      v?: number;
+      t?: string;
+      action?: string;
+      reason?: string;
+    };
     if (parsed?.v !== 1 || parsed?.t !== "proxy_ctrl") return null;
     if (parsed.action !== "fin" && parsed.action !== "rst") return null;
     return {
@@ -265,7 +293,10 @@ function parseProxyControlMessage(message: string | ArrayBuffer | Uint8Array): {
   }
 }
 
-function makeProxyControlMessage(action: "fin" | "rst", reason?: string): string {
+function makeProxyControlMessage(
+  action: "fin" | "rst",
+  reason?: string,
+): string {
   return JSON.stringify({ v: 1, t: "proxy_ctrl", action, reason });
 }
 
@@ -273,14 +304,25 @@ function redactSensitive(input: unknown): unknown {
   if (input == null) return input;
   if (typeof input === "string") {
     return input
-      .replace(/([A-Za-z0-9\-_]{20,}\.[A-Za-z0-9\-_]{20,}\.[A-Za-z0-9\-_]{20,})/g, "[redacted_jwt]")
+      .replace(
+        /([A-Za-z0-9\-_]{20,}\.[A-Za-z0-9\-_]{20,}\.[A-Za-z0-9\-_]{20,})/g,
+        "[redacted_jwt]",
+      )
       .replace(/[A-Za-z0-9+/=_-]{40,}/g, "[redacted_secret]");
   }
   if (Array.isArray(input)) return input.map((v) => redactSensitive(v));
   if (typeof input === "object") {
     const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
-      if (["password", "token", "resumeToken", "authorization", "x-proxy-password"].includes(k)) {
+      if (
+        [
+          "password",
+          "token",
+          "resumeToken",
+          "authorization",
+          "x-proxy-password",
+        ].includes(k)
+      ) {
         out[k] = "[redacted]";
       } else {
         out[k] = redactSensitive(v);
@@ -302,7 +344,9 @@ function startGateway(): void {
 
   const managerUrl = normalizeGatewayUrl(process.env.MANAGER_URL || "");
   if (!managerUrl) {
-    console.error("[proxy] MANAGER_URL is required (e.g. https://manager.yourdomain.com)");
+    console.error(
+      "[proxy] MANAGER_URL is required (e.g. https://manager.yourdomain.com)",
+    );
     process.exit(1);
   }
   const proxyPassword = process.env.PROXY_PASSWORD || "";
@@ -311,14 +355,15 @@ function startGateway(): void {
     process.exit(1);
   }
   const enforceManagerAuthority =
-    (process.env.ENFORCE_MANAGER_AUTHORITY || "1") !== "0" && Boolean(managerUrl);
+    (process.env.ENFORCE_MANAGER_AUTHORITY || "1") !== "0" &&
+    Boolean(managerUrl);
   const publicUrl = normalizeGatewayUrl(
-    process.env.PUBLIC_URL ||
-    process.env.GATEWAY_URL ||
-    ""
+    process.env.PUBLIC_URL || process.env.GATEWAY_URL || "",
   );
   if (!publicUrl) {
-    console.error("[proxy] PUBLIC_URL is required — the public HTTPS URL of this proxy (e.g. https://one.yourdomain.com)");
+    console.error(
+      "[proxy] PUBLIC_URL is required — the public HTTPS URL of this proxy (e.g. https://one.yourdomain.com)",
+    );
     process.exit(1);
   }
   const gatewayId =
@@ -335,7 +380,10 @@ function startGateway(): void {
     for (const session of sessionsByPassword.values()) set.add(session);
     return Array.from(set);
   };
-  const managerSessionValidationCache = new Map<string, ManagerPasswordValidation>();
+  const managerSessionValidationCache = new Map<
+    string,
+    ManagerPasswordValidation
+  >();
 
   const hasAnySockets = (session: Session): boolean => {
     return session.sockets.cli !== null || session.sockets.app !== null;
@@ -344,16 +392,26 @@ function startGateway(): void {
   const isManagerPasswordAllowed = async (
     password: string,
     role?: Role,
-    generation?: number | null
+    generation?: number | null,
   ): Promise<{ allowed: boolean; reason: string; proxyUrl: string | null }> => {
-    if (!enforceManagerAuthority) return { allowed: true, reason: "authority_disabled", proxyUrl: publicUrl };
-    if (!managerUrl || !password) return { allowed: false, reason: "invalid_input", proxyUrl: null };
+    if (!enforceManagerAuthority)
+      return {
+        allowed: true,
+        reason: "authority_disabled",
+        proxyUrl: publicUrl,
+      };
+    if (!managerUrl || !password)
+      return { allowed: false, reason: "invalid_input", proxyUrl: null };
 
     const cacheKey = `${password}:${role || "-"}:${typeof generation === "number" && generation > 0 ? generation : 0}`;
     const cached = managerSessionValidationCache.get(cacheKey);
     const now = Date.now();
     if (cached && cached.expiresAt > now) {
-      return { allowed: cached.valid, reason: cached.reason, proxyUrl: cached.proxyUrl };
+      return {
+        allowed: cached.valid,
+        reason: cached.reason,
+        proxyUrl: cached.proxyUrl,
+      };
     }
 
     // Read-only mode: serve previously-approved sessions from cache, but only
@@ -361,11 +419,19 @@ function startGateway(): void {
     if (managerReadOnly && cached?.valid) {
       const cacheAge = now - (cached.expiresAt - MANAGER_AUTHORITY_CACHE_MS);
       if (cacheAge < MANAGER_READONLY_CACHE_MAX_MS) {
-        return { allowed: true, reason: "read_only_cache", proxyUrl: cached.proxyUrl };
+        return {
+          allowed: true,
+          reason: "read_only_cache",
+          proxyUrl: cached.proxyUrl,
+        };
       }
       // Cache is too stale — reject and let the session re-authenticate once
       // the manager is reachable again.
-      return { allowed: false, reason: "read_only_cache_expired", proxyUrl: null };
+      return {
+        allowed: false,
+        reason: "read_only_cache_expired",
+        proxyUrl: null,
+      };
     }
 
     try {
@@ -385,11 +451,20 @@ function startGateway(): void {
         // 5xx errors are transient — fall back to cache within the hard cap.
         // 4xx (404, 409, etc.) are authoritative rejections even in read-only mode.
         if (managerReadOnly && cached?.valid && res.status >= 500) {
-          const cacheAge = now - (cached.expiresAt - MANAGER_AUTHORITY_CACHE_MS);
+          const cacheAge =
+            now - (cached.expiresAt - MANAGER_AUTHORITY_CACHE_MS);
           if (cacheAge < MANAGER_READONLY_CACHE_MAX_MS) {
-            return { allowed: true, reason: "read_only_cache", proxyUrl: cached.proxyUrl };
+            return {
+              allowed: true,
+              reason: "read_only_cache",
+              proxyUrl: cached.proxyUrl,
+            };
           }
-          return { allowed: false, reason: "read_only_cache_expired", proxyUrl: null };
+          return {
+            allowed: false,
+            reason: "read_only_cache_expired",
+            proxyUrl: null,
+          };
         }
         managerSessionValidationCache.set(cacheKey, {
           valid: false,
@@ -397,7 +472,11 @@ function startGateway(): void {
           proxyUrl: null,
           expiresAt: now + 1000,
         });
-        return { allowed: false, reason: `manager_http_${res.status}`, proxyUrl: null };
+        return {
+          allowed: false,
+          reason: `manager_http_${res.status}`,
+          proxyUrl: null,
+        };
       }
       const payload = (await res.json()) as {
         valid?: boolean;
@@ -411,7 +490,12 @@ function startGateway(): void {
         assignedProxyUrl === publicUrl;
       const reason = allowed
         ? "ok"
-        : payload.reason || (!assignedProxyUrl ? "proxy_not_assigned" : assignedProxyUrl !== publicUrl ? "wrong_proxy" : "invalid_password");
+        : payload.reason ||
+          (!assignedProxyUrl
+            ? "proxy_not_assigned"
+            : assignedProxyUrl !== publicUrl
+              ? "wrong_proxy"
+              : "invalid_password");
       managerSessionValidationCache.set(cacheKey, {
         valid: allowed,
         reason,
@@ -420,14 +504,25 @@ function startGateway(): void {
       });
       return { allowed, reason, proxyUrl: assignedProxyUrl };
     } catch (err) {
-      console.warn("[authority] manager status check failed:", redactSensitive(String(err)));
+      console.warn(
+        "[authority] manager status check failed:",
+        redactSensitive(String(err)),
+      );
       // Network error in read-only mode: honour previously-cached approval within the hard cap.
       if (managerReadOnly && cached?.valid) {
         const cacheAge = now - (cached.expiresAt - MANAGER_AUTHORITY_CACHE_MS);
         if (cacheAge < MANAGER_READONLY_CACHE_MAX_MS) {
-          return { allowed: true, reason: "read_only_cache", proxyUrl: cached.proxyUrl };
+          return {
+            allowed: true,
+            reason: "read_only_cache",
+            proxyUrl: cached.proxyUrl,
+          };
         }
-        return { allowed: false, reason: "read_only_cache_expired", proxyUrl: null };
+        return {
+          allowed: false,
+          reason: "read_only_cache_expired",
+          proxyUrl: null,
+        };
       }
       managerSessionValidationCache.set(cacheKey, {
         valid: false,
@@ -484,15 +579,24 @@ function startGateway(): void {
     console.log(`[session] terminated (${reason})`);
   };
 
-  const getTunnelQueue = (tunnel: ProxyTunnel, target: Role): Array<string | ArrayBuffer | Uint8Array> => {
+  const getTunnelQueue = (
+    tunnel: ProxyTunnel,
+    target: Role,
+  ): Array<string | ArrayBuffer | Uint8Array> => {
     return target === "cli" ? tunnel.pendingToCli : tunnel.pendingToApp;
   };
 
   const getTunnelPendingBytes = (tunnel: ProxyTunnel, target: Role): number => {
-    return target === "cli" ? tunnel.pendingBytesToCli : tunnel.pendingBytesToApp;
+    return target === "cli"
+      ? tunnel.pendingBytesToCli
+      : tunnel.pendingBytesToApp;
   };
 
-  const setTunnelPendingBytes = (tunnel: ProxyTunnel, target: Role, value: number): void => {
+  const setTunnelPendingBytes = (
+    tunnel: ProxyTunnel,
+    target: Role,
+    value: number,
+  ): void => {
     if (target === "cli") {
       tunnel.pendingBytesToCli = value;
     } else {
@@ -507,7 +611,11 @@ function startGateway(): void {
     }
   };
 
-  const scheduleTunnelGc = (session: Session, tunnelId: string, tunnel: ProxyTunnel): void => {
+  const scheduleTunnelGc = (
+    session: Session,
+    tunnelId: string,
+    tunnel: ProxyTunnel,
+  ): void => {
     if (tunnel.gcTimer) return;
     tunnel.gcTimer = setTimeout(() => {
       const current = session.tunnels.get(tunnelId);
@@ -538,7 +646,7 @@ function startGateway(): void {
     tunnel: ProxyTunnel,
     target: Role,
     message: string | ArrayBuffer | Uint8Array,
-    bytes: number
+    bytes: number,
   ): boolean => {
     const queue = getTunnelQueue(tunnel, target);
     const pendingBytes = getTunnelPendingBytes(tunnel, target);
@@ -688,8 +796,10 @@ function startGateway(): void {
       if (now - createdAt <= 24 * 60 * 60 * 1000) uniqueSessions24h++;
     }
     const elapsedSeconds = Math.max(1, (now - lastTrafficSampleAt) / 1000);
-    const networkInBps = (proxyTrafficInBytesTotal - lastTrafficInBytes) / elapsedSeconds;
-    const networkOutBps = (proxyTrafficOutBytesTotal - lastTrafficOutBytes) / elapsedSeconds;
+    const networkInBps =
+      (proxyTrafficInBytesTotal - lastTrafficInBytes) / elapsedSeconds;
+    const networkOutBps =
+      (proxyTrafficOutBytesTotal - lastTrafficOutBytes) / elapsedSeconds;
     lastTrafficInBytes = proxyTrafficInBytesTotal;
     lastTrafficOutBytes = proxyTrafficOutBytesTotal;
     lastTrafficSampleAt = now;
@@ -723,8 +833,10 @@ function startGateway(): void {
     const enriched = gatewayId ? { ...event, gatewayId } : event;
     if (!managerControlWs || managerControlWs.readyState !== WebSocket.OPEN) {
       // Queue connection/session events for replay; drop metrics (they go stale quickly)
-      if ((event.type === "connection_event" || event.type === "session_event") &&
-          pendingManagerEvents.length < PENDING_MANAGER_EVENTS_MAX) {
+      if (
+        (event.type === "connection_event" || event.type === "session_event") &&
+        pendingManagerEvents.length < PENDING_MANAGER_EVENTS_MAX
+      ) {
         pendingManagerEvents.push(enriched);
       }
       return;
@@ -734,19 +846,26 @@ function startGateway(): void {
 
   const flushPendingManagerEvents = (): void => {
     if (pendingManagerEvents.length === 0) return;
-    console.log(`[manager] flushing ${pendingManagerEvents.length} queued events`);
+    console.log(
+      `[manager] flushing ${pendingManagerEvents.length} queued events`,
+    );
     const toFlush = pendingManagerEvents.splice(0);
     for (const event of toFlush) {
       try {
         managerControlWs?.send(JSON.stringify(event));
-      } catch { /* ignore broken socket */ }
+      } catch {
+        /* ignore broken socket */
+      }
     }
   };
 
   const emitManagerConnectionEvent = (
     session: Session,
-    action: "socket_connected" | "socket_disconnected" | "session_end_requested",
-    extra: Partial<GatewayControlEvent> = {}
+    action:
+      | "socket_connected"
+      | "socket_disconnected"
+      | "session_end_requested",
+    extra: Partial<GatewayControlEvent> = {},
   ): void => {
     if (!session.password || !publicUrl) return;
     emitManagerEvent({
@@ -780,7 +899,9 @@ function startGateway(): void {
 
   const connectManagerControl = (): void => {
     if (!managerUrl || !proxyPassword || !publicUrl) {
-      console.error("[manager-control] cannot connect — missing MANAGER_URL, PROXY_PASSWORD, or PUBLIC_URL");
+      console.error(
+        "[manager-control] cannot connect — missing MANAGER_URL, PROXY_PASSWORD, or PUBLIC_URL",
+      );
       return;
     }
     const wsUrl = `${managerUrl.replace(/^https:/, "wss:")}/v1/gateway/ws`;
@@ -811,39 +932,58 @@ function startGateway(): void {
       const reason = evt.reason ? ` — reason: ${evt.reason}` : "";
       const code = evt.code !== 1000 ? ` (code ${evt.code})` : "";
       if (evt.code === 1008) {
-        console.error(`[manager-control] auth rejected by manager${reason} — check PROXY_PASSWORD matches what was entered in the UI`);
+        console.error(
+          `[manager-control] auth rejected by manager${reason} — check PROXY_PASSWORD matches what was entered in the UI`,
+        );
       } else {
-        console.warn(`[manager-control] disconnected${code}${reason} — will reconnect in 1.5s`);
+        console.warn(
+          `[manager-control] disconnected${code}${reason} — will reconnect in 1.5s`,
+        );
         scheduleManagerReconnect();
       }
     };
 
     ws.onerror = (evt) => {
-      console.error(`[manager-control] WebSocket error connecting to ${managerUrl} — is the manager reachable?`, (evt as any).message ?? "");
+      console.error(
+        `[manager-control] WebSocket error connecting to ${managerUrl} — is the manager reachable?`,
+        (evt as any).message ?? "",
+      );
     };
 
     ws.onmessage = (evt) => {
       try {
-        const raw = typeof evt.data === "string" ? evt.data : String(evt.data || "");
+        const raw =
+          typeof evt.data === "string" ? evt.data : String(evt.data || "");
         const event = JSON.parse(raw) as GatewayControlEvent;
         if (event.type !== "manager_command") return;
 
         // Ring update: no resumeToken needed, just update local ring state
         if (event.command === "ring_update") {
-          const newRing = Array.isArray(event.ring) ? (event.ring as string[]) : [];
+          const newRing = Array.isArray(event.ring)
+            ? (event.ring as string[])
+            : [];
           ringMembership = newRing;
-          const myIdx = publicUrl ? newRing.findIndex((url) => url === publicUrl) : -1;
+          const myIdx = publicUrl
+            ? newRing.findIndex((url) => url === publicUrl)
+            : -1;
           const prevSuccessor = ringSuccessorUrl;
-          ringSuccessorUrl = myIdx >= 0 && newRing.length > 1 ? newRing[(myIdx + 1) % newRing.length] : null;
+          ringSuccessorUrl =
+            myIdx >= 0 && newRing.length > 1
+              ? newRing[(myIdx + 1) % newRing.length]
+              : null;
           if (ringSuccessorUrl !== prevSuccessor) {
-            console.log(`[ring] updated — position ${myIdx + 1}/${newRing.length}, successor: ${ringSuccessorUrl ?? "none"}`);
+            console.log(
+              `[ring] updated — position ${myIdx + 1}/${newRing.length}, successor: ${ringSuccessorUrl ?? "none"}`,
+            );
           }
           return;
         }
 
         const resumeToken = event.resumeToken || "";
         if (!resumeToken) return;
-        const session = sessionsByPassword.get(resumeToken) || getOrCreatePasswordSession(resumeToken);
+        const session =
+          sessionsByPassword.get(resumeToken) ||
+          getOrCreatePasswordSession(resumeToken);
         if (!session) return;
 
         if (event.command === "clear_reconnect_grace") {
@@ -860,7 +1000,7 @@ function startGateway(): void {
               JSON.stringify({
                 type: "app_disconnected",
                 reconnectDeadline: session.reconnectDeadline,
-              })
+              }),
             );
           }
           return;
@@ -872,12 +1012,17 @@ function startGateway(): void {
           if (deadline > Date.now()) {
             session.cliReconnectDeadline = deadline;
             session.sockets.app?.send(
-              JSON.stringify({ type: "cli_reconnecting", reconnectDeadline: deadline })
+              JSON.stringify({
+                type: "cli_reconnecting",
+                reconnectDeadline: deadline,
+              }),
             );
             session.cliGraceTimer = setTimeout(() => {
               session.cliGraceTimer = null;
               session.cliReconnectDeadline = null;
-              sendSystemMessage(session.sockets.app, "peer_disconnected", { peer: "cli" });
+              sendSystemMessage(session.sockets.app, "peer_disconnected", {
+                peer: "cli",
+              });
               terminateSession(session, "cli offline grace expired");
             }, deadline - Date.now());
           }
@@ -890,7 +1035,7 @@ function startGateway(): void {
             JSON.stringify({
               type: "close_connection",
               reason,
-            })
+            }),
           );
           terminateSession(session, reason);
           return;
@@ -904,22 +1049,37 @@ function startGateway(): void {
   const checkManagerHealth = async (): Promise<void> => {
     if (!managerUrl) return;
     try {
-      const res = await fetch(`${managerUrl}/health`, { signal: AbortSignal.timeout(5000) });
+      const res = await fetch(`${managerUrl}/health`, {
+        signal: AbortSignal.timeout(5000),
+      });
       if (res.ok) {
-        if (managerReadOnly) console.log("[manager] health restored — back online, exiting read-only mode");
+        if (managerReadOnly)
+          console.log(
+            "[manager] health restored — back online, exiting read-only mode",
+          );
         managerHealthFailures = 0;
         managerReadOnly = false;
       } else {
         managerHealthFailures++;
-        if (managerHealthFailures >= MANAGER_HEALTH_FAILURES_BEFORE_READONLY && !managerReadOnly) {
-          console.warn(`[manager] health check returned ${res.status} from ${managerUrl} — entering read-only mode (sessions will still work locally)`);
+        if (
+          managerHealthFailures >= MANAGER_HEALTH_FAILURES_BEFORE_READONLY &&
+          !managerReadOnly
+        ) {
+          console.warn(
+            `[manager] health check returned ${res.status} from ${managerUrl} — entering read-only mode (sessions will still work locally)`,
+          );
           managerReadOnly = true;
         }
       }
     } catch {
       managerHealthFailures++;
-      if (managerHealthFailures >= MANAGER_HEALTH_FAILURES_BEFORE_READONLY && !managerReadOnly) {
-        console.warn(`[manager] unreachable (${managerUrl}) — entering read-only mode (sessions will still work locally)`);
+      if (
+        managerHealthFailures >= MANAGER_HEALTH_FAILURES_BEFORE_READONLY &&
+        !managerReadOnly
+      ) {
+        console.warn(
+          `[manager] unreachable (${managerUrl}) — entering read-only mode (sessions will still work locally)`,
+        );
         managerReadOnly = true;
       }
     }
@@ -927,7 +1087,10 @@ function startGateway(): void {
 
   setInterval(cleanupExpiredSessions, 5 * 60 * 1000);
   setInterval(() => emitManagerMetrics(), ANALYTICS_INTERVAL_MS);
-  setInterval(() => void checkManagerHealth(), MANAGER_HEALTH_CHECK_INTERVAL_MS);
+  setInterval(
+    () => void checkManagerHealth(),
+    MANAGER_HEALTH_CHECK_INTERVAL_MS,
+  );
 
   const server = Bun.serve<WebSocketData>({
     port: process.env.PORT || 3000,
@@ -941,24 +1104,32 @@ function startGateway(): void {
       }
 
       if (path === "/health") {
-        const myIdx = publicUrl ? ringMembership.findIndex((u) => u === publicUrl) : -1;
-        return Response.json({
-          status: "ok",
-          mode: "gateway",
-          managerReachable: !managerReadOnly,
-          pendingEvents: pendingManagerEvents.length,
-          ring: {
-            size: ringMembership.length,
-            position: myIdx >= 0 ? myIdx + 1 : null,
-            successor: ringSuccessorUrl,
+        const myIdx = publicUrl
+          ? ringMembership.findIndex((u) => u === publicUrl)
+          : -1;
+        return Response.json(
+          {
+            status: "ok",
+            mode: "gateway",
+            managerReachable: !managerReadOnly,
+            pendingEvents: pendingManagerEvents.length,
+            ring: {
+              size: ringMembership.length,
+              position: myIdx >= 0 ? myIdx + 1 : null,
+              successor: ringSuccessorUrl,
+            },
           },
-        }, { headers: corsHeaders });
+          { headers: corsHeaders },
+        );
       }
 
       if (path === "/v1/ping" && req.method === "GET") {
         const provided = req.headers.get("x-proxy-password") || "";
         if (!proxyPassword || provided !== proxyPassword) {
-          return Response.json({ error: "unauthorized" }, { status: 401, headers: corsHeaders });
+          return Response.json(
+            { error: "unauthorized" },
+            { status: 401, headers: corsHeaders },
+          );
         }
         return Response.json({ ok: true }, { headers: corsHeaders });
       }
@@ -966,53 +1137,91 @@ function startGateway(): void {
       if (path === "/v1/connect" && req.method === "POST") {
         const provided = req.headers.get("x-proxy-password") || "";
         if (!proxyPassword || provided !== proxyPassword) {
-          return Response.json({ error: "unauthorized" }, { status: 401, headers: corsHeaders });
+          return Response.json(
+            { error: "unauthorized" },
+            { status: 401, headers: corsHeaders },
+          );
         }
-        if (managerControlWs && managerControlWs.readyState === WebSocket.OPEN) {
-          return Response.json({ ok: true, status: "already_connected" }, { headers: corsHeaders });
+        if (
+          managerControlWs &&
+          managerControlWs.readyState === WebSocket.OPEN
+        ) {
+          return Response.json(
+            { ok: true, status: "already_connected" },
+            { headers: corsHeaders },
+          );
         }
         connectManagerControl();
-        return Response.json({ ok: true, status: "connecting" }, { headers: corsHeaders });
+        return Response.json(
+          { ok: true, status: "connecting" },
+          { headers: corsHeaders },
+        );
       }
 
       if (path === "/v1/session/preload" && req.method === "POST") {
         const provided = req.headers.get("x-proxy-password") || "";
         if (proxyPassword && provided !== proxyPassword) {
-          console.warn(`[proxy] rejected request — wrong X-Proxy-Password on ${path}`);
-          return Response.json({ error: "unauthorized" }, { status: 401, headers: corsHeaders });
+          console.warn(
+            `[proxy] rejected request — wrong X-Proxy-Password on ${path}`,
+          );
+          return Response.json(
+            { error: "unauthorized" },
+            { status: 401, headers: corsHeaders },
+          );
         }
 
         return req
           .json()
-          .then((body: Partial<BackupRegistration> & { role?: "primary" | "secondary"; peerGateway?: string | null }) => {
-            const password = typeof body.password === "string" ? body.password : "";
-            if (!password || password.length !== SESSION_PASSWORD_LENGTH) {
-              return Response.json({ error: "invalid password" }, { status: 400, headers: corsHeaders });
-            }
+          .then(
+            (
+              body: Partial<BackupRegistration> & {
+                role?: "primary" | "secondary";
+                peerGateway?: string | null;
+              },
+            ) => {
+              const password =
+                typeof body.password === "string" ? body.password : "";
+              if (!password || password.length !== SESSION_PASSWORD_LENGTH) {
+                return Response.json(
+                  { error: "invalid password" },
+                  { status: 400, headers: corsHeaders },
+                );
+              }
 
-            const role = body.role === "secondary" ? "secondary" : "primary";
+              const role = body.role === "secondary" ? "secondary" : "primary";
 
-            const registration: BackupRegistration = {
-              password,
-              createdAt: Number(body.createdAt || Date.now()),
-              role,
-              backupGateway: normalizeGatewayUrl(body.backupGateway || null),
-              peerGateway: normalizeGatewayUrl(body.peerGateway || null),
-            };
-            backupRegistrations.set(password, registration);
-            if (!sessionsByPassword.has(password)) {
-              getOrCreatePasswordSession(password);
-            }
-            return Response.json({ ok: true }, { headers: corsHeaders });
-          })
-          .catch(() => Response.json({ error: "invalid body" }, { status: 400, headers: corsHeaders }));
+              const registration: BackupRegistration = {
+                password,
+                createdAt: Number(body.createdAt || Date.now()),
+                role,
+                backupGateway: normalizeGatewayUrl(body.backupGateway || null),
+                peerGateway: normalizeGatewayUrl(body.peerGateway || null),
+              };
+              backupRegistrations.set(password, registration);
+              if (!sessionsByPassword.has(password)) {
+                getOrCreatePasswordSession(password);
+              }
+              return Response.json({ ok: true }, { headers: corsHeaders });
+            },
+          )
+          .catch(() =>
+            Response.json(
+              { error: "invalid body" },
+              { status: 400, headers: corsHeaders },
+            ),
+          );
       }
 
       if (path === "/v1/session/close" && req.method === "POST") {
         const provided = req.headers.get("x-proxy-password") || "";
         if (proxyPassword && provided !== proxyPassword) {
-          console.warn(`[proxy] rejected request — wrong X-Proxy-Password on ${path}`);
-          return Response.json({ error: "unauthorized" }, { status: 401, headers: corsHeaders });
+          console.warn(
+            `[proxy] rejected request — wrong X-Proxy-Password on ${path}`,
+          );
+          return Response.json(
+            { error: "unauthorized" },
+            { status: 401, headers: corsHeaders },
+          );
         }
 
         return req
@@ -1020,7 +1229,10 @@ function startGateway(): void {
           .then((body: { password?: string }) => {
             const password = body.password || "";
             if (!password) {
-              return Response.json({ error: "password is required" }, { status: 400, headers: corsHeaders });
+              return Response.json(
+                { error: "password is required" },
+                { status: 400, headers: corsHeaders },
+              );
             }
             const session = sessionsByPassword.get(password);
             if (session) {
@@ -1030,31 +1242,54 @@ function startGateway(): void {
             }
             return Response.json({ ok: true }, { headers: corsHeaders });
           })
-          .catch(() => Response.json({ error: "invalid body" }, { status: 400, headers: corsHeaders }));
+          .catch(() =>
+            Response.json(
+              { error: "invalid body" },
+              { status: 400, headers: corsHeaders },
+            ),
+          );
       }
 
       if (path === "/v1/session/alias" && req.method === "POST") {
         const provided = req.headers.get("x-proxy-password") || "";
         if (proxyPassword && provided !== proxyPassword) {
-          console.warn(`[proxy] rejected request — wrong X-Proxy-Password on ${path}`);
-          return Response.json({ error: "unauthorized" }, { status: 401, headers: corsHeaders });
+          console.warn(
+            `[proxy] rejected request — wrong X-Proxy-Password on ${path}`,
+          );
+          return Response.json(
+            { error: "unauthorized" },
+            { status: 401, headers: corsHeaders },
+          );
         }
 
         return req
           .json()
           .then((body: { fromPassword?: string; toPassword?: string }) => {
-            const fromPassword = typeof body.fromPassword === "string" ? body.fromPassword.trim() : "";
-            const toPassword = typeof body.toPassword === "string" ? body.toPassword.trim() : "";
+            const fromPassword =
+              typeof body.fromPassword === "string"
+                ? body.fromPassword.trim()
+                : "";
+            const toPassword =
+              typeof body.toPassword === "string" ? body.toPassword.trim() : "";
             if (!fromPassword || !toPassword) {
-              return Response.json({ error: "fromPassword and toPassword are required" }, { status: 400, headers: corsHeaders });
+              return Response.json(
+                { error: "fromPassword and toPassword are required" },
+                { status: 400, headers: corsHeaders },
+              );
             }
             if (fromPassword === toPassword) {
-              return Response.json({ ok: true, status: "noop" }, { headers: corsHeaders });
+              return Response.json(
+                { ok: true, status: "noop" },
+                { headers: corsHeaders },
+              );
             }
 
             const existingTarget = sessionsByPassword.get(toPassword);
             if (existingTarget && existingTarget.password !== fromPassword) {
-              return Response.json({ error: "target password already in use" }, { status: 409, headers: corsHeaders });
+              return Response.json(
+                { error: "target password already in use" },
+                { status: 409, headers: corsHeaders },
+              );
             }
 
             const sourceSession = sessionsByPassword.get(fromPassword);
@@ -1062,7 +1297,10 @@ function startGateway(): void {
             const targetRegistration = backupRegistrations.get(toPassword);
 
             if (!sourceSession && !sourceRegistration) {
-              return Response.json({ ok: true, status: "missing_source" }, { headers: corsHeaders });
+              return Response.json(
+                { ok: true, status: "missing_source" },
+                { headers: corsHeaders },
+              );
             }
 
             if (sourceSession) {
@@ -1093,16 +1331,27 @@ function startGateway(): void {
               sessionHistory24h.set(toPassword, existingHistory);
             }
 
-            console.log("[session] aliased password", redactSensitive({
-              fromPassword,
-              toPassword,
-              hasLiveSession: Boolean(sourceSession),
-              hasRegistration: Boolean(sourceRegistration),
-            }));
+            console.log(
+              "[session] aliased password",
+              redactSensitive({
+                fromPassword,
+                toPassword,
+                hasLiveSession: Boolean(sourceSession),
+                hasRegistration: Boolean(sourceRegistration),
+              }),
+            );
 
-            return Response.json({ ok: true, status: "aliased" }, { headers: corsHeaders });
+            return Response.json(
+              { ok: true, status: "aliased" },
+              { headers: corsHeaders },
+            );
           })
-          .catch(() => Response.json({ error: "invalid body" }, { status: 400, headers: corsHeaders }));
+          .catch(() =>
+            Response.json(
+              { error: "invalid body" },
+              { status: 400, headers: corsHeaders },
+            ),
+          );
       }
 
       const wsV2Match = path.match(/^\/v2\/ws\/(cli|app)$/);
@@ -1110,26 +1359,45 @@ function startGateway(): void {
         const role = wsV2Match[1] as Role;
         const password = url.searchParams.get("password");
         const rawGeneration = Number(url.searchParams.get("generation") || "0");
-        const generation = Number.isFinite(rawGeneration) && rawGeneration > 0 ? rawGeneration : null;
+        const generation =
+          Number.isFinite(rawGeneration) && rawGeneration > 0
+            ? rawGeneration
+            : null;
 
         if (!password) {
-          return Response.json({ error: "password is required" }, { status: 400, headers: corsHeaders });
+          return Response.json(
+            { error: "password is required" },
+            { status: 400, headers: corsHeaders },
+          );
         }
-        const authority = await isManagerPasswordAllowed(password, role, generation);
+        const authority = await isManagerPasswordAllowed(
+          password,
+          role,
+          generation,
+        );
         if (!authority.allowed) {
           return Response.json(
-            { error: "password not authorized by manager", reason: authority.reason },
-            { status: 403, headers: corsHeaders }
+            {
+              error: "password not authorized by manager",
+              reason: authority.reason,
+            },
+            { status: 403, headers: corsHeaders },
           );
         }
 
         const session = getOrCreatePasswordSession(password);
         if (!session) {
-          return Response.json({ error: "invalid or expired session" }, { status: 404, headers: corsHeaders });
+          return Response.json(
+            { error: "invalid or expired session" },
+            { status: 404, headers: corsHeaders },
+          );
         }
 
         if (session.sockets[role] !== null) {
-          return Response.json({ error: `${role} already connected` }, { status: 409, headers: corsHeaders });
+          return Response.json(
+            { error: `${role} already connected` },
+            { status: 409, headers: corsHeaders },
+          );
         }
 
         const upgraded = server.upgrade(req, {
@@ -1142,7 +1410,10 @@ function startGateway(): void {
         });
 
         if (!upgraded) {
-          return Response.json({ error: "upgrade failed" }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { error: "upgrade failed" },
+            { status: 500, headers: corsHeaders },
+          );
         }
         return undefined;
       }
@@ -1152,24 +1423,43 @@ function startGateway(): void {
         const tunnelId = url.searchParams.get("tunnelId");
         const role = url.searchParams.get("role") as Role | null;
 
-        if (!tunnelId || !role || (role !== "cli" && role !== "app") || !password) {
-          return Response.json({ error: "missing tunnelId/role and password" }, { status: 400, headers: corsHeaders });
+        if (
+          !tunnelId ||
+          !role ||
+          (role !== "cli" && role !== "app") ||
+          !password
+        ) {
+          return Response.json(
+            { error: "missing tunnelId/role and password" },
+            { status: 400, headers: corsHeaders },
+          );
         }
         const authority = await isManagerPasswordAllowed(password);
         if (!authority.allowed) {
           return Response.json(
-            { error: "password not authorized by manager", reason: authority.reason },
-            { status: 403, headers: corsHeaders }
+            {
+              error: "password not authorized by manager",
+              reason: authority.reason,
+            },
+            { status: 403, headers: corsHeaders },
           );
         }
 
-        const session = sessionsByPassword.get(password) || getOrCreatePasswordSession(password);
+        const session =
+          sessionsByPassword.get(password) ||
+          getOrCreatePasswordSession(password);
         if (!session) {
-          return Response.json({ error: "invalid or expired session" }, { status: 404, headers: corsHeaders });
+          return Response.json(
+            { error: "invalid or expired session" },
+            { status: 404, headers: corsHeaders },
+          );
         }
 
         if (!session.password) {
-          return Response.json({ error: "session password not ready" }, { status: 403, headers: corsHeaders });
+          return Response.json(
+            { error: "session password not ready" },
+            { status: 403, headers: corsHeaders },
+          );
         }
 
         if (!session.tunnels.has(tunnelId)) {
@@ -1186,7 +1476,10 @@ function startGateway(): void {
 
         const tunnel = session.tunnels.get(tunnelId)!;
         if (tunnel[role] !== null) {
-          return Response.json({ error: `${role} already connected for tunnel ${tunnelId}` }, { status: 409, headers: corsHeaders });
+          return Response.json(
+            { error: `${role} already connected for tunnel ${tunnelId}` },
+            { status: 409, headers: corsHeaders },
+          );
         }
 
         const upgraded = server.upgrade(req, {
@@ -1199,12 +1492,18 @@ function startGateway(): void {
         });
 
         if (!upgraded) {
-          return Response.json({ error: "upgrade failed" }, { status: 500, headers: corsHeaders });
+          return Response.json(
+            { error: "upgrade failed" },
+            { status: 500, headers: corsHeaders },
+          );
         }
         return undefined;
       }
 
-      return Response.json({ error: "not found" }, { status: 404, headers: corsHeaders });
+      return Response.json(
+        { error: "not found" },
+        { status: 404, headers: corsHeaders },
+      );
     },
 
     websocket: {
@@ -1225,7 +1524,9 @@ function startGateway(): void {
           clearTunnelGc(tunnel);
           tunnel[data.role] = ws as ServerWebSocket<ProxyWebSocketData>;
           flushTunnelQueue(tunnel, data.role);
-          console.log(`[proxy] ${data.role} connected: tunnel=${data.tunnelId}`);
+          console.log(
+            `[proxy] ${data.role} connected: tunnel=${data.tunnelId}`,
+          );
           return;
         }
 
@@ -1236,7 +1537,8 @@ function startGateway(): void {
             return;
           }
 
-          session.sockets[data.role] = ws as ServerWebSocket<SessionV2WebSocketData>;
+          session.sockets[data.role] =
+            ws as ServerWebSocket<SessionV2WebSocketData>;
           console.log(`[ws] ${data.role} connected`);
 
           sendSystemMessage(ws, "connected", { role: data.role });
@@ -1256,15 +1558,23 @@ function startGateway(): void {
             clearCliGraceTimer(session);
           }
 
-          if (data.role === "app" && !session.locked && isPeerConnected(session, "app")) {
+          if (
+            data.role === "app" &&
+            !session.locked &&
+            isPeerConnected(session, "app")
+          ) {
             session.locked = true;
             console.log("[session] locked");
           }
 
           const opposite = getOppositeRole(data.role);
           if (isPeerConnected(session, opposite)) {
-            session.sockets[opposite]?.send(JSON.stringify({ type: "peer_connected", peer: data.role }));
-            session.sockets[data.role]?.send(JSON.stringify({ type: "peer_connected", peer: opposite }));
+            session.sockets[opposite]?.send(
+              JSON.stringify({ type: "peer_connected", peer: data.role }),
+            );
+            session.sockets[data.role]?.send(
+              JSON.stringify({ type: "peer_connected", peer: opposite }),
+            );
             emitManagerMetrics();
           }
           return;
@@ -1287,7 +1597,9 @@ function startGateway(): void {
             ws.close(1008, "tunnel not found");
             return;
           }
-          const control = parseProxyControlMessage(message as string | ArrayBuffer | Uint8Array);
+          const control = parseProxyControlMessage(
+            message as string | ArrayBuffer | Uint8Array,
+          );
           const opposite = getOppositeRole(data.role);
           const target = tunnel[opposite];
           if (control?.action === "rst") {
@@ -1302,7 +1614,12 @@ function startGateway(): void {
             target.send(message);
             proxyTrafficOutBytesTotal += bytes;
           } else {
-            const forwarded = enqueueTunnelMessage(tunnel, opposite, message as string | ArrayBuffer | Uint8Array, bytes);
+            const forwarded = enqueueTunnelMessage(
+              tunnel,
+              opposite,
+              message as string | ArrayBuffer | Uint8Array,
+              bytes,
+            );
             if (!forwarded) {
               ws.send(makeProxyControlMessage("rst", "peer_queue_overflow"));
               ws.close(1011, "peer queue overflow");
@@ -1343,7 +1660,7 @@ function startGateway(): void {
                     action: "end_session",
                     ok: true,
                     payload: { ended: true },
-                  })
+                  }),
                 );
                 emitManagerConnectionEvent(session, "session_end_requested", {
                   reason: "session ended from app",
@@ -1358,7 +1675,8 @@ function startGateway(): void {
             }
           }
 
-          const messageSize = typeof message === "string" ? message.length : message.byteLength;
+          const messageSize =
+            typeof message === "string" ? message.length : message.byteLength;
           if (messageSize > SESSION_V2_MAX_SIZE) {
             ws.close(1009, "message too large");
             return;
@@ -1385,7 +1703,9 @@ function startGateway(): void {
           const tunnel = session.tunnels.get(data.tunnelId);
           if (!tunnel) return;
 
-          console.log(`[proxy] ${data.role} disconnected: tunnel=${data.tunnelId}`);
+          console.log(
+            `[proxy] ${data.role} disconnected: tunnel=${data.tunnelId}`,
+          );
           tunnel[data.role] = null;
 
           const opposite = getOppositeRole(data.role);
@@ -1425,25 +1745,34 @@ function startGateway(): void {
             session.cliReconnectDeadline = deadline;
             const appSocket = session.sockets.app;
             if (appSocket) {
-              sendSystemMessage(appSocket, "cli_reconnecting", { reconnectDeadline: deadline });
+              sendSystemMessage(appSocket, "cli_reconnecting", {
+                reconnectDeadline: deadline,
+              });
             }
             session.cliGraceTimer = setTimeout(() => {
               session.cliGraceTimer = null;
               session.cliReconnectDeadline = null;
               const appPeer = session.sockets.app;
               if (appPeer) {
-                sendSystemMessage(appPeer, "peer_disconnected", { peer: "cli" });
+                sendSystemMessage(appPeer, "peer_disconnected", {
+                  peer: "cli",
+                });
               }
               terminateSession(session, "cli offline grace expired");
             }, CLI_OFFLINE_GRACE_MS);
           } else if (data.role === "app") {
             const cliSocket = session.sockets.cli;
             if (cliSocket) {
-              sendSystemMessage(cliSocket, "peer_disconnected", { peer: "app" });
+              sendSystemMessage(cliSocket, "peer_disconnected", {
+                peer: "app",
+              });
             }
           }
 
-          if (!hasAnyRoleSockets(session, "cli") && !hasAnyRoleSockets(session, "app")) {
+          if (
+            !hasAnyRoleSockets(session, "cli") &&
+            !hasAnyRoleSockets(session, "app")
+          ) {
             clearReconnectTimer(session);
             clearCliGraceTimer(session);
           }
@@ -1454,7 +1783,9 @@ function startGateway(): void {
     },
   });
 
-  console.log(`[proxy] started — port=${server.port} | public=${publicUrl ?? "not set"} | manager=${managerUrl ?? "none"}`);
+  console.log(
+    `[proxy] started — port=${server.port} | public=${publicUrl ?? "not set"} | manager=${managerUrl ?? "none"}`,
+  );
 }
 
 startGateway();
