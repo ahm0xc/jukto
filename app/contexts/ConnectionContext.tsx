@@ -239,9 +239,24 @@ function normalizeGateway(input: string): string {
   }
 }
 
-function parseConnectPayload(value: string): { code: string } {
+function parseConnectPayload(value: string): { code: string; password?: string } {
   const raw = value.trim();
   if (!raw) return { code: '' };
+
+  // Support JSON payload from QR (e.g. {"c":"code","p":"password"})
+  if (raw.startsWith('{') || raw.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(raw) as { c?: string; p?: string };
+      if (parsed.c && parsed.p) {
+        return { code: parsed.c, password: parsed.p };
+      }
+      if (parsed.c) {
+        return { code: parsed.c };
+      }
+    } catch {
+      // ignore JSON parse failure, fall through
+    }
+  }
 
   const parts = raw.split(',').map((x) => x.trim()).filter(Boolean);
   if (parts.length >= 2) {
@@ -956,9 +971,18 @@ export function ConnectionProvider({ children }: { children: React.ReactNode }) 
       const ws = new WebSocket(wsUrl);
       let settled = false;
 
+      const timeout = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        logger.warn('connection', 'assemble websocket timed out', { code, wsUrl });
+        try { ws.close(); } catch { /* ignore */ }
+        reject(new Error('Assemble connection timed out'));
+      }, 15000);
+
       const fail = (error: Error) => {
         if (settled) return;
         settled = true;
+        clearTimeout(timeout);
         logger.warn('connection', 'assemble websocket failed', {
           code,
           wsUrl,
@@ -995,6 +1019,7 @@ export function ConnectionProvider({ children }: { children: React.ReactNode }) 
           }
           if (settled) return;
           settled = true;
+          clearTimeout(timeout);
           ws.send(JSON.stringify({ type: 'ack' }));
           logger.info('connection', 'assemble websocket completed', {
             code,
@@ -1008,15 +1033,19 @@ export function ConnectionProvider({ children }: { children: React.ReactNode }) 
       };
 
       ws.onerror = (event) => {
+        const description = describeWebSocketErrorEvent(event);
         logger.warn('connection', 'assemble websocket error event', {
           code,
           wsUrl,
-          ...describeWebSocketErrorEvent(event),
+          ...description,
         });
-        fail(new Error('Assemble socket error'));
+        if (!settled) {
+          fail(new Error(String(description.nativeMessage || description.message || 'Assemble socket error')));
+        }
       };
 
       ws.onclose = (event) => {
+        clearTimeout(timeout);
         if (settled) return;
         logger.warn('connection', 'assemble websocket closed before completion', {
           code,
@@ -1319,16 +1348,21 @@ export function ConnectionProvider({ children }: { children: React.ReactNode }) 
     }
 
     let assembled: AssembleResult;
-    try {
-      logger.info('connection', 'assembling session in manager', { code: parsed.code });
-      assembled = await assembleWithCode(parsed.code);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Manager assemble failed';
-      logger.error('connection', 'manager assemble failed', { code: parsed.code, error: msg });
-      setSessionState('ended');
-      setStatus('error');
-      setError(msg);
-      throw new Error(msg);
+    if (parsed.password) {
+      logger.info('connection', 'using password from QR payload', { code: parsed.code });
+      assembled = { code: parsed.code, password: parsed.password };
+    } else {
+      try {
+        logger.info('connection', 'assembling session in manager', { code: parsed.code });
+        assembled = await assembleWithCode(parsed.code);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Manager assemble failed';
+        logger.error('connection', 'manager assemble failed', { code: parsed.code, error: msg });
+        setSessionState('ended');
+        setStatus('error');
+        setError(msg);
+        throw new Error(msg);
+      }
     }
 
     setSessionState('pending');

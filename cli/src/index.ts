@@ -3193,6 +3193,7 @@ async function processMessage(message: Message): Promise<Response> {
 
 interface ManagerQrResponse {
   code: string;
+  password: string;
   expiresInMs: number;
 }
 
@@ -3377,11 +3378,19 @@ async function revokePassword(password: string, reason = "revoked by cli --new")
   throw new Error(message);
 }
 
-function displayQR(code: string): void {
+function displayQR(payload: string): void {
   console.log("\n");
-  qrcode.generate(code, { small: true }, (qr) => {
+  qrcode.generate(payload, { small: true }, (qr) => {
     console.log(qr);
-    console.log(`\n  Session code: ${code}\n`);
+    const displayCode = (() => {
+      try {
+        const parsed = JSON.parse(payload) as { c?: string; p?: string };
+        return parsed.c || payload;
+      } catch {
+        return payload;
+      }
+    })();
+    console.log(`\n  Session code: ${displayCode}\n`);
     console.log(`  Root directory: ${ROOT_DIR}\n`);
     console.log("  Scan the QR code with the Jukto app to connect.");
     console.log("  Press Ctrl+C to exit.\n");
@@ -3711,10 +3720,9 @@ async function main(): Promise<void> {
       }
       const qr = await createQrCode();
       currentSessionCode = qr.code;
-      displayQR(qr.code);
-      const assembled = await assembleWithCode(qr.code);
-      sessionCodeToUse = assembled.code;
-      sessionPasswordToUse = assembled.password;
+      displayQR(JSON.stringify({ c: qr.code, p: qr.password }));
+      sessionCodeToUse = qr.code;
+      sessionPasswordToUse = qr.password;
       await saveSessionForRoot(sessionCodeToUse, sessionPasswordToUse);
     }
 

@@ -246,6 +246,7 @@ const JuktoConnect = () => {
 
   const handleBarCodeScanned = ({ data }: { data: string }) => {
     if (isConnecting || hasActiveConnectAttemptRef.current) return;
+    console.log('[jukto-connect] QR code scanned:', data);
     setManualCode(data);
     handleConnectWithCode(data);
   };
@@ -265,6 +266,7 @@ const JuktoConnect = () => {
       hasActiveConnectAttemptRef.current = false;
     } catch (err) {
       hasActiveConnectAttemptRef.current = false;
+      console.error('[jukto-connect] Connection error:', err);
       setError(err instanceof Error ? err.message : t('juktoConnect.errorConnectionFailed'));
       setToastMessage(t('juktoConnect.errorGeneric'));
       setToastVisible(true);

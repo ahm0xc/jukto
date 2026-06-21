@@ -2784,8 +2784,19 @@ function startManager(): void {
         do {
           code = generateSecureCode();
         } while (assembleSessionsByCode.has(code));
-        getOrCreateAssembleSession(code);
-        return Response.json({ code, expiresInMs: V2_CODE_TTL_MS }, { headers: corsHeaders });
+        const session = getOrCreateAssembleSession(code);
+        const password = makeV2Password();
+        const now = Date.now();
+        const passwordHash = hashPassword(password);
+        session.password = password;
+        issuedPasswordsByHash.set(passwordHash, {
+          code: session.code,
+          passwordHash,
+          proxyUrl: null,
+          issuedAt: now,
+          expiresAt: now + DEFAULT_RESUME_TOKEN_TTL_MS,
+        });
+        return Response.json({ code, password, expiresInMs: V2_CODE_TTL_MS }, { headers: corsHeaders });
       }
 
       if (path === "/v2/assemble" && req.method === "GET") {
