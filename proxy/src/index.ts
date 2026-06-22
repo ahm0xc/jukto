@@ -1395,13 +1395,10 @@ function startGateway(): void {
         }
 
         if (session.sockets[role] !== null) {
-          const oldSocket = session.sockets[role]!;
-          session.sockets[role] = null;
-          try {
-            oldSocket.close(1000, "replaced by new connection");
-          } catch {
-            // ignore close failures on stale socket
-          }
+          return Response.json(
+            { error: `${role} already connected` },
+            { status: 409, headers: corsHeaders },
+          );
         }
 
         const upgraded = server.upgrade(req, {
@@ -1480,13 +1477,10 @@ function startGateway(): void {
 
         const tunnel = session.tunnels.get(tunnelId)!;
         if (tunnel[role] !== null) {
-          const oldTunnelSocket = tunnel[role]!;
-          tunnel[role] = null;
-          try {
-            oldTunnelSocket.close(1000, "replaced by new connection");
-          } catch {
-            // ignore close failures on stale tunnel socket
-          }
+          return Response.json(
+            { error: `${role} already connected for tunnel ${tunnelId}` },
+            { status: 409, headers: corsHeaders },
+          );
         }
 
         const upgraded = server.upgrade(req, {
@@ -1710,8 +1704,6 @@ function startGateway(): void {
           const tunnel = session.tunnels.get(data.tunnelId);
           if (!tunnel) return;
 
-          if (tunnel[data.role] !== ws) return;
-
           console.log(
             `[proxy] ${data.role} disconnected: tunnel=${data.tunnelId}`,
           );
@@ -1735,7 +1727,6 @@ function startGateway(): void {
           const session = sessionsByPassword.get(data.password);
           if (!session) return;
 
-          if (session.sockets[data.role] !== ws) return;
           session.sockets[data.role] = null;
           emitManagerConnectionEvent(session, "socket_disconnected", {
             role: data.role,
