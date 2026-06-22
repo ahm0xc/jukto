@@ -955,9 +955,11 @@ function ExplorerPanel({ instanceId, isActive }: PluginPanelProps) {
     }
   }, [currentPath, fs, loadDirectory, runCodebaseSearch, runRepoFileSearch, searchMode, searchQuery, selectedItem, selectedItemPathOverride]);
 
+  const noSessions = useMemo(() => [], []);
+
   useEffect(() => {
     register('explorer', {
-      sessions: [],
+      sessions: noSessions,
       activeSessionId: null,
       onSessionPress: () => {},
       onSessionClose: () => {},
@@ -965,7 +967,7 @@ function ExplorerPanel({ instanceId, isActive }: PluginPanelProps) {
       onReconnectRefreshAll: reconnectRefreshExplorer,
     });
     return () => unregister('explorer');
-  }, [reconnectRefreshExplorer, register, unregister]);
+  }, [reconnectRefreshExplorer, register, unregister, noSessions]);
 
   const navigateUp = useCallback(() => {
     if (currentPath === '.' || currentPath === '') return;

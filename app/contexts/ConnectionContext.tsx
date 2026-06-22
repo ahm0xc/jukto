@@ -420,6 +420,7 @@ export function ConnectionProvider({
   const networkReachableRef = useRef(true);
   const appStateRef = useRef(AppState.currentState);
   const reconnectAttemptRef = useRef(0);
+  const connectingRef = useRef(false);
   const discoveredPortsRef = useRef<number[]>([]);
   const trackedPortsRef = useRef<number[]>([]);
 
@@ -1614,7 +1615,7 @@ export function ConnectionProvider({
   runReconnectLoopRef.current = runReconnectLoop;
 
   const handleConnectivityLost = useCallback(() => {
-    if (manualDisconnectRef.current || !sessionPasswordRef.current) {
+    if (manualDisconnectRef.current || connectingRef.current || !sessionPasswordRef.current) {
       return;
     }
     if (!networkReachableRef.current && interactionBlockReason === "offline") {
@@ -1724,52 +1725,57 @@ export function ConnectionProvider({
         password = assembled.password;
       }
 
-      setSessionState("pending");
-      setStatus("connecting");
-      setError(null);
-      setSessionCode(parsed.code);
-
-      sessionCodeRef.current = parsed.code;
-      sessionPasswordRef.current = password;
-      reattachGenerationRef.current = null;
+      connectingRef.current = true;
       try {
-        gatewaysRef.current = [await getAssignedProxyUrl(password)];
-        logger.info("connection", "resolved gateways", {
-          gateways: gatewaysRef.current,
-        });
-      } catch (err) {
-        const msg =
-          err instanceof Error ? err.message : "Invalid gateway configuration";
-        logger.error("connection", "invalid gateway configuration", {
-          error: msg,
-        });
-        setSessionState("ended");
-        setStatus("error");
-        setError(msg);
-        throw new Error(msg);
-      }
+        setSessionState("pending");
+        setStatus("connecting");
+        setError(null);
+        setSessionCode(parsed.code);
 
-      const gateway = gatewaysRef.current[0];
-      try {
-        await connectToGatewayV2(gateway, {
-          sessionPassword: password,
-          sessionCode: parsed.code,
-        });
-        return;
-      } catch (err) {
-        logger.warn("connection", "gateway connection attempt failed", {
-          gateway,
-          error: err instanceof Error ? err.message : String(err),
-        });
-        const lastError =
-          err instanceof Error ? err : new Error("Connection failed");
-        logger.error("connection", "connect failed", {
-          error: lastError.message,
-        });
-        setSessionState("ended");
-        setStatus("error");
-        setError(lastError.message);
-        throw lastError;
+        sessionCodeRef.current = parsed.code;
+        sessionPasswordRef.current = password;
+        reattachGenerationRef.current = null;
+        try {
+          gatewaysRef.current = [await getAssignedProxyUrl(password)];
+          logger.info("connection", "resolved gateways", {
+            gateways: gatewaysRef.current,
+          });
+        } catch (err) {
+          const msg =
+            err instanceof Error ? err.message : "Invalid gateway configuration";
+          logger.error("connection", "invalid gateway configuration", {
+            error: msg,
+          });
+          setSessionState("ended");
+          setStatus("error");
+          setError(msg);
+          throw new Error(msg);
+        }
+
+        const gateway = gatewaysRef.current[0];
+        try {
+          await connectToGatewayV2(gateway, {
+            sessionPassword: password,
+            sessionCode: parsed.code,
+          });
+          return;
+        } catch (err) {
+          logger.warn("connection", "gateway connection attempt failed", {
+            gateway,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          const lastError =
+            err instanceof Error ? err : new Error("Connection failed");
+          logger.error("connection", "connect failed", {
+            error: lastError.message,
+          });
+          setSessionState("ended");
+          setStatus("error");
+          setError(lastError.message);
+          throw lastError;
+        }
+      } finally {
+        connectingRef.current = false;
       }
     },
     [assembleWithCode, cleanupSockets, connectToGatewayV2, getAssignedProxyUrl],
@@ -1923,7 +1929,7 @@ export function ConnectionProvider({
           return;
         }
 
-        if (!(response instanceof globalThis.Response) || !response.ok) {
+        if (!response.ok) {
           handleConnectivityLost();
           return;
         }

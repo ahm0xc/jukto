@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ScrollView,
@@ -59,9 +59,11 @@ function PortsPanel({ instanceId, isActive }: PluginPanelProps) {
     }
   }, [loadPorts]);
 
+  const noSessions = useMemo(() => [], []);
+
   useEffect(() => {
     register('ports', {
-      sessions: [],
+      sessions: noSessions,
       activeSessionId: null,
       onSessionPress: () => {},
       onSessionClose: () => {},
@@ -69,7 +71,7 @@ function PortsPanel({ instanceId, isActive }: PluginPanelProps) {
       onReconnectRefreshAll: reconnectRefreshPorts,
     });
     return () => unregister('ports');
-  }, [reconnectRefreshPorts, register, unregister]);
+  }, [reconnectRefreshPorts, register, unregister, noSessions]);
 
   useEffect(() => {
     if (isActive && isConnected) loadPorts();

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ScrollView,
@@ -104,9 +104,11 @@ function ProcessesPanel({ instanceId, isActive }: PluginPanelProps) {
     }
   }, [loadProcesses, processApi, selectedProcess]);
 
+  const noSessions = useMemo(() => [], []);
+
   useEffect(() => {
     register('processes', {
-      sessions: [],
+      sessions: noSessions,
       activeSessionId: null,
       onSessionPress: () => {},
       onSessionClose: () => {},
@@ -114,7 +116,7 @@ function ProcessesPanel({ instanceId, isActive }: PluginPanelProps) {
       onReconnectRefreshAll: reconnectRefreshProcesses,
     });
     return () => unregister('processes');
-  }, [reconnectRefreshProcesses, register, unregister]);
+  }, [reconnectRefreshProcesses, register, unregister, noSessions]);
 
   // Load on mount and when active
   useEffect(() => {

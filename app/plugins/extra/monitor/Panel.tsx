@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Text,
@@ -178,9 +178,11 @@ function MonitorPanel({ instanceId, isActive }: PluginPanelProps) {
     }
   }, [isConnected, monitorApi]);
 
+  const noSessions = useMemo(() => [], []);
+
   useEffect(() => {
     register('monitor', {
-      sessions: [],
+      sessions: noSessions,
       activeSessionId: null,
       onSessionPress: () => {},
       onSessionClose: () => {},
@@ -188,7 +190,7 @@ function MonitorPanel({ instanceId, isActive }: PluginPanelProps) {
       onReconnectRefreshAll: loadSystemInfo,
     });
     return () => unregister('monitor');
-  }, [loadSystemInfo, register, unregister]);
+  }, [loadSystemInfo, register, unregister, noSessions]);
 
   useEffect(() => {
     if (isActive && isConnected) loadSystemInfo();

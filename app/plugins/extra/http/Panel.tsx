@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, memo, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ScrollView,
@@ -149,9 +149,11 @@ function HttpPanel({ instanceId, isActive, bottomBarHeight }: PluginPanelProps) 
     }
   }, []);
 
+  const noSessions = useMemo(() => [], []);
+
   useEffect(() => {
     register('http', {
-      sessions: [],
+      sessions: noSessions,
       activeSessionId: null,
       onSessionPress: () => {},
       onSessionClose: () => {},
@@ -159,7 +161,7 @@ function HttpPanel({ instanceId, isActive, bottomBarHeight }: PluginPanelProps) 
       onReconnectRefreshAll: reconnectRefreshHttp,
     });
     return () => unregister('http');
-  }, [reconnectRefreshHttp, register, unregister]);
+  }, [reconnectRefreshHttp, register, unregister, noSessions]);
 
   const addHeader = () => {
     setHeaders([...headers, { id: Date.now().toString(), key: '', value: '', enabled: true }]);

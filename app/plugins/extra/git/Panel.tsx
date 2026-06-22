@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef, memo } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Animated,
@@ -370,9 +370,11 @@ function GitPanel({ instanceId, isActive }: PluginPanelProps) {
     }
   }, [activeTab, fs, git, loadBranches, loadCommits, loadStatus, selectedChangeFile, selectedCommitDetails, showCommitDetailsModal, showFileDiffModal]);
 
+  const noSessions = useMemo(() => [], []);
+
   useEffect(() => {
     register('git', {
-      sessions: [],
+      sessions: noSessions,
       activeSessionId: null,
       onSessionPress: () => {},
       onSessionClose: () => {},
@@ -380,7 +382,7 @@ function GitPanel({ instanceId, isActive }: PluginPanelProps) {
       onReconnectRefreshAll: reconnectRefreshGit,
     });
     return () => unregister('git');
-  }, [register, reconnectRefreshGit, unregister]);
+  }, [register, reconnectRefreshGit, unregister, noSessions]);
 
   useEffect(() => {
     if (isConnected && isActive) loadAll();
